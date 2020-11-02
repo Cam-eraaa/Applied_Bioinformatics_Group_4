@@ -1,0 +1,149 @@
+#!/bin/bash -l
+#SBATCH -A snic2019-8-278
+#SBATCH -p core
+#SBATCH -n 8
+#SBATCH -t 32:00:00
+#SBATCH -J bwt2_
+#SBATCH -o ATAC_mapping_%j.%u.log
+#SBATCH -e ATAC_mapping_%j.%u.er
+
+
+module load bioinfo-tools
+module load bowtie2/2.3.5.1
+module load samtools/1.1
+
+
+THREADS=8 q
+###############################################################################################
+Files and directory set in file 
+################################################################################################
+
+
+#Working directory 
+WORKING_DIR="/proj/snic2019-30-14/nobackup/PRO_seq"
+
+
+#Fastq info 
+FASTQ_FILE_DIR="/proj/snic2019-30-14/private/Toll_Proseq/Trimmed"
+FILE1_SUFFIX=".fastq"
+
+
+# Bowtie2 index file info 
+BOWTIE2_IDX="/proj/snic2019-30-14/private/genomes/mouse_dm_hybrid/bowtie2Index"
+IDX_FILES_PREFIX="dm3_mm"
+
+
+# Genome suffice for files 
+GENOME_SUF="dmel"
+
+
+
+
+
+#####################################################################################
+
+Setup directory and links with files 
+#####################################################################################
+
+
+
+
+#create working directory 
+mkdir $WORKING_DIR
+#Go to working directory 
+cd $WORKING_DIR
+
+
+# Mkdir subdirs for stats and bam files
+
+mkdir "bam_"$GENOME_SUF
+mkdir "stats_"$GENOME_SUF
+
+# Create softlinks for all bowtie index files and create proper link
+ln -s $BOWTIE2_IDX bowtie2_Index
+
+IDX_LOCAL_BASE="bowtie2_Index"/$IDX_FILES_PREFIX
+
+
+
+# Create softlinks for all the fastq files
+mkdir fastqFiles
+ln -s $FASTQ_FILE_DIR/*fastq fastqFiles/
+
+
+#  Identify all files in fasta folder that ends with specified suffix
+FILES="fastqFiles/*"$FILE1_SUFFIX
+
+############################################
+
+
+#Loop over all fastq files 
+#  Loop will do bowtie2 map | samtools sam->bam | samtools sort |samtools index | samtools stats 
+for INFILE1 in $FILES
+do
+	#Find fastq filenames
+	FILENAME1=${INFILE1##*/}
+	FILENAME_BASE=${FILENAME1%%.fastq}
+	FASTQFILE1="fastqFiles/"$FILENAME_BASE".fastq"
+
+	#Samfile name
+	OUT_SAM="bam_"$GENOME_SUF"/"${FILENAME_BASE}"."${GENOME_SUF}".bowtie2.sam"
+	MAPPED_FILENAME_BASE=${OUT_SAM%%.sam}
+
+	#Bamfile names
+	BAMFILENAME=${MAPPED_FILENAME_BASE}".bam"
+	BAM_SORTED_PREFIX=${MAPPED_FILENAME_BASE}".sorted"
+	BAM_SORTED=${BAM_SORTED_PREFIX}".bam"
+	BAM_IDX=${BAM_SORTED}".bai"
+	SORT_DIR=${BAMFILENAME}"_tempdir"
+	BAM_IDXSTATS=${MAPPED_FILENAME_BASE}".idxstats.txt"
+
+	 #echo "variable check"
+	 #echo ""
+	 #echo $infile1
+	 #echo $filename1
+	 #echo $filename_base
+	 #echo ""
+	 #echo $fastqFile2
+	 #echo ""
+	 #echo $out_sam
+	 #echo $BAMFILENAME
+	 #echo ""
+	 #echo $idx_local_dir
+	 #echo $idx_local_base
+	 #echo $idx_files
+
+	
+	cmd="bowtie2 --threads $THREADS -x $IDX_LOCAL_BASE -U $FASTQFILE1 -S $OUT_SAM"
+
+	echo $cmd
+	
+done
+
+	#bowtie2 --very-sensitive -k1 -S -X1000 $idx_local_base -1 $filename1 -2 $filename2 $OUT_SAM
+
+	bowtie2 --threads $THREADS -x $IDX_LOCAL_BASE -U $FASTQFILE1 -S $OUT_SAM
+
+
+	#sort & index
+	echo "bam sorting & indexing"
+	samtools view -@ $THREADS -h -b -o $BAMFILENAME $OUT_SAM
+	samtools sort -@ $THREADS $BAMFILENAME $BAM_SORTED_PREFIX
+	samtools index $BAM_SORTED
+
+	#echo "check SNIC_TMP"
+	#ls $SNIC_TMP
+
+	echo "idxstats in "$BAM_SORTED
+	samtools idxstats $BAM_SORTED >$BAM_IDXSTATS
+
+	# Not sure about this!
+	#cp $bam_sorted $outdir_bam
+	#cp $bam_idx $outdir_bam
+	#cp $bam_idxstats $outdir_stats
+
+done
+echo "******* read mapping done! *********"
+
+
+

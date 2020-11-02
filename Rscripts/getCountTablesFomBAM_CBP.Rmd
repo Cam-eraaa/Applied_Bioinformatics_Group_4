@@ -1,0 +1,194 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+params:
+workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+#workingDir: /Users/roshan/projects/tollTranscription/m_mannervik_19
+CBPfile: CBP_ChIP_seq_mapped.tab.txt
+scriptDir: bash_scripts
+
+
+---
+
+
+The steps on uppmax to create the correct file 
+# 
+
+```{r}
+library(tidyverse)
+
+sampleInfoFile  = paste(params$workingDir,"information", params$CBPfile , sep = "/") 
+
+sampleInfo = read.table(file = sampleInfoFile, header = T, sep = "\t", quote = "", stringsAsFactors = F)
+
+CBP_toll_sampleInfo = sampleInfo %>% filter(celltype == "embryo" & drug != "Undetermined")
+
+```
+
+
+
+## sort the bamfiles according to name
+```{r sort the files according to name in bam ATAC seq }
+
+nrOfCores = 8
+bamFilesInfo = CBP_toll_sampleInfo %>% select(bamFiles)
+bamFilesInfo$NameBamFiles = gsub(pattern = "sorted.bam","sorted.name.bam", bamFilesInfo$bamFiles)
+
+bamFilesInfo$sorting = paste("if [ ! -f ", 
+                             bamFilesInfo$NameBamFiles,
+                             " ]; then samtools sort --threads ",nrOfCores," -n -o ",
+                             bamFilesInfo$NameBamFiles,
+                             " ",
+                             bamFilesInfo$bamFiles,
+                             "; fi",
+                             sep = "")
+
+
+
+
+fileConn<-file(paste(params$workingDir, params$scriptDir, "samtools.sort.name.CBPseq1.sh", sep = "/"))
+writeLines(text = c("cd /proj/snic2019-30-14/nobackup"," ",
+                    "module load bioinfo-tools",
+                    "module load samtools"," "," "
+),con =  fileConn, sep = "\n")
+close(fileConn)
+
+
+write.table(x = bamFilesInfo$sorting, file = paste(params$workingDir, params$scriptDir, "samtools.sort.name.CBPseq1.sh", sep = "/"), append = TRUE, quote = F, sep = "\t", row.names = F,col.names = F)
+
+
+
+```
+
+
+
+
+
+##Create the correct genrichFile
+
+```{r generich ATAC seq }
+
+
+
+
+
+Genotypes = unique(CBP_toll_sampleInfo$drug)
+
+blackListFile = "/proj/snic2019-30-14/private/genomes/dm6/dm6-blacklist.v2.bed"
+
+
+GenerichCalls = data.frame(test = 1:100, GenrichCall = "test", sortBam = "test" ,stringsAsFactors = F)
+counts = 1
+for (j in 1:length(Genotypes)){
+  experiment = CBP_toll_sampleInfo %>%  filter(drug ==Genotypes[j] & antibody == "CBP")
+  if(nrow(experiment) > 0){
+    experiment$bamFiles = gsub(pattern = "sorted.bam","sorted.name.bam", experiment$bamFiles)
+    
+    input = CBP_toll_sampleInfo %>%  filter(drug ==Genotypes[j] & antibody == "input")
+    input$bamFiles = gsub(pattern = "sorted.bam","sorted.name.bam", input$bamFiles)
+    GenerichCall = paste( "Genrich",
+                          "-r -y -g 20",
+                          paste( "-f",paste("Genrich",paste("CBP",Genotypes[j],"genrich.encode.narrowPeak.log",sep = "_"), sep  ="/")),
+                          paste( "-k",paste("Genrich",paste("CBP",Genotypes[j],"genrich.encode.narrowPeak.pileups",sep = "_"), sep  ="/")),
+                          paste( "-b",paste("Genrich",paste("CBP",Genotypes[j],"genrich.encode.narrowPeak.intervals",sep = "_"), sep  ="/")),
+                          paste( "-R",paste("Genrich",paste("CBP",Genotypes[j],"genrich.encode.narrowPeak.pcrDuplicates",sep = "_"), sep  ="/")),
+                          paste( "-E",blackListFile, sep = " "),
+                          paste( "-t",paste(experiment$bamFiles, collapse = ","), sep  =" "),
+                          paste( "-c",paste(input$bamFiles, collapse = ","), sep  =" "),
+                          paste( "-o",paste("Genrich",paste("CBP",Genotypes[j],"genrich.encode.narrowPeak",sep = "_"), sep  ="/")),
+                          sep = " ")
+    GenerichCall
+    GenerichCalls[counts ,2 ] = GenerichCall
+    counts = counts + 1
+  }
+  
+}
+
+
+GenerichCalls = GenerichCalls[1:11,2]
+
+
+info = data.frame(calls = GenerichCalls)
+
+dim(info)
+
+
+
+fileConn<-file(paste(params$workingDir, params$scriptDir, "Genrich.CBPseq1.sh", sep = "/"))
+writeLines(text = c("cd /proj/snic2019-30-14/nobackup"," "),con =  fileConn, sep = "\n")
+close(fileConn)
+
+write.table(x = GenerichCalls, file = paste(params$workingDir, params$scriptDir, "Genrich.CBPseq1.sh", sep = "/"), append = TRUE, quote = F, sep = "\t", row.names = F,col.names = F)
+writeLines(GenerichCalls[[i]], fileConn)
+
+
+
+
+
+```
+
+
+## Merge all the files into one
+
+
+```{r merge the bedfiles into one }
+
+load_module = "module load bioinfo-tools BEDTools/2.27.1"
+correctDir =  "cd /proj/snic2019-30-14/nobackup/Genrich"
+
+
+line1 = "cat CBP*genrich.encode.narrowPeak |sort -k1,1 -k2,2n   >CBP.genrich.encode.narrowPeak"
+line2 = "bedtools merge -d 200 -i CBP.genrich.encode.narrowPeak > CBP.genrich.encode.narrowPeak.merged.bed"
+line3 = 'CBP.genrich.encode.narrowPeak.merged.bed |awk \'BEGIN{FS=OFS="\\t"; print "GeneID\\tChr\\tStart\\tEnd\\tStrand"}{print "Region"NR, $1, $2+1, $3, "."}\' >CBP.genrich.encode.narrowPeak.merged.SAF'
+
+
+
+
+
+fileConn<-file(paste(params$workingDir, params$scriptDir, "Genrich.CBPmerge.sh", sep = "/"))
+writeLines(text = c(load_module," ",correctDir," ",line1,line2,line3),con =  fileConn, sep = "\n")
+close(fileConn)
+
+
+
+
+
+```
+
+```{r run featureCount on chipseq data}
+
+
+
+
+load_module = "module load bioinfo-tools subread/2.0.0"
+correctDir =  "cd /proj/snic2019-30-14/nobackup"
+
+
+featureCountCall = paste( "featureCounts  -F SAF -T 5",
+                          paste( "-a",
+                                 paste("Genrich","CBP.genrich.encode.narrowPeak.merged.SAF", sep  ="/"), 
+                                 sep  =" "),
+                          
+                          paste( "-o",
+                                 paste("ChIPseq","CBP.featureCount.count.tab.txt", sep  ="/")
+                                 , sep  =" "),
+                          paste(CBP_toll_sampleInfo$bamFiles, collapse = " "),
+                          sep = " ")
+
+
+
+fileConn<-file(paste(params$workingDir, params$scriptDir, "CBP.featureCount.sh", sep = "/"))
+writeLines(text = c(load_module," ",correctDir," ",featureCountCall),con =  fileConn, sep = "\n")
+close(fileConn)
+
+
+
+
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).

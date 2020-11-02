@@ -1,0 +1,9 @@
+VTID,Chrosome,Start,End,Length,Verification Status,Positive,stg4_6,stg7_8,stg9_10,stg11_12,stg13_14,stg15_16
+VT22314,chr2RHet,53454,54136,682,correct,0,NA,NA,NA,NA,NA,NA
+VT22315,chr2RHet,54157,56815,2658,correct,0,NA,NA,NA,NA,NA,NA
+VT22985,chr2RHet,2387301,2388206,905,correct,0,NA,NA,NA,NA,NA,NA
+VT22988,chr2RHet,2391775,2393870,2095,not_verified,1,NA,NA,NA,NA,brain_broad;1|ventral_nerve_cord_broad;1,brain_broad;2|ventral_nerve_cord_broad;2
+VT23241,chr2RHet,3140085,3142090,2005,not_verified,0,NA,NA,NA,NA,NA,NA
+VT23245,chr2RHet,3154151,3154763,612,correct,0,NA,NA,NA,NA,NA,NA
+VT23254,chr2RHet,3174011,3174737,726,correct,0,NA,NA,NA,NA,NA,NA
+VT23256,chr2RHet,3175753,3176605,852,correct,0,NA,NA,NA,head_subset;1,head_subset;1,NA

@@ -1,0 +1,1365 @@
+---
+title: "Figures to the article"
+author: "Johan"
+date: "10/25/2019"
+html_document:
+    toc: true
+    toc_depth: 2
+
+df_print: paged
+
+params:
+  workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+  proSeqDir: results/PROseq
+  proSeq.data: PROseq.data.tsv
+  PolII_NormalisedFile: data/PROseq/PolII-PROseq.rlog.cds.txt
+  
+  proSeq.data.PPC: PROseq.data.PPC.tsv
+  ChIPdataDir: data/ChIPseq
+  NormalisedCBPpeakData: ATAC-CBP_dm6.featureCount.rlog.tab.txt
+  normalisedK27acpeakData: K27ac.featureCount.rlog.tab.txt
+  K27_ATAC_peakData: ATAC_K27ac.peaksInfo.tab.txt 
+  ATACdataDir: data/ATACseq
+  normalisedATACpeakData: ATAC.peak.featureCount.rlog.tab.txt
+  ATAC_Naive_normalised: ATAC.peak.Naive.featureCount.rlog.tab.txt 
+
+  
+  ATACSeqDir: results/ATACseq
+  ChIPSeqDir: results/ChIPseq
+  ATACSeq.data: ATACseq.data.raw.tsv
+  k27ac.data: K27ac.ChIPseq.peak.pattern.raw.tsv
+  CBP.data: ATAC-CBP_dm6.ChIPseq.peak.pattern.raw.tsv
+  chipSeqDir: results/chipSeq
+  RscriptsDir: R_Analysis/Rscripts  
+  sampleInfo: information/ChIP_ATAC_sampleInfo.tab.txt
+  enhancerInfo: results/combined.peaks.location.tsv
+  
+  GD7enhancer: data/ChIPseq/h3k27ac_gd7_csaw_intersect.bed
+  Toll10benhancer: data/ChIPseq/h3k27ac_Toll10B_csaw_intersect.bed
+  Toll9enhancer: data/ChIPseq/h3k27ac_Tollrm910_csaw_intersect.bed
+
+  InSituDir:  results/inSitu
+  InSituFile: inSitu.Stark.dm6.tsv
+
+
+  RfunctionsDirectory: /Users/johanreimegard/GoogleDrive/git/RNAmappingPipeline/R
+  
+  
+---
+
+
+
+
+
+
+```{r setup, include=FALSE}
+
+#source(paste(params$RfunctionsDirectory,"ExpressionAnalysisFunctions.R",sep = "/"))
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+library(gplots)
+
+#library(knitr)
+#install.packages("kableExtra")
+library(kableExtra)
+library("viridis")     
+
+#install.packages("heatmap3")
+
+library(heatmap3)
+
+#install.packages("ggrepel")
+library(ggrepel)
+
+library(tsne)
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+
+#BiocManager::install("GenomicRanges")
+library(GenomicRanges)
+library("ggsci")
+
+
+gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28.99.gtf", sep = "/")
+cbPalette <- c( "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7","#999999")
+
+cbPalette <- c("Gd7" ="#E69F00", "Toll10b" = "#56B4E9", "Toll9/10" = "#009E73", "gd7" ="#E69F00", "toll10b" = "#56B4E9", "toll9" = "#009E73" ,"dorsal_ectoderm"= "#F0E442","mesoderm"= "#0072B2","ventral_ectoderm"= "#D55E00", "Examples" = "#000000","Other" = "#99999903", "Dorsal Ectoderm"= "#F0E442","Mesoderm"= "#0072B2","Neural Ectoderm"= "#D55E00", "Examples" = "#000000","None" = "#99999904", wt  ="green")
+
+
+# To use for fills, add
+#  scale_fill_manual(values=cbPalette)
+
+# To use for line and point colors, add
+#  scale_colour_manual(values=cbPalette)
+
+```
+
+
+
+
+
+
+
+
+
+#Figures to the article Loading and merging data 
+
+Roshan and I had a meeting today and went through again what we have and decided on the following order for the figures in the paper.
+We decided to use the first two figures for showing that the data is good and fits with what to expect. We also show that we find more genes and more enhancers
+that show similair expression levels as the already known genes and enhancers.
+
+1. Figure 1 PRO seq data identification and validation of PROseq genes.
+2. Figure 2 ATAC-seq, CBP ChIP-seq and H3K27ac ChIP-seq  seq data identification and validation of PROseq genes.
+3. Figure 3 Combine all datatypes and identify subclasses  
+4. Figure 4 Opening up of enhancer regions at the different time points. 
+5. Figure 5 PI is high for but a bit different for the different subclasses 
+
+
+We have a powerpoint will the first thoughts on how the figures should look. 
+
+
+
+```{r known genes, include=FALSE}
+knownGenes = read.table(file = paste(params$workingDir,"information/FlyBase_IDs.txt", sep = "/"),
+                        sep = "\t", header = F, quote = "", stringsAsFactors = F)
+colnames(knownGenes) = c("Submitted ID", "Current ID","Converted ID","symbol")
+
+
+knownGenes= knownGenes %>% dplyr::select('Submitted ID', 'Current ID','Converted ID','symbol')
+
+knownGenes2 = read.table(file = paste(params$workingDir,"information/knownTargets2.tsv.txt", sep = "/"),
+                        sep = "\t", header = F, quote = "", stringsAsFactors = F)
+colnames(knownGenes2) = c("Submitted ID", "Annotation","Reference")
+knownGenes2= knownGenes2 %>% dplyr::select('Submitted ID', Annotation,Reference)
+
+
+knownGenesFinal = inner_join(knownGenes,knownGenes2) %>% 
+  dplyr::select('Current ID',symbol, Annotation, Reference) %>%
+  dplyr::rename(geneID = "Current ID") %>% 
+  arrange(Annotation, Reference, symbol)
+
+
+
+
+  
+
+
+
+```
+
+
+```{r PROseq  CDS info, include=FALSE}
+
+
+
+
+
+PROseqInfo = read.table( file = paste( params$workingDir, params$proSeqDir, params$proSeq.data,
+                          sep = "/"),
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+
+
+transcript2geneID = PROseqInfo %>% dplyr::select(geneID, transcriptID) %>% distinct()
+
+PROseqDF= PROseqInfo %>%  
+  dplyr::select(geneID,sampleName, mutant, time,rlog) %>% 
+  dplyr::rename( sampleID= "sampleName") %>%
+  dplyr::rename(Genotype = "mutant") %>%
+  mutate(dataType = "PROseq") %>%
+  dplyr::select(geneID, sampleID, Genotype,time, dataType, rlog)
+  
+
+DEgeneID = PROseqInfo %>% filter( annotation2 == "DE" & factor != "Time")  %>% dplyr::select(geneID, factor, direction) %>% distinct()
+
+
+common = left_join( knownGenesFinal, DEgeneID)
+which(is.na(common$factor))
+
+
+
+
+```
+
+
+
+
+```{r PROseq  CDS info, include=FALSE}
+
+
+PolII_NormalisedFile =  paste( params$workingDir, params$PolII_NormalisedFile,sep = "/")
+
+PollIIseq = read.table( file = PolII_NormalisedFile,
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+PollIIseqDF =PollIIseq %>% gather(key = sampleID, value = rlog, - transcriptID) %>%
+  inner_join(transcript2geneID) %>% distinct() %>% 
+  separate(col = sampleID, into = c("Genotype", "dataType","rep"), remove = F) %>%
+  mutate(time = "3h") %>%
+  dplyr::select(geneID, sampleID, Genotype,time, dataType, rlog)
+
+
+
+
+```
+
+
+```{r merge the data, include=FALSE}
+
+GBdata = rbind(PollIIseqDF, PROseqDF)
+GBdata = left_join(GBdata,knownGenesFinal) %>%
+  dplyr::mutate(Annotation=replace(Annotation, is.na(Annotation), "None")) %>%
+  dplyr::mutate(Reference=replace(Reference, is.na(Reference), "None"))
+
+
+
+GBdata2 = GBdata %>% group_by(geneID,dataType) %>% 
+  summarise(min = min(rlog)) %>% 
+  inner_join(GBdata) %>%
+  mutate(diff = rlog-min)
+
+GBdata2
+GBdata2 = GBdata2 %>% 
+  mutate(Genotype = replace(Genotype, Genotype == "gd7", values = "Gd7")) %>%
+  mutate(Genotype = replace(Genotype, Genotype == "toll10b", values = "Toll10b")) %>%
+  mutate(Genotype = replace(Genotype, Genotype == "toll9", values = "Toll9/10"))
+
+```
+
+
+
+
+#PEAKS
+## ATAC peaks
+
+```{r }
+
+
+
+rlogFile = paste( params$workingDir, params$ATACdataDir, params$normalisedATACpeakData,sep = "/")
+ATACseqCounts = read.table( file = rlogFile,
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+ATACseqCounts = ATACseqCounts %>% dplyr::rename(Geneid = "geneID") %>% 
+  separate(sampleID, into = c("Genotype", "time", "rep"),sep = "_", remove = F) %>%
+  dplyr::mutate(Genotype=replace(Genotype, Genotype=="Toll9.10", "Toll9")) %>%
+  dplyr::mutate(Genotype=replace(Genotype, Genotype=="gd7", "Gd7")) %>%
+  dplyr::mutate(Genotype=replace(Genotype, Genotype=="Toll10B", "Toll10b")) %>%
+  mutate(type = "ATACseq") %>% 
+  dplyr::select(Geneid, sampleID, Genotype, time,  type, rlog)
+```
+
+## ATAC NC peaks
+
+```{r }
+
+
+Naive_ATAC_Normalised_file = paste(params$workingDir, params$dataDir,params$ATAC_Naive_normalised, sep = "/")
+
+rlogFile = paste( params$workingDir, params$ATACdataDir, params$ATAC_Naive_normalised,sep = "/")
+ATACseqCounts_Naive = read.table( file = rlogFile,
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+
+ATACseqNaive = ATACseqCounts_Naive %>% dplyr::rename(sampleID = "SampleInfo") %>%
+  dplyr::rename(time = "Nuclearcycle") %>%
+  dplyr::rename(type = "Assaytype") %>%
+  mutate(type = "ATACseq")%>%
+  separate(sampleID, into = c("A", "B", "NC","T2","rep"),sep = "_", remove = F) %>%
+  filter(T2 == "03") %>%
+  dplyr::select(Geneid, sampleID, Genotype, time,  type, rlog) %>% group_by(Geneid, time) %>%
+   summarise(meanExpression = mean(rlog)) %>% spread(key = time, value = meanExpression) %>%
+  mutate(diff = NC13-NC11)
+
+
+
+```
+
+## CBP peaks
+
+```{r CBP peaks}
+rlogFile = paste( params$workingDir, params$ChIPdataDir, params$NormalisedCBPpeakData,sep = "/")
+
+CBPseqCount = read.table( file = rlogFile,
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+CBPseqCount = CBPseqCount %>% dplyr::rename(Geneid = "geneID") %>%
+  mutate(type = "CBP_ChIPseq") %>% 
+  mutate(time = "3h") %>% 
+  dplyr::select(Geneid, sampleID, Genotype, time, type, rlog)
+
+
+
+
+
+```
+
+
+## K27ac peaks
+
+```{r k27ac data}
+
+rlogFile = paste( params$workingDir, params$ChIPdataDir, params$normalisedK27acpeakData ,sep = "/")
+
+
+
+K27acseqCount = read.table( file = rlogFile,
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+K27acseqCount = K27acseqCount %>% dplyr::rename(K27ac_Geneid = "geneID") %>%
+  separate(sampleID, into = c("Genotype",  "rep"),sep = "_", remove = F) %>%
+  mutate(type = "K27ac_ChIPseq") %>% 
+  mutate(time = "3h") %>% 
+  dplyr::select(K27ac_Geneid, sampleID, Genotype, time, type, rlog)
+
+
+k27acPeaksFile = paste( params$workingDir, params$ATACSeqDir, params$K27_ATAC_peakData ,sep = "/")
+
+
+
+ATAC_K27ac_peaksInfo = read.table( file = k27acPeaksFile,
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+
+
+k27acPeaks  = inner_join(ATAC_K27ac_peaksInfo, K27acseqCount) %>% 
+  dplyr::select(Geneid, sampleID, Genotype, time, type, rlog) 
+  
+
+
+
+
+
+```
+
+###Merge the countFiles
+
+```{r k27ac data}
+
+CountTable = rbind(ATACseqCounts, CBPseqCount)
+CountTable = rbind(CountTable, k27acPeaks)
+
+#CountTable = rbind(CountTable, ATACseqCounts_Naive)
+
+
+```
+
+
+# Annotate the peaks 
+
+### Enhancers
+
+```{r  Enhancer information}
+
+# Load in the fastq file that is generated as data from running multiqc on all samples. 
+GD7enhancersFile = paste(params$workingDir, params$GD7enhancer, sep = "/")
+GD7enhancers = read.table(file = GD7enhancersFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
+GD7enhancers = GD7enhancers[,1:3]
+colnames(GD7enhancers) = c("Chr","Start","End")
+GD7enhancers$Genotype = "Gd7"
+
+Toll10benhancersFile = paste(params$workingDir, params$Toll10benhancer, sep = "/")
+Toll10benhancers = read.table(file = Toll10benhancersFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
+Toll10benhancers = Toll10benhancers[,1:3]
+colnames(Toll10benhancers) = c("Chr","Start","End")
+Toll10benhancers$Genotype = "Toll10b"
+
+
+Toll9enhancersFile = paste(params$workingDir, params$Toll9enhancer, sep = "/")
+Toll9enhancers = read.table(file = Toll9enhancersFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
+Toll9enhancers = Toll9enhancers[,1:3]
+colnames(Toll9enhancers) = c("Chr","Start","End")
+Toll9enhancers$Genotype = "Toll9"
+
+Enhancers = rbind(GD7enhancers,Toll10benhancers,Toll9enhancers)
+Enhancers$Strand = "."
+Enhancers$Chr = paste("chr",Enhancers$Chr, sep = "")
+
+
+
+
+EnhancersPeakData = makeGRangesFromDataFrame(Enhancers,
+                                      seqnames.field = "Chr", 
+                                      start.field = "Start", 
+                                      end.field = "End", 
+                                      strand.field = "Strand", 
+                                      keep.extra.columns = TRUE)
+EnhancersPeakData
+
+
+```
+### In situ
+```{r  Stark in situ information}
+
+# Load in the fastq file that is generated as data from running multiqc on all samples. 
+
+
+inSituFile = paste(params$workingDir, 
+                            params$InSituDir,
+                            params$InSituFile,
+                            sep = "/")
+inSituDF = read.table(file = inSituFile, header = T, sep = "\t", quote = "", stringsAsFactors = F)
+
+inSituDF$ventral_ectoderm = FALSE
+inSituDF[grep(pattern = "ventral_ectoderm", x = inSituDF$stg4_6), "ventral_ectoderm"] = TRUE
+inSituDF$mesoderm = FALSE
+inSituDF[grep(pattern = "mesoderm_AISN", x = inSituDF$stg4_6), "mesoderm"]= TRUE
+inSituDF$dorsal_ectoderm = FALSE
+inSituDF[grep(pattern = "dorsal_ectoderm", x = inSituDF$stg4_6),"dorsal_ectoderm"] = TRUE
+inSituDF$inSitu = "Background"
+inSituDF$inSitu[inSituDF$ventral_ectoderm] = "ventral_ectoderm"
+inSituDF$inSitu[inSituDF$mesoderm] = "mesoderm"
+inSituDF$inSitu[inSituDF$dorsal_ectoderm] = "dorsal_ectoderm"
+
+
+inSituDF.Enhancers = inSituDF %>% filter(inSitu != "Background")
+
+inSituData.Enhancers = makeGRangesFromDataFrame(inSituDF.Enhancers,
+                                      seqnames.field = c("Chr","seqnames"), 
+                                      start.field = c("Start","start"), 
+                                      end.field = c("End","end"), 
+                                      strand.field = "Strand", 
+                                      keep.extra.columns = TRUE)
+
+
+
+```
+
+
+
+```{r our enhancer data }
+
+EnhancerFile = paste(params$workingDir, 
+                            params$enhancerInfo,
+                            sep = "/")
+EnhancerInfo = read.table(file = EnhancerFile, header = T, sep = "\t", quote = "", stringsAsFactors = F)
+
+EnhancerInfo = EnhancerInfo %>% dplyr::select(Geneid,EnhancerDistance,geneID,ATAC_CBP_score ) %>% distinct()
+```
+
+
+```{r  ATAC peaks}
+
+ATACseqInfo = read.table( file = paste( params$workingDir, params$ATACSeqDir, params$ATACSeq.data,
+                          sep = "/"),
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+
+
+sum = ATACseqInfo %>% gather(key = factor2 , value = length, Gd7, Toll10b, Toll9) %>%
+  group_by(Geneid) %>%
+  summarize(length2 = max( abs(length)))
+
+ATACseqInfo2 = ATACseqInfo %>% gather(key = factor2 , value = length, Gd7, Toll10b, Toll9) %>%
+  mutate(length2 = abs(length)) %>% inner_join(sum)
+
+ATACseqInfo2 %>% ggplot(aes(x = length2))+ geom_density()
+BackgroundGenes = ATACseqInfo2$Geneid[ATACseqInfo2$length2 < 2]
+
+
+ATACPeakData = makeGRangesFromDataFrame(ATACseqInfo,
+                                      seqnames.field = "Chr", 
+                                      start.field = "Start", 
+                                      end.field = "End", 
+                                      strand.field = "Strand", 
+                                      keep.extra.columns = TRUE)
+
+ATACPeakData$subjectHits ==  1:length(ATACPeakData)
+```
+
+```{r overlap between known and our peaks}
+
+
+
+overlap = findOverlaps(EnhancersPeakData,ATACPeakData, maxgap = 0)
+EnhancersPeakData$queryHits  = 1:length(EnhancersPeakData)
+test = inner_join(data.frame(overlap), data.frame(EnhancersPeakData)) %>% dplyr::select(subjectHits, Genotype)
+ATACPeakData$Enhancer = "Other"
+ATACPeakData$Enhancer[test$subjectHits] = test$Genotype
+
+
+overlap = findOverlaps(inSituData.Enhancers,ATACPeakData, maxgap = 0)
+inSituData.Enhancers$queryHits  = 1:length(inSituData.Enhancers)
+test = inner_join(data.frame(overlap), data.frame(inSituData.Enhancers)) %>% dplyr::select(subjectHits, inSitu)
+ATACPeakData$InSitu = "Other"
+ATACPeakData$InSitu[test$subjectHits] = test$inSitu
+
+
+
+
+ATACpeaks = inner_join(data.frame(ATACPeakData), CountTable)
+
+
+ATACpeaks =ATACpeaks %>% group_by(Geneid,type) %>% 
+  summarise(min = min(rlog)) %>% 
+  inner_join(ATACpeaks) %>%
+  mutate(diff = rlog-min) %>% distinct()
+
+
+
+
+
+ATACpeaks = inner_join(data.frame(ATACPeakData), CountTable)
+ATACpeaksInfo = inner_join(ATACpeaks,EnhancerInfo ) %>% dplyr::select(Geneid,InSitu, ATAC_CBP_score, EnhancerDistance) %>% distinct()
+
+nrow(ATACpeaksInfo %>% filter(EnhancerDistance < 50000) %>% dplyr::select(Geneid)) 
+nrow(ATACpeaksInfo %>% filter(ATAC_CBP_score>1.5 & EnhancerDistance < 50000) %>% dplyr::select(Geneid)) 
+nrow(ATACpeaksInfo %>% filter(InSitu != "Other" & EnhancerDistance < 50000) %>% dplyr::select(Geneid) )
+nrow(ATACpeaksInfo %>% filter(InSitu != "Other" & ATAC_CBP_score>1.5 & EnhancerDistance < 50000) %>% dplyr::select(Geneid) )
+
+nrow(ATACpeaksInfo  %>% dplyr::select(Geneid)) 
+nrow(ATACpeaksInfo %>% filter(ATAC_CBP_score>1.5) %>% dplyr::select(Geneid)) 
+nrow(ATACpeaksInfo %>% filter(InSitu != "Other" ) %>% dplyr::select(Geneid) )
+nrow(ATACpeaksInfo %>% filter(InSitu != "Other" & ATAC_CBP_score>1.5) %>% dplyr::select(Geneid) )
+
+
+nrow(ATACpeaksInfo ) 
+ATACpeaksInfo %>% ggplot(aes(ATAC_CBP_score, color = InSitu)) + geom_density()
+
+
+nrow(ATACpeaksInfo %>% filter(EnhancerDistance < 50000))
+
+
+
+backgroundRegions = ATACpeaksInfo %>% filter(ATAC_CBP_score<=1.5) %>% dplyr::select(Geneid) 
+
+
+backgroundRegions = intersect(ATACpeaks$Geneid,ATACpeaksInfo$Geneid[ATACpeaksInfo$ATAC_CBP_score <= 1.5])
+
+
+ATACpeaks2 = ATACpeaks %>% group_by(Geneid) %>% 
+  summarise(min = min(rlog)) %>% 
+  inner_join(ATACpeaks) %>%
+  mutate(diff = rlog-min)
+
+table(ATACpeaks2$Geneid %in% backgroundRegions)
+
+ATACpeaks2 = ATACpeaks2 %>% filter(Geneid %in% ATACpeaksInfo$Geneid )
+
+
+
+
+```
+
+
+
+```{r in situ}
+
+CombinedFile = paste(params$workingDir,"results/combined.AllData.withMetaData.ATACnaive.txt" ,sep = "/")
+
+AllData = read.table(file = CombinedFile, header = T, sep = "\t", quote = "", stringsAsFactors = F)
+AllData = ATACpeaks2 %>% dplyr::select(Geneid, InSitu) %>%
+  dplyr::rename(ATACseq_Geneid ="Geneid" ) %>%  
+  inner_join(AllData)
+
+AllData = GBdata2 %>%ungroup()%>% dplyr::select(geneID, Annotation) %>% distinct() %>%
+  inner_join(AllData) %>%
+  mutate(InSitu = replace(InSitu, InSitu=="dorsal_ectoderm", "Dorsal Ectoderm"))%>%
+  mutate(InSitu = replace(InSitu, InSitu=="mesoderm", "Mesoderm"))%>%
+  mutate(InSitu = replace(InSitu, InSitu=="ventral_ectoderm", "Neural Ectoderm")) %>%
+  mutate(InSitu = replace(InSitu, InSitu=="Other", "None")) 
+
+
+AllData = AllData %>%
+  dplyr::rename(Known_Enhancers = "InSitu" ) %>%
+  dplyr::rename(Known_Gene = "Annotation") 
+
+
+
+AllData %>% group_by(geneID) 
+
+
+Examples = AllData %>% filter(SYMBOL %in% c("twi", "ths", "dpp")) %>% distinct()
+Examples = Examples[c(1,7,13),]
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Figure 1
+### A
+This figure is based on   annotation from Lewine 2002 cell. All genes from table 1,2,3 that was already known (with reference) or was verified in the paper by in Situ was added as known. 
+```{r}
+unique(GBdata2$Annotation)
+GBdata2$Annotation <- factor(GBdata2$Annotation,levels = c("Dorsal Ectoderm", "Neural Ectoderm", "Mesoderm", "None"))
+GBdata2$Genotype <- factor(GBdata2$Genotype,levels = c("Gd7", "Toll9/10", "Toll10b"))
+
+unique(GBdata2$Genotype)
+
+GBdata2 %>% filter(dataType == "PROseq") %>%
+  ggplot(aes(x = Annotation , y = diff, fill = Genotype)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,2)+
+  scale_fill_manual(values=cbPalette)+ ggtitle("Known genes (n= 42)")
+
+ggsave("../figures/Fig1.GBexpression.PROseq.knowngenes.pdf")
+```
+Data is as we think. The one thing that differs is that our toll9 PROseq data is as high as the gd7 data for the known Dorsal Ectoderm targets. 
+
+
+### B Venn diagram for the data showing that we find almost all the genes. 
+```{r}
+
+
+#install.packages("venneuler")
+require(venneuler)
+
+
+pdf("../figures/Fig1.B.VENN.pdf")
+
+v <- venneuler(c(Known=4, This=121, "Known&This"=38) )
+plot(v)
+
+dev.off()
+```
+### C This data shows that our identified genes show similair different expression between the different mutants. 
+```{r our data }
+
+PROseqInfo2 = PROseqInfo %>%
+  group_by(geneID) %>% 
+  summarise(min = min(rlog)) %>% 
+  inner_join(PROseqInfo) %>%
+  mutate(diff = rlog-min)%>%
+  filter(factor != "Time") %>%
+  mutate(class = paste(factor,direction) )
+
+unique(PROseqInfo2$class)
+
+PROseqInfo2 =  PROseqInfo2 %>%
+  mutate(class = replace(class, class == "Toll9 Up", values = "Toll9/10 Up")) %>%
+  mutate(class = replace(class, class == "Toll9 Down", values = "Toll9/10 Down")) %>%
+  mutate(class = replace(class, class == "Background None", values = "Background")) 
+unique(PROseqInfo2$Genotype)
+
+  
+PROseqInfo2$class <- factor(PROseqInfo2$class,levels = c("Gd7 Up", "Toll9/10 Up", "Toll10b Up",
+                                                           "Gd7 Down", "Toll9/10 Down", "Toll10b Down",
+                                                           "Background"))
+
+PROseqInfo2$Genotype = PROseqInfo2$mutant
+PROseqInfo2 = PROseqInfo2 %>% 
+  mutate(Genotype = replace(Genotype, Genotype == "gd7", values = "Gd7")) %>%
+  mutate(Genotype = replace(Genotype, Genotype == "toll9", values = "Toll9/10")) %>%
+  mutate(Genotype = replace(Genotype, Genotype == "toll10b", values = "Toll10b"))
+
+PROseqInfo2$Genotype <- factor(PROseqInfo2$Genotype,levels = c("Gd7", "Toll9/10", "Toll10b"))
+
+ PROseqInfo2 %>%
+  ggplot(aes(x = class , y = diff, fill = Genotype)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,2)+
+  scale_fill_manual(values=cbPalette) + ggtitle("This study (n= 159)")
+ggsave("../figures/Fig1.GBexpression.PROseq.ourClasses.pdf")
+
+PROseqInfo2 %>%
+  ggplot(aes(x = class , y = PI, fill = Genotype)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,1)+
+  scale_fill_manual(values=cbPalette) + ggtitle("This study (n= 159)")
+ggsave("../figures/PI.PROseq.InitinialClasses.pdf", width = 6, height = 4)
+
+PROseqInfo2 %>% filter(direction == "Up") %>% select(geneID) %>% distinct()
+PROseqInfo2 %>% filter(direction == "Down") %>% select(geneID) %>% distinct()
+
+
+PROseqInfo2
+
+
+```
+
+
+```{r extra plots, include=FALSE}
+PROseqInfo %>%
+  filter(factor != "Time") %>%
+  mutate(class = paste(factor,direction) ) %>%
+  ggplot(aes(x = class , y = PI, color = mutant)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,1)
+ggsave("../figures/Fig3.PI.detail.PROseq.ourClasses.pdf")
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+## Figure 2
+
+### A
+Analysing the ATACseq and ChIPseq expression levels for the different mutants in the different annotated classes. 
+
+```{r figure 2 }
+#nrow(ATACpeaks %>% filter(InSitu != "Other") %>% dplyr::select(Geneid) %>% distinct())
+
+
+ATACpeaks3 = ATACpeaks2 %>% 
+  mutate(Genotype = replace(Genotype, Genotype == "Toll9", values = "Toll9/10")) 
+ATACpeaks3$Genotype <- factor(ATACpeaks3$Genotype,levels = c("Gd7", "Toll9/10", "Toll10b"))
+ATACpeaks3$InSitu <- factor(ATACpeaks3$InSitu,levels = c("dorsal_ectoderm", 
+                                                         "ventral_ectoderm", 
+                                                         "mesoderm",
+                                                         "Other"))
+unique(ATACpeaks3$InSitu )
+
+ATACpeaks3 %>% 
+  mutate(class = paste(factor,direction) ) %>%
+  ggplot(aes(x = InSitu , y = diff, fill = Genotype)) + geom_boxplot()+ facet_grid(type~.)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,2)+
+  scale_fill_manual(values=cbPalette) + ggtitle("Known enhancers from Stark (n= 83)")
+ggsave("../figures/Fig2.Enhancer.known.pdf")
+
+
+
+
+
+ATACpeaks4 = ATACpeaks3  %>% filter(factor != "Time") %>%
+  mutate(class = paste(factor, direction, sep = " ")) %>%
+  mutate(class = replace(class, class == "Toll9 Up", values = "Toll9/10 Up")) %>%
+  mutate(class = replace(class, class == "Toll9 Down", values = "Toll9/10 Down"))
+ATACpeaks4$class[ATACpeaks4$Geneid %in% BackgroundGenes ] = "Background"
+
+length(unique(ATACpeaks4$Geneid))
+
+table(ATACpeaks4$Geneid %in% BackgroundGenes)
+
+unique(ATACpeaks4$class)  
+ATACpeaks4$class <- factor(ATACpeaks4$class,levels = c("Gd7 Up", "Toll9/10 Up", "Toll10b Up",
+                                                           "Gd7 Down", "Toll9/10 Down", "Toll10b Down",
+                                                           "Background"))
+
+
+
+ATACpeaks4 %>% 
+  ggplot(aes(x = class , y = diff, fill = Genotype)) + geom_boxplot()+ facet_grid(type~.)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,2)+
+  scale_fill_manual(values=cbPalette) + ggtitle("Known enhancers from Stark (n= 83)")
+ggsave("../figures/Fig2.C.Our.pdf")
+
+
+
+
+
+```
+
+### B &  C Venn diagram for the data showing that we find almost all the genes. 
+```{r plot venn diagram}
+require(venneuler)
+pdf("../figures/Fig2.B.VENN.pdf")
+v <- venneuler(c(Peaks =3078,This = 0, Known = 0, "This&Known"=26, "This&Peaks"=821, "Known&This&Peaks"=57) )
+plot(v)
+dev.off()
+
+
+pdf("../figures/Fig2.C.VENN.pdf")
+  v <- venneuler(c(Peaks =446,This = 0, Known = 0, "This&Known"=2, "This&Peaks"=164, "Known&This&Peaks"=33) )
+plot(v)
+dev.off()
+
+#install.packages("venneuler")
+
+```
+
+## Figure 3
+```{r umap} 
+
+
+ggplot(data = AllData, mapping = aes(x = umap1, y = umap2 , color = factor(kmeans_UMAP) ))+ geom_point() +
+  scale_color_npg() 
+ggsave("../figures/Fig3.UMAP.classes.known.pdf")
+
+
+ggplot(data = AllData, mapping = aes(x = umap1, y = umap2 , color = factor(Known_Enhancers) ))+ 
+  geom_point() +
+  geom_point(data =Examples , mapping = aes(x = umap1, y = umap2 , color = "Examples" , size = 2))+
+  geom_text_repel(data =Examples , mapping = aes(x = umap1, y = umap2 , color = "Examples" , label = SYMBOL))+
+  scale_color_manual(values=cbPalette)
+ggsave("../figures/Fig3.UMAP.Enhancers.known.pdf")
+
+ggplot(data = AllData, mapping = aes(x = umap1, y = umap2 , color =factor(Known_Gene) ))+
+  geom_point() + 
+  geom_point(data =Examples , mapping = aes(x = umap1, y = umap2 , color = "Examples" , size = 2))+
+  geom_text_repel(data =Examples , mapping = aes(x = umap1, y = umap2 , color = "Examples" , label = SYMBOL))
+
+ggsave("../figures/Fig3.UMAP.Genes.known.pdf")
+
+
+
+AllData2 = AllData %>% 
+  filter(kmeans_UMAP %in% (c(1,2,4,5,6)))%>% mutate(newClass = "Dorsal ectoderm")%>% 
+  mutate(newClass = replace( x = newClass , list = kmeans_UMAP %in% c(1,2), "Neural ectoderm" ))  %>% 
+  mutate(newClass = replace( x = newClass , list = kmeans_UMAP %in% c(4,6), "Mesoderm" )) 
+
+
+AllData2 = AllData2 %>% select(geneID,ATACseq_Geneid,newClass) %>% distinct() %>%
+  dplyr::rename(Geneid = "ATACseq_Geneid")
+
+
+
+AllDataKmean = AllData %>% 
+  mutate(newClass =kmeans_UMAP) %>%
+  mutate(newClass = replace( x = newClass , list = kmeans_UMAP %in% c(5), "Dorsal ectoderm" ))  %>% 
+  mutate(newClass = replace( x = newClass , list = kmeans_UMAP %in% c(1,2), "Neural ectoderm" ))  %>% 
+  mutate(newClass = replace( x = newClass , list = kmeans_UMAP %in% c(4,6), "Mesoderm" )) 
+
+
+AllDataKmean = AllDataKmean %>% select(geneID,ATACseq_Geneid,newClass,kmeans_UMAP) %>% distinct() %>%
+  dplyr::rename(Geneid = "ATACseq_Geneid")
+
+```
+
+```{r figure 3b}
+
+
+ATACpeaks5 =  inner_join(ATACpeaks4,AllData2 )
+
+unique(ATACpeaks5$newClass)
+
+inner_join(ATACpeaks4,AllData2 )
+ATACpeaks5$newClass = factor(ATACpeaks5$newClass,levels = c("Dorsal ectoderm", 
+                                                         "Neural ectoderm", 
+                                                         "Mesoderm"))
+
+ATACpeaks5 %>% 
+  ggplot(aes(x = newClass , y = diff, fill = Genotype)) + geom_boxplot()+ facet_grid(type~.)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,2)+scale_fill_manual(values=cbPalette)
+  ggsave("../figures/Fig3.D.ATACseq.pdf")
+
+
+ATACpeaksKmean =  inner_join(ATACpeaks4,AllDataKmean ) %>% select(geneID,kmeans_UMAP,diff,Genotype,type)
+  
+
+  ATACpeaksKmean %>% 
+  ggplot(aes(x = as.factor(kmeans_UMAP) , y = diff, fill = Genotype)) + geom_boxplot()+ facet_grid(type~.)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,2)+scale_fill_manual(values=cbPalette)
+  ggsave("../figures/Fig3.UMAP.ATACseq.pdf")
+
+  PROseqSmall = PROseqInfo2 %>%mutate(type = "PROseq") %>% select(geneID,diff,Genotype,type)
+  
+  
+
+# PROSeqpeaksKmean =  inner_join(AllDataKmean,PROseqSmall ) %>% gather(key = Type, value = Value, diff, PI, rlog, gbcCount,ppcCount ) %>%  select(geneID,kmeans_UMAP,Genotype,type,Type,Value)
+
+PROSeqpeaksKmean =  inner_join(AllDataKmean,PROseqSmall) %>%
+  select(geneID,kmeans_UMAP,Genotype,type,diff)
+
+
+PROSeqpeaksKmean %>% filter(kmeans_UMAP == 7) %>%
+  ggplot(aes(x = as.factor(kmeans_UMAP) , y = Value, fill = Genotype)) + geom_boxplot()+ facet_grid(Type~., scales = "free_y")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +scale_fill_manual(values=cbPalette)
+  ggsave("../figures/Cluster7.PROSeq.differentValues.pdf")
+
+
+ 
+peaksKmean = rbind(ATACpeaksKmean,PROSeqpeaksKmean)
+  peaksKmean %>% 
+  ggplot(aes(x = as.factor(kmeans_UMAP) , y = diff, fill = Genotype)) + geom_boxplot()+ facet_grid(type~.)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,5)+scale_fill_manual(values=cbPalette)
+ggsave("../figures/Fig3.UMAP.ALL.pdf")
+ 
+
+peaksKmean %>% filter(kmeans_UMAP == 3) %>% select(geneID) %>%  distinct()
+PROseqInfo3 =  inner_join(PROseqInfo2,AllData2 )
+
+unique(PROseqInfo3$newClass)
+
+PROseqInfo3$newClass = factor(PROseqInfo3$newClass,levels = c("Dorsal ectoderm", 
+                                                         "Neural ectoderm", 
+                                                         "Mesoderm"))
+
+PROseqInfo3 %>% 
+  ggplot(aes(x = newClass , y = diff, fill = Genotype)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,2)+scale_fill_manual(values=cbPalette)
+ggsave("../figures/Fig3.C.Proseq.pdf")
+
+
+
+
+```
+
+### Enhancer GBC correlation
+```{r enhancer correlation}
+AllDataKmean
+
+ATACinfo = ATACpeaks4  %>%  dplyr::select(Geneid,Genotype, time, rlog) %>%
+  group_by(Geneid,Genotype, time ) %>%
+  summarise(ATAC_enhancer_expression = mean(rlog),.groups = "drop")
+PROinfo = PROseqInfo2  %>%  dplyr::select(geneID,Genotype, time, rlog) %>%
+  group_by(geneID,Genotype, time ) %>%
+  summarise(PRO_gene_expression = mean(rlog),.groups = "drop")
+
+
+
+CBPinfo = CBPseqCount %>%  dplyr::select(Geneid,Genotype, time, rlog) %>%
+  group_by(Geneid,Genotype, time ) %>%
+  summarise(CBP_enhancer_expression = mean(rlog),.groups = "drop")  %>% 
+  mutate(Genotype = replace(Genotype,Genotype == "Toll9", "Toll9/10"))
+
+
+correlationData = inner_join(AllDataKmean,ATACinfo) 
+correlationData = inner_join(correlationData,PROinfo)
+correlationData = inner_join(correlationData,CBPinfo)
+
+
+
+
+
+correlationData %>% filter(!newClass %in% c("3","7") ) %>%
+  ggplot(mapping = aes(x = CBP_enhancer_expression,
+                                      y = PRO_gene_expression, 
+                                      color = Genotype ))+
+         geom_point() + geom_smooth(method = "lm")+ facet_wrap(newClass~.)
+ggsave("../figures/Fig3.Correlation.Proseq.ATACseq.pdf")
+
+
+correlationData %>% filter(!newClass %in% c("3","7") ) %>%
+  ggplot(mapping = aes(x = ATAC_enhancer_expression,
+                                      y = PRO_gene_expression, 
+                                      color = Genotype ))+
+         geom_point() + geom_smooth(method = "lm")
+ggsave("../figures/Fig3.Correlation.Proseq.ATACseq.2.pdf")
+
+
+correlationData %>% filter(!newClass %in% c("3","7") ) %>%
+  ggplot(mapping = aes(x = ATAC_enhancer_expression,
+                                      y = PRO_gene_expression))+
+         geom_point() + geom_smooth(method = "lm")+ facet_wrap(newClass~.)
+ggsave("../figures/Fig3.Correlation.Proseq.ATACseq.4.pdf")
+
+
+
+correlationData %>% filter(!newClass %in% c("3","7") ) %>%
+  gather(key = Enhancer_expression, value = rlog,ATAC_enhancer_expression,CBP_enhancer_expression ) %>%
+  ggplot(mapping = aes(x = rlog,
+                                      y = PRO_gene_expression
+                       ))+
+         geom_point() + geom_smooth(method = "lm")+ facet_grid( .~Enhancer_expression )
+ggsave("../figures/Fig3.Correlation.Proseq.ATACseq.CBP.3.pdf")
+
+
+
+correlationData %>% filter(!newClass %in% c("3","7") ) %>%
+  gather(key = Enhancer_expression, value = rlog,ATAC_enhancer_expression,CBP_enhancer_expression ) %>%
+  ggplot(mapping = aes(x = rlog,
+                                      y = PRO_gene_expression
+                       ))+
+         geom_point() + geom_smooth(method = "lm")+ facet_grid( .~Enhancer_expression )+ theme_light()
+  
+ggsave("../figures/Fig3.Correlation.Proseq.ATACseq.CBP.3.light.pdf")
+
+
+correlationData %>% filter(!newClass %in% c("3","7") ) %>%
+  gather(key = Enhancer_expression, value = rlog,ATAC_enhancer_expression,CBP_enhancer_expression ) %>%
+  ggplot(mapping = aes(x = rlog,
+                                      y = PRO_gene_expression
+                       ))+
+         geom_point() + geom_smooth(method = "lm")+ facet_grid( .~Enhancer_expression )
+  
+ggsave("../figures/Fig3.Correlation.Proseq.ATACseq.CBP.3.pdf")
+
+```
+## Figure 4
+
+###
+
+
+```{r }
+
+
+test4 = left_join(ATACseqNaive, AllData2) %>%
+  gather(key = NuclearCycle, value =  Expression,  NC11,NC12,NC13) %>% 
+  mutate(newClass = replace(newClass,is.na(newClass), "Background"))
+
+test4$newClass = factor(test4$newClass,levels = c("Dorsal ectoderm", 
+                                                  "Neural ectoderm", 
+                                                  "Mesoderm", "Background"))
+
+
+
+test4 = test4 %>% mutate(Classification = "Background") 
+test4$Classification [test4$newClass!= "Background"] = "Toll_enhancer"
+
+table(test4$Classification)
+DVenhancers = test4 %>% filter(Classification == "Toll_enhancer") %>% select(Expression)
+Background = test4 %>% filter(Classification != "Toll_enhancer") %>% select(Expression)
+ks.test(DVenhancers$Expression, Background$Expression, alternative = "less")
+
+ggplot(test4, mapping = aes(x = "Wt", y = Expression,  fill = Classification ))+ 
+  geom_boxplot() +theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ 
+  theme(legend.position = "none") +ylim(0,15)
+ggsave("../figures/Fig4.Enhancer.NC.known.2.pdf", width = 2, height = 4)
+
+
+ggplot(test4, mapping = aes(x = NuclearCycle, y = Expression,  fill = "wt" ))+ 
+  geom_boxplot() +theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_fill_manual(values=cbPalette) + facet_grid(newClass~., scales = "free_y")
+ggsave("../figures/Fig4.Enhancer.NC.known.pdf")
+
+
+
+NCtest4 = test4 %>% group_by(NuclearCycle,newClass) %>% 
+  summarise(Expression = mean(Expression)) 
+
+NCtest4 =NCtest4 %>% group_by( newClass) %>%
+  summarise(min = min(Expression)) %>%
+  inner_join( NCtest4) %>%
+  mutate(diff = Expression - min)
+
+test4$Genotype = "wt"                        
+test4$time = test4$NuclearCycle
+
+
+NCtest4$NuclearCycle2 = 11
+NCtest4$NuclearCycle2[NCtest4$NuclearCycle == "NC12"
+] = 12
+NCtest4$NuclearCycle2[NCtest4$NuclearCycle == "NC13"
+] = 13
+
+
+ggplot(NCtest4, mapping = aes(x = NuclearCycle2, y = diff, color = newClass))+ 
+  geom_point()+ geom_line()
+ggsave("../figures/Fig4.Enhancer.NC.diff.pdf")
+
+
+ggplot(NCtest4, mapping = aes(x = NuclearCycle, y = diff, color = newClass))+ 
+  geom_point()
+ggsave("../figures/Fig4.Enhancer.NC.known.pdf")
+
+
+
+
+
+
+ATACpeaks5 = left_join(ATACpeaks ,AllData2 )%>% 
+  mutate(newClass = replace(newClass,is.na(newClass), "Background"))
+ATACpeaks5 = ATACpeaks5 %>%
+  mutate(Genotype = replace(Genotype, Genotype == "Toll9", values = "Toll9/10"))
+ATACpeaks5$newClass = factor(ATACpeaks5$newClass,levels = c("Dorsal ectoderm", 
+                                                            "Neural ectoderm", 
+                                                            "Mesoderm", "Background"))
+
+
+ATACpeaks5$Genotype <- factor(ATACpeaks5$Genotype,levels = c("Gd7", "Toll9/10", "Toll10b"))
+
+
+
+ggplot(ATACpeaks5, mapping = aes(x = Genotype, y = rlog, fill = Genotype ))+ 
+  geom_boxplot() +facet_grid(~time)+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_fill_manual(values=cbPalette)
+ggsave("../figures/Fig4.Enhancer.toll.1.pdf")
+
+ggplot(ATACpeaks5, mapping = aes(x = Genotype, y = rlog, fill = Genotype ))+ 
+  geom_boxplot() +facet_grid(~time)+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_fill_manual(values=cbPalette)+ facet_grid(newClass~time, scales = "free_y")
+ggsave("../figures/Fig4.Enhancer.toll.2.pdf")
+
+ggplot(ATACpeaks5, mapping = aes(x = newClass, y = rlog, fill =  Genotype))+ 
+  geom_boxplot() +facet_grid(~time)+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_fill_manual(values=cbPalette)+ facet_grid(Genotype~time, scales = "free_y")
+ggsave("../figures/Fig4.Enhancer.toll.3.pdf")
+
+
+ggplot(ATACpeaks5, mapping = aes(x = Genotype, y = rlog, fill = Genotype ))+ 
+  geom_boxplot() +facet_grid(~time)+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_fill_manual(values=cbPalette)+ facet_grid(newClass~time, scales = "free_y")
+ggsave("../figures/Fig4.Enhancer.toll.2.pdf")
+
+
+
+ATACpeaks5 = ATACpeaks5 %>% mutate(Classification = "Background") 
+ATACpeaks5$Classification [ATACpeaks5$newClass!= "Background"] = "Toll_enhancer"
+
+
+t = ATACpeaks5 %>%mutate(active = "No")%>%
+  mutate(active = replace(active,
+                          list = which(newClass == "Mesoderm" & Genotype == "Toll10b"),
+                          values = "yes")) %>% filter(active == "yes")
+
+replace(t$active,list = which(t$newClass == "mesoderm" & t$Genotype == "Toll10b"),
+                          values = "yes")
+
+unique(t$newClass)
+
+
+ATACpeaks6 = ATACpeaks5 %>% mutate(Expression = rlog) %>%
+  dplyr::select(rlog, Classification, newClass, time)
+test4$time = "NC"
+
+
+ATACpeaks6 = ATACpeaks5 %>% mutate(Expression = rlog) %>%
+  dplyr::select(Expression, Classification, newClass, time)
+
+test4 = test4 %>% ungroup() %>% mutate(time = "Naive") %>% 
+  dplyr::select(Expression, Classification, newClass, time)
+
+both = rbind(ATACpeaks6,test4)
+
+both$time = factor(both$time,levels = c("Naive","3h","4h","5h"))
+
+
+ggplot(both, mapping = aes(x = time, y = Expression,  fill = Classification ))+ 
+  geom_boxplot() +theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ylim(0,15)+ theme_light()+ theme(legend.position="bottom")
+ggsave("../figures/Fig4.Enhancer.toll.Alltime.pdf", width = 2, height = 2)
+
+
+
+```
+
+## Figure 5
+
+
+
+```{r some other plots that we do not use right now. }
+
+
+PROseqInfo3 =  left_join(PROseqInfo2,AllDataKmean )
+
+PROseqInfo2 %>%
+  filter(factor != "Time") %>%
+  ggplot(aes(x = newClass , y = PI, fill = Genotype)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,1)+
+  scale_fill_manual(values=cbPalette) 
+
+ggsave("../figures/Fig5.PI.PROseq.ourClasses.pdf")
+
+
+
+PROseqInfo3$newClass[is.na(PROseqInfo3$newClass) ]= "None"
+
+PROseqInfo3$newClass <- factor(PROseqInfo3$newClass,levels = c("Dorsal ectoderm", "Neural ectoderm", "Mesoderm", "None"))
+PROseqInfo3$newClass <- factor(PROseqInfo3$newClass,levels = c("Dorsal ectoderm", "Neural ectoderm", "Mesoderm", "None"))
+PROseqInfo3$newClass[is.na(PROseqInfo3$newClass) ]= "None"
+
+
+ PROseqInfo3 %>% mutate(Genotype = mutant) %>%
+  mutate(Genotype = replace(Genotype, Genotype == "gd7", values = "Gd7")) %>%
+  mutate(Genotype = replace(Genotype, Genotype == "toll10b", values = "Toll10b")) %>%
+  mutate(Genotype = replace(Genotype, Genotype == "toll9", values = "Toll9/10"))
+
+PROseqInfo3$Genotype <- factor(PROseqInfo3$Genotype,levels = c("Gd7", "Toll9/10", "Toll10b"))
+
+PROseqInfo3 %>%
+  filter(factor != "Time") %>%
+  ggplot(aes(x = newClass , y = PI, fill = Genotype)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,1)+
+  scale_fill_manual(values=cbPalette) 
+ggsave("../figures/Fig5.PI.PROseq.ourClasses.pdf")
+
+
+PROseqInfo3 %>%
+  filter(factor != "Time") %>%
+  mutate(class = paste(factor,direction) ) %>%
+  ggplot(aes(x = annotation2 , y = PI, fill = Genotype)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,1)+
+  scale_fill_manual(values=cbPalette) 
+ggsave("../figures/Fig5.PI.PROseq.pdf")
+
+PROseqInfo3 %>%
+  filter(factor != "Time") %>%
+  ggplot(aes(x = as.factor(kmeans_UMAP) , y = PI, fill = Genotype)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,1)+
+  scale_fill_manual(values=cbPalette) 
+ggsave("../figures/Fig5.PI.PROseq.kmeansClasses.pdf")
+
+
+
+
+
+AllData3 = AllData2 %>% select(geneID,ATACseq_Geneid,newClass, kmeans_UMAP) %>% distinct() %>% dplyr::rename(Geneid = "ATACseq_Geneid")
+
+PROseqInfo3 =  left_join(PROseqInfo2,AllData2 )
+PROseqInfo3$kmeans_UMAP[is.na(PROseqInfo3$kmeans_UMAP) ]= 0
+PROseqInfo3 %>%
+  filter(factor != "Time") %>%
+  ggplot(aes(x = kmeans_UMAP , y = PI, fill = mutant)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,1)+
+  scale_fill_manual(values=cbPalette) 
+ggsave("../figures/Fig3.PI.PROseq.ourClasses.pdf")
+
+
+PROseqInfo3 %>%
+  filter(factor != "Time") %>%
+  mutate(class = paste(factor,direction) ) %>%
+  ggplot(aes(x = class , y = PI, fill = )) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,1)+
+  scale_fill_manual(values=cbPalette) + ggtitle("This study (n= 159)")
+ggsave("../figures/Fig3.PI.PROseq.ourClasses2.pdf")
+
+
+
+
+
+```
+
+ATACpeaks %>% 
+  mutate(class = paste(factor,direction) ) %>%
+  ggplot(aes(x = Enhancer , y = diff, color = Genotype)) + geom_boxplot()+ facet_grid(type~.)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,2)
+
+
+
+ATACpeaks %>% filter(factor != "Time") %>%
+  mutate(class = paste(factor,direction) ) %>%
+  ggplot(aes(x = class , y = diff, color = Genotype)) + geom_boxplot()+ facet_grid(type~.)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+ATACpeaks %>% 
+  mutate(class = paste(factor,direction) ) %>%
+  ggplot(aes(x = Enhancer , y = diff, color = Genotype)) + geom_boxplot()+ facet_grid(type~.)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,2)
+
+ATACpeaks %>% filter(factor != "Time") %>%
+  mutate(class = paste(factor,direction) ) %>%
+  ggplot(aes(x = class , y = diff, color = Genotype)) + geom_boxplot()+ facet_grid(type~Enhancer)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+```
+
+```{r }
+
+Combined =data.frame(ATACPeakData) %>% dplyr::select(Geneid, Enhancer, InSitu) %>% 
+  left_join(ATAC_K27ac_peaksInfo) %>%
+  mutate(Enhancer=replace(Enhancer, Enhancer=="Other", 0))%>%
+  mutate(Enhancer=replace(Enhancer, Enhancer!="0", 1)) %>%
+  mutate(InSitu=replace(InSitu, InSitu=="Other", 0)) %>%
+  mutate(InSitu=replace(InSitu, InSitu!="0", 1)) %>%
+  mutate(K27ac_Geneid=replace(K27ac_Geneid, !is.na(K27ac_Geneid), 1)) %>%
+  mutate(K27ac_Geneid=replace(K27ac_Geneid, is.na(K27ac_Geneid), 0)) %>% 
+  mutate(ATACseq  = 1) %>%
+  distinct()%>%
+  dplyr::select( ATACseq, K27ac_Geneid, Enhancer, InSitu)%>%
+  rename(K27ac_Geneid = "H3K27ac") %>%
+  mutate_if(is_character, as.numeric)
+
+
+
+Combined2 = Combined %>% filter( InSitu == 1 | Enhancer == 1)
+
+library(UpSetR)
+
+upset(Combined2, nsets = 4,nintersects = NA,  point.size = 3.5, line.size = 2, 
+    mainbar.y.label = "Overlapping Regions", sets.x.label = "Number of Regions", 
+    text.scale = c(1.3, 1.3, 1, 1, 2, 1))
+
+
+
+
+
+
+
+
+
+```
+
+
+
+```{r some other plots that we do not use right now. }
+PROseqInfo %>%
+  filter(factor != "Time") %>%
+  mutate(class = paste(factor,direction) ) %>%
+  ggplot(aes(x = annotation2 , y = PI, color = mutant)) + geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +ylim(0,1)+
+  scale_fill_manual(values=cbPalette) + ggtitle("This study (n= 159)")
+ggsave("../figures/Fig3.PI.PROseq.ourClasses.pdf")
+```
+
+
+
+## Plot according to PROseq data classification
+Plotting the data with the classifications that we did using the PROseq gene body covereage data
+
+
+```{r PROseq classificiation }
+
+ggplot(data = AllData2, mapping = aes(x = umap1, y = umap2 , color = factor(factor) , shape = direction))+ geom_point() + scale_color_viridis(discrete = TRUE, option = "D")
+ggplot(data = PROseq, mapping = aes(x = class, y = GBClog,fill = mutant ))+ geom_boxplot()+
+  scale_fill_viridis(discrete = TRUE, option = "D") 
+ggplot(data = PROseq, mapping = aes(x = as.factor(annotation2), y = PI,fill = mutant ))+ geom_boxplot()+
+  scale_fill_viridis(discrete = TRUE, option = "D") 
+ggplot(data = PROseq, mapping = aes(x = class, y = PI,fill = mutant))+ geom_boxplot()+
+  scale_fill_viridis(discrete = TRUE, option = "D") 
+ggplot(data = PROseq, mapping = aes(x = class,
+                                      y = ATAC_NC_PC2,fill =factor(factor) )) +
+  geom_boxplot()+
+  scale_fill_viridis(discrete = TRUE, option = "D")
+
+```
+
+
+
+## Plot according to UMAP classification
+
+
+```{r UMAPclassification}
+ggplot(data = AllData2, mapping = aes(x = umap1, y = umap2 , color = factor(kmeans_UMAP) , shape = direction))+ geom_point() + scale_color_brewer(palette="Dark2")
+ggplot(data = PROseq, mapping = aes(x = factor(kmeans_UMAP), y = GBClog,fill = mutant ))+ geom_boxplot()+
+  scale_fill_viridis(discrete = TRUE, option = "D") 
+ggplot(data = PROseq, mapping = aes(x = as.factor(kmeans_UMAP), y = PI,fill = mutant ))+ geom_boxplot()+
+  scale_fill_viridis(discrete = TRUE, option = "D") 
+
+
+
+ggplot(data = AllData2, mapping = aes(x = factor(kmeans_UMAP),
+                                      y = ATAC_NC_PC2,fill =factor(kmeans_UMAP) )) +
+  geom_boxplot()+
+  scale_color_brewer(palette="Dark2")
+
+
+```
+
+## Plot according to hclust classification
+
+```{r hclust classification}
+ggplot(data = AllData2, mapping = aes(x = umap1, y = umap2 , color = factor(hclust) , shape = direction))+ geom_point() + scale_color_brewer(palette="Dark2")
+ggplot(data = PROseq, mapping = aes(x = factor(hclust), y = GBClog,fill = mutant ))+ geom_boxplot()+
+  scale_fill_viridis(discrete = TRUE, option = "D") 
+ggplot(data = PROseq, mapping = aes(x = as.factor(hclust), y = PI,fill = mutant ))+ geom_boxplot()+
+  scale_fill_viridis(discrete = TRUE, option = "D") 
+
+
+
+ggplot(data = AllData2, mapping = aes(x = factor(hclust),
+                                      y = ATAC_NC_PC2,fill =factor(hclust) )) +
+  geom_boxplot()+
+  scale_color_brewer(palette="Dark2")
+
+
+
+
+```
+
+
+```{r session info}
+sessionInfo()
+
+
+```

@@ -1,0 +1,740 @@
+---
+title: "PROseq analysis"
+author: "Johan"
+date: "10/25/2019"
+output: html_document
+
+params:
+  workingDir: /Users/roshan/projects/tollTranscription/m_mannervik_19
+  #workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+  RscriptsDir: R_Analysis/Rscripts  
+  dataDir: data/PROseq
+
+  
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+#install.packages("kableExtra")
+library(kableExtra)
+
+library(DESeq2)
+
+
+
+```
+
+# PROseq analysis
+
+
+## Reads mapping
+
+
+
+
+
+
+## Comparing mapping pattern between the samples
+
+### Using feature count to get the difference between the samples
+
+```{r Adding the first analysis of the data}
+# install RColorBrewer if missing
+if (!require("RColorBrewer")) {
+    install.packages("RColorBrewer")
+}
+library(RColorBrewer)
+library(gplots)
+featureCountFile = paste(params$workingDir, params$dataDir,"counts.CDS.txt", sep = "/")
+
+FCdata = read.table( file = featureCountFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+geneInfo  = FCdata [,1:6]
+geneInfo  = geneInfo[,c(1,6)]
+countData = FCdata[,-1:-6]
+rownames(countData) = geneInfo$Geneid
+
+
+# Load the geneNames 
+
+
+universe = read.table( sep = "\t", header = TRUE,stringsAsFactors = F,
+                  file =  paste(params$workingDir, params$dataDir,"geneNames.txt", sep = "/"))
+
+
+
+```
+
+
+#### RV 040520
+```{r Adding the first analysis of the data}
+#install RColorBrewer if missing
+if (!require("RColorBrewer")) {
+    install.packages("RColorBrewer")
+}
+library(RColorBrewer)
+library(gplots)
+featureCountFile_PRO = paste(params$workingDir, params$dataDir,"counts.CDS.txt", sep = "/")
+FCdata_PRO = read.table( file = featureCountFile_PRO, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+geneInfo_PRO  = FCdata_PRO [,1:6]
+geneInfo_PRO  = geneInfo_PRO[,c(1,6)]
+countData_PRO = FCdata_PRO[,-1:-6]
+rownames(countData_PRO) = geneInfo_PRO$Geneid
+
+featureCountFile_PolII = paste(params$workingDir, params$dataDir,"PolII-PROseq.counts.cds.txt", sep = "/")
+FCdata_PolII = read.table( file = featureCountFile_PolII, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+colnames(PolII-PROseq.counts.cds.txt)
+geneInfo_PolII  = FCdata_PolII [,1:6]
+geneInfo_PolII  = geneInfo_PolII[,c(1,6)]
+countData_PolII = FCdata_PolII[,-1:-6]
+rownames(countData_PolII) = geneInfo_PolII$Geneid
+colnames(countData_PolII) 
+# Load the geneNames 
+
+
+universe = read.table( sep = "\t", header = TRUE,stringsAsFactors = F,
+                  file =  paste(params$workingDir, params$dataDir,"geneNames.txt", sep = "/"))
+
+
+
+```
+
+```{r first qc analysis}
+
+
+geneExpression = log(rowSums(countData_PRO))
+
+
+hist(geneExpression)
+
+geneInfo$expression  =log(rowSums(countData_PRO))
+
+geneInfo.QC = geneInfo %>% filter(expression > 1) 
+countData.QC =  countData[geneInfo.QC$Geneid,]
+
+distance = cor((countData.QC))
+
+distance_matrix <- as.matrix(distance)
+heatmap.2(distance_matrix, 
+              col=brewer.pal(9,"Blues"), 
+              density.info = "none",
+              trace="none")
+
+geneExpression = log(rowSums(countData_PolII))
+
+hist(geneExpression)
+
+geneInfo_PolII$expression  =log(rowSums(countData_PolII))
+
+geneInfo_PolII.QC = geneInfo_PolII %>% filter(expression > 1) 
+countData_PolII.QC =  countData_PolII[geneInfo_PolII.QC$Geneid,]
+
+distance = cor((countData_PolII.QC))
+
+distance_matrix <- as.matrix(distance)
+heatmap.2(distance_matrix, 
+              col=brewer.pal(9,"Greens"), 
+              density.info = "none",
+              trace="none")
+
+
+```
+
+
+```{r handle the samples}
+
+sampleInfo_PRO = data.frame(bamFile_PRO =  colnames(countData_PRO))
+sampleInfo_PRO= sampleInfo_PRO %>% separate(col = bamFile_PRO,sep = "\\.",into =  c("dir", "mutant","sampleInfo_PRO"), remove = FALSE)
+sampleInfo_PRO = sampleInfo_PRO %>% separate(col = sampleInfo_PRO,sep = "_",into =  c("irrelevant", "time","replicate"))
+
+sampleInfo_PRO = sampleInfo_PRO %>% separate(col = mutant,sep = "_",into =  c("mutant"))
+
+sampleInfo_PRO = sampleInfo_PRO %>% dplyr::select(bamFile_PRO,mutant,time,replicate)
+sampleInfo_PRO = sampleInfo_PRO %>% unite("sampleName_PRO", mutant:time:replicate, remove = FALSE )
+sampleInfo_PRO = sampleInfo_PRO %>% dplyr::select(bamFile_PRO,sampleName_PRO,mutant,time,replicate)
+
+
+rownames(sampleInfo_PRO) = sampleInfo_PRO$bamFile_PRO
+sampleInfo_PRO = sampleInfo_PRO[colnames(countData_PRO), ]
+colnames(countData_PRO) = sampleInfo_PRO$sampleName_PRO
+rownames(sampleInfo_PRO) = sampleInfo_PRO$sampleName_PRO
+
+sampleInfo_PRO = sampleInfo_PRO %>% dplyr::select(sampleName_PRO,mutant,time,replicate,bamFile_PRO)
+
+
+
+sampleInfo_PolII = data.frame(bamFile_PolII =  colnames(countData_PolII))
+sampleInfo_PolII= sampleInfo_PolII %>% separate(col = bamFile_PolII,sep = "\\.",into =  c("dir", "mutant","sampleInfo_PolII"), remove = FALSE)
+sampleInfo_PolII = sampleInfo_PolII %>% separate(col = sampleInfo_PolII,sep = "_",into =  c("irrelevant", "time","replicate"))
+
+sampleInfo_PolII = sampleInfo_PolII %>% separate(col = mutant,sep = "_",into =  c("mutant"))
+
+sampleInfo_PolII = sampleInfo_PolII %>% dplyr::select(bamFile_PolII,mutant,time,replicate)
+sampleInfo_PolII = sampleInfo_PolII %>% unite("sampleName_PolII", mutant:time:replicate, remove = FALSE )
+sampleInfo_PolII = sampleInfo_PolII %>% dplyr::select(bamFile_PolII,sampleName_PolII,mutant,time,replicate)
+
+
+rownames(sampleInfo_PolII) = sampleInfo_PolII$bamFile_PRO
+sampleInfo_PolII = sampleInfo_PolII[colnames(countData_PolII), ]
+colnames(countData_PolII) = sampleInfo_PolII$sampleName_PolII
+rownames(sampleInfo_PolII) = sampleInfo_PolII$sampleName_PolII
+
+sampleInfo_PolII = sampleInfo_PolII %>% dplyr::select(sampleName_PolII,mutant,time,replicate,bamFile_PolII)
+colnames(sampleInfo_PolII)
+```
+
+
+## I did not do this
+```{r script to check the known genes. }
+
+knownGenes = read.table(file = paste(params$workingDir,"information/FlyBase_IDs.txt", sep = "/"),
+                        sep = "\t", header = F, quote = "", stringsAsFactors = F)
+
+
+colnames(knownGenes) = c("Submitted ID", "Current ID","Converted ID","Related record")
+
+geneInfo.QC$knownGene = "No"
+geneInfo.QC$knownGene[geneInfo.QC$Geneid %in% knownGenes$`Current ID`] = "Yes"
+
+table(geneInfo.QC$knownGene)
+
+countData.QC.knownTargets =  countData[geneInfo.QC$Geneid[geneInfo.QC$knownGene == "Yes"],]
+distance = cor((countData.QC.knownTargets))
+
+distance_matrix <- as.matrix(distance)
+pdf(file = "PROseqData.HeatMap.knownGenes.pdf")
+heatmap.2(distance_matrix, 
+              col=brewer.pal(9,"Blues"), 
+              margins = c(8, 8),
+              density.info = "none",
+              trace="none")
+
+dev.off()
+
+
+```
+
+### sample swat (I did not do this)
+```{r change the two files that differ}
+# Change filenames 
+test = sampleInfo["toll10b_5h_rep1", ]
+sampleInfo["toll10b_5h_rep1", ] = sampleInfo["gd7_5h_rep1", ]  
+sampleInfo["gd7_5h_rep1", ] = test 
+colnames(countData) = sampleInfo$sampleName
+rownames(sampleInfo) = sampleInfo$sampleName
+countData.QC =  countData[geneInfo.QC$Geneid,]
+
+countData.QC.knownTargets =  countData[geneInfo.QC$Geneid[geneInfo.QC$knownGene == "Yes"],]
+distance = cor((countData.QC.knownTargets))
+
+distance_matrix <- as.matrix(distance)
+pdf(file = "PROseqData.HeatMap.knownGenes.pdf")
+heatmap.2(distance_matrix, 
+              col=brewer.pal(9,"Blues"), 
+              margins = c(8, 8),
+              density.info = "none",
+              trace="none")
+
+dev.off()
+
+
+
+
+```
+
+
+
+
+```{r differential gene expression analysis}
+library(DESeq2)
+
+
+getSigResult<- function(dds_function, contrast, geneNameColumn,universe, cutoff){
+  DEresult = results(object = dds_function, 
+                    contrast=contrast)
+
+  DEresult[[geneNameColumn]] = rownames(DEresult)
+  DEresult.Ordered <- DEresult[order(DEresult$pvalue),]
+  DEresult.Ordered.sig <- subset(DEresult.Ordered, padj < cutoff)
+  DEresult.Ordered.sig.df = inner_join(as.data.frame(DEresult.Ordered.sig),universe)
+  
+  
+  
+  return(DEresult.Ordered.sig.df)
+}
+
+```
+# DE comparisions
+
+## DE comparisions between mutants at 3h 
+
+
+```{r DGE expression analysis for 3h}
+
+metaInfo_PRO  = sampleInfo_PRO
+exp.data_PRO = countData.QC
+metaInfo_PRO.3h  = metaInfo_PRO %>% filter(time == "3h")
+colData_PRO.3h = exp.data[, metaInfo_PRO.3h$sampleName_PRO]
+
+dds.3h <- DESeqDataSetFromMatrix(countData = colData.3h,
+                               colData = metaInfo.3h,
+                               design = ~mutant )
+
+
+#countData["FBgn0003463", ]
+#assay(rld)["FBgn0003463", ]
+#loadingsDF %>% filter(ENSEMBL == "FBgn0003463")
+
+#assay(rld)["FBgn0003463", ]
+
+dds.3h <- DESeq(dds.3h)
+
+rld <- rlog(dds.3h)
+
+
+norm.count.3h.rlog = as.data.frame(assay(rld))
+rownames(norm.count.3h.rlog) =  rownames(rld)
+
+norm.count.3h.rlog$ENSEMBL = rownames(norm.count.3h.rlog)
+
+toll10_vs_gd7.3h =getSigResult(dds.3h, contrast=c("mutant","toll10b","gd7"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+toll10_vs_gd7.3h.lFC1 = toll10_vs_gd7.3h %>% filter(abs(log2FoldChange) > 1) %>% dplyr::select(log2FoldChange,padj,ENSEMBL)
+colnames(toll10_vs_gd7.3h.lFC1) = c("l2fc_toll10b_vs_gd7","padj_toll10b_vs_gd7","ENSEMBL")
+
+DEGlist.3h= toll10_vs_gd7.3h.lFC1$ENSEMBL
+#DEGlist.3h = union(DEGlist.3h, toll9_vs_10.3h.lFC1$ENSEMBL)
+
+
+
+norm.count.3h.rlog.DEG=  norm.count.3h.rlog[DEGlist.3h, ]
+norm.count.3h.rlog.DEG = left_join(norm.count.3h.rlog.DEG, toll10_vs_gd7.3h.lFC1)
+#norm.count.3h.rlog.DEG = left_join(norm.count.3h.rlog.DEG, toll9_vs_gd7.3h.lFC1)
+#norm.count.3h.rlog.DEG = left_join(norm.count.3h.rlog.DEG, toll9_vs_10.3h.lFC1)
+norm.count.3h.rlog.DEG = left_join(norm.count.3h.rlog.DEG, universe)
+colnames(norm.count.3h.rlog.DEG)
+
+norm.count.3h.rlog.DEG = norm.count.3h.rlog.DEG[ , c(7,8,9,1,2,3,4,10,11,5,6)]
+
+write.table(x = norm.count.3h.rlog.DEG, quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE, 
+            file =  paste(params$workingDir, params$dataDir,"10bVsGd7.CDS.DE.lfc1.txt", sep = "/"))
+   
+      
+
+
+```
+## DE comparisions between mutants for PolII ChIP 
+
+
+```{r DGE expression analysis for 3h}
+
+metaInfo_PolII= sampleInfo_PolII
+exp.data_PolII = countData.QC
+colnames(metaInfo_PolII)
+metaInfo_PolII  = metaInfo_PolII %>% filter(sampleName_PolII == "PolII")
+colData_PolII = exp.data[, metaInfo_PolII$sampleName]
+
+dds_PolII<- DESeqDataSetFromMatrix(countData = colData_PolII,
+                               colData = metaInfo_PolII,
+                               design = ~mutant )
+
+
+#countData["FBgn0003463", ]
+#assay(rld)["FBgn0003463", ]
+#loadingsDF %>% filter(ENSEMBL == "FBgn0003463")
+
+#assay(rld)["FBgn0003463", ]
+
+dds.3h <- DESeq(dds_PolII)
+
+rld <- rlog(dds_PolII)
+
+
+norm.count.PolII.rlog = as.data.frame(assay(rld))
+rownames(norm.count.PolII.rlog) =  rownames(rld)
+
+norm.count.PolII.rlog$ENSEMBL = rownames(norm.count.PolII.rlog)
+
+toll10_vs_gd7.PolII =getSigResult(dds_PolII, contrast=c("mutant","toll10b","gd7"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+toll10_vs_gd7.PolII.lFC1 = toll10_vs_gd7.PolII %>% filter(abs(log2FoldChange) > 1) %>% dplyr::select(log2FoldChange,padj,ENSEMBL)
+colnames(toll10_vs_gd7.PolII.lFC1) = c("l2fc_toll10b_vs_gd7","padj_toll10b_vs_gd7","ENSEMBL")
+
+DEGlist.PolII= toll10_vs_gd7.PolII.lFC1$ENSEMBL
+#DEGlist.3h = union(DEGlist.3h, toll9_vs_10.3h.lFC1$ENSEMBL)
+
+
+
+norm.count.PolII.rlog.DEG=  norm.count.PolII.rlog[DEGlist.PolII, ]
+norm.count.PolII.rlog.DEG = left_join(norm.count.PolII.rlog.DEG, toll10_vs_gd7.PolII.lFC1)
+#norm.count.3h.rlog.DEG = left_join(norm.count.3h.rlog.DEG, toll9_vs_gd7.3h.lFC1)
+#norm.count.3h.rlog.DEG = left_join(norm.count.3h.rlog.DEG, toll9_vs_10.3h.lFC1)
+norm.count.PolII.rlog.DEG = left_join(norm.count.PolII.rlog.DEG, universe)
+colnames(norm.count.PolII.rlog.DEG)
+
+norm.count.PolII.rlog.DEG = norm.count.PolII.rlog.DEG[ , c(7,8,9,1,2,3,4,10,11,5,6)]
+
+write.table(x = norm.count.PolII.rlog.DEG, quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE, 
+            file =  paste(params$workingDir, params$dataDir,"10bVsGd7.PolII-ChIP.DE.lfc1.txt", sep = "/"))
+   
+
+`````
+
+
+## DE comparisions between mutants at 5h 
+
+
+```{r DGE expression analysis for 5h}
+
+
+metaInfo.5h  = metaInfo %>% filter(time == "5h")
+colData.5h = exp.data[, metaInfo.5h$sampleName]
+
+dim(colData.5h) 
+
+dds.5h <- DESeqDataSetFromMatrix(countData = colData.5h,
+                               colData = metaInfo.5h,
+                               design = ~mutant )
+
+
+#countData["FBgn0003463", ]
+#assay(rld)["FBgn0003463", ]
+#loadingsDF %>% filter(ENSEMBL == "FBgn0003463")
+
+#assay(rld)["FBgn0003463", ]
+
+dds.5h <- DESeq(dds.5h)
+
+rld.5h <- rlog(dds.5h)
+
+
+norm.count.5h.rlog = as.data.frame(assay(rld.5h))
+
+norm.count.5h.rlog$ENSEMBL = rownames(norm.count.5h.rlog)
+
+
+#rds <- results(dds, contrast = list( c("mutant_toll10b_vs_gd7"),c("mutant_toll9_vs_gd7") ) )
+
+
+
+
+toll9_vs_10.5h = getSigResult(dds.5h, contrast=c("mutant","toll9","toll10b"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+toll9_vs_10.5h.lFC1 = toll9_vs_10.5h %>% filter(abs(log2FoldChange) > 1)  %>% dplyr::select(log2FoldChange,padj,ENSEMBL)
+colnames(toll9_vs_10.5h.lFC1) = c("l2fc_toll9_vs_toll10b","padj_toll9_vs_toll10b","ENSEMBL")
+
+
+
+# check specific gene
+#toll9_vs_10.3h[toll9_vs_10.3h$ENSEMBL %in% c("FBgn0003463"), ]
+
+
+toll9_vs_gd7.5h =getSigResult(dds.5h, contrast=c("mutant","toll9","gd7"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+toll9_vs_gd7.5h.lFC1 = toll9_vs_gd7.5h %>% filter(abs(log2FoldChange) > 1)  %>% dplyr::select(log2FoldChange,padj,ENSEMBL)
+colnames(toll9_vs_gd7.5h.lFC1) = c("l2fc_toll9_vs_gd7","padj_toll9_vs_gd7","ENSEMBL")
+
+toll10_vs_gd7.5h =getSigResult(dds.5h, contrast=c("mutant","toll10b","gd7"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+toll10_vs_gd7.5h.lFC1 = toll10_vs_gd7.5h %>% filter(abs(log2FoldChange) > 1) %>% dplyr::select(log2FoldChange,padj,ENSEMBL)
+colnames(toll10_vs_gd7.5h.lFC1) = c("l2fc_toll10b_vs_gd7","padj_toll10b_vs_gd7","ENSEMBL")
+
+
+
+DEGlist.5h = union(toll10_vs_gd7.5h.lFC1$ENSEMBL, toll9_vs_gd7.5h.lFC1$ENSEMBL )
+DEGlist.5h = union(DEGlist.5h, toll9_vs_10.5h.lFC1$ENSEMBL)
+
+
+norm.count.5h.rlog.DEG=  norm.count.5h.rlog[DEGlist.5h, ]
+norm.count.5h.rlog.DEG = left_join(norm.count.5h.rlog.DEG, toll10_vs_gd7.5h.lFC1)
+norm.count.5h.rlog.DEG = left_join(norm.count.5h.rlog.DEG, toll9_vs_gd7.5h.lFC1)
+norm.count.5h.rlog.DEG = left_join(norm.count.5h.rlog.DEG, toll9_vs_10.5h.lFC1)
+norm.count.5h.rlog.DEG = left_join(norm.count.5h.rlog.DEG, universe)
+
+colnames(norm.count.5h.rlog.DEG)[c(7,14,15,1,2,3,4,5,6,8,9,10,11,12,13)]
+norm.count.5h.rlog.DEG = norm.count.5h.rlog.DEG[ , c(7,14,15,1,2,3,4,5,6,8,9,10,11,12,13)]
+
+write.table(x = norm.count.5h.rlog.DEG, quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE, 
+            file =  paste(params$workingDir, params$dataDir,"normcounts.CDS.DE.5h.lfc1.txt", sep = "/"))
+   
+   
+```
+
+
+## DE comparisons between timepoints for all mutants
+### gd7
+
+```{r DGE expression analysis for mutants over time}
+
+
+metaInfo.gd7  = metaInfo %>% filter(mutant == "gd7")
+# Get an error here 
+
+colData.gd7 = exp.data[, metaInfo.gd7$sampleName]
+
+dim(colData.gd7) 
+
+colnames(colData.gd7) 
+
+dds.gd7 <- DESeqDataSetFromMatrix(countData = colData.gd7,
+                               colData = metaInfo.gd7,
+                               design = ~time )
+
+#countData["FBgn0003463", ]
+#assay(rld)["FBgn0003463", ]
+#loadingsDF %>% filter(ENSEMBL == "FBgn0003463")
+
+#assay(rld)["FBgn0003463", ]
+
+dds.gd7 <- DESeq(dds.gd7)
+
+rld.gd7 <- rlog(dds.gd7)
+
+
+norm.count.gd7.rlog = as.data.frame(assay(rld.gd7))
+
+norm.count.gd7.rlog$ENSEMBL = rownames(norm.count.gd7.rlog)
+
+#rds <- results(dds, contrast = list( c("mutant_toll10b_vs_gd7"),c("mutant_toll9_vs_gd7") ) )
+
+
+gd7_3h_vsgd7_5h = getSigResult(dds.gd7, contrast=c("time","3h","5h"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+gd7_3h_vsgd7_5h.lFC1 = gd7_3h_vsgd7_5h %>% filter(abs(log2FoldChange) > 1)  %>% dplyr::select(log2FoldChange,padj,ENSEMBL,SYMBOL)
+colnames(gd7_3h_vsgd7_5h.lFC1) = c("l2fc_gd7_3h_vsgd7_5h","padj_gd7_3h_vsgd7_5h","ENSEMBL","SYMBOL")
+
+
+gd7_3h_vs_5h=inner_join(norm.count.gd7.rlog, gd7_3h_vsgd7_5h.lFC1)
+colnames(gd7_3h_vs_5h)
+gd7_3h_vs_5h= gd7_3h_vs_5h[ ,c(5,8,1,2,4,3,6,7)]
+colnames(gd7_3h_vs_5h)
+### DEGlist.gd7= union(gd7.3h$ENSEMBL, gd7.5h$ENSEMBL )
+####n orm.count.gd7.rlog.DEG=  norm.count.gd7.rlog[DEGlist.gd7, ]
+
+write.table(x = gd7_3h_vs_5h, quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE, 
+            file =  paste(params$workingDir, params$dataDir,"gd7.cds.DE.lfc1.txt", sep = "/"))
+
+```
+### toll9/10
+```{r DGE expression analysis for mutants over time}
+
+
+metaInfo.toll9  = metaInfo %>% filter(mutant == "toll9")
+
+colData.toll9 = exp.data[, metaInfo.toll9$sampleName]
+
+dim(colData.toll9) 
+
+colnames(colData.toll9) 
+
+dds.toll9 <- DESeqDataSetFromMatrix(countData = colData.toll9,
+                               colData = metaInfo.toll9,
+                               design = ~time )
+
+
+#countData["FBgn0003463", ]
+#assay(rld)["FBgn0003463", ]
+#loadingsDF %>% filter(ENSEMBL == "FBgn0003463")
+
+#assay(rld)["FBgn0003463", ]
+
+dds.toll9 <- DESeq(dds.toll9)
+
+rld.toll9 <- rlog(dds.toll9)
+
+
+norm.count.toll9.rlog = as.data.frame(assay(rld.toll9))
+
+norm.count.toll9.rlog$ENSEMBL = rownames(norm.count.toll9.rlog)
+
+
+#rds <- results(dds, contrast = list( c("mutant_toll10b_vs_toll9"),c("mutant_toll9_vs_toll9") ) )
+
+toll9_3h_vstoll9_5h = getSigResult(dds.toll9, contrast=c("time","3h","5h"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+toll9_3h_vstoll9_5h.lFC1 = toll9_3h_vstoll9_5h %>% filter(abs(log2FoldChange) > 1)  %>% dplyr::select(log2FoldChange,padj,ENSEMBL,SYMBOL)
+colnames(toll9_3h_vstoll9_5h.lFC1) = c("l2fc_toll9_3h_vstoll9_5h","padj_toll9_3h_vstoll9_5h","ENSEMBL","SYMBOL")
+
+toll9_3h_vs_5h=inner_join(norm.count.toll9.rlog, toll9_3h_vstoll9_5h.lFC1)
+colnames(toll9_3h_vs_5h)
+toll9_3h_vs_5h= toll9_3h_vs_5h [ ,c(5,8,1,2,3,4,6,7)]
+colnames(toll9_3h_vs_5h)
+
+### DEGlist.toll9= union(toll9.3h$ENSEMBL, toll9.5h$ENSEMBL )
+####n orm.count.toll9.rlog.DEG=  norm.count.toll9.rlog[DEGlist.toll9, ]
+
+write.table(x = toll9_3h_vs_5h, quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE, 
+            file =  paste(params$workingDir, params$dataDir,"toll9.CDS.DE.lfc1.txt", sep = "/"))
+
+
+
+
+```
+
+### toll10b
+
+```{r DGE expression analysis for mutants over time}
+
+
+metaInfo.toll10b  = metaInfo %>% filter(mutant == "toll10b")
+
+colData.toll10b = exp.data[, metaInfo.toll10b$sampleName]
+
+dim(colData.toll10b) 
+
+colnames(colData.toll10b) 
+
+dds.toll10b <- DESeqDataSetFromMatrix(countData = colData.toll10b,
+                               colData = metaInfo.toll10b,
+                               design = ~time )
+
+
+#countData["FBgn0003463", ]
+#assay(rld)["FBgn0003463", ]
+#loadingsDF %>% filter(ENSEMBL == "FBgn0003463")
+
+#assay(rld)["FBgn0003463", ]
+
+dds.toll10b <- DESeq(dds.toll10b)
+
+rld.toll10b <- rlog(dds.toll10b)
+
+
+norm.count.toll10b.rlog = as.data.frame(assay(rld.toll10b))
+
+norm.count.toll10b.rlog$ENSEMBL = rownames(norm.count.toll10b.rlog)
+
+
+#rds <- results(dds, contrast = list( c("mutant_toll10b_vs_toll10b"),c("mutant_toll10b_vs_toll10b") ) )
+
+
+
+
+toll10b_3h_vstoll10b_5h = getSigResult(dds.toll10b, contrast=c("time","3h","5h"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+toll10b_3h_vstoll10b_5h.lFC1 = toll10b_3h_vstoll10b_5h %>% filter(abs(log2FoldChange) > 1)  %>% dplyr::select(log2FoldChange,padj,ENSEMBL,SYMBOL)
+colnames(toll10b_3h_vstoll10b_5h.lFC1) = c("l2fc_toll10b_3h_vstoll10b_5h","padj_toll10b_3h_vstoll10b_5h","ENSEMBL","SYMBOL")
+
+
+toll10b_3h_vs_5h=inner_join(norm.count.toll10b.rlog, toll10b_3h_vstoll10b_5h.lFC1)
+colnames(toll10b_3h_vs_5h)
+toll10b_3h_vs_5h= toll10b_3h_vs_5h [ ,c(5,8,2,3,1,4,6,7)]
+colnames(toll10b_3h_vs_5h)
+### DEGlist.toll10b= union(toll10b.3h$ENSEMBL, toll10b.5h$ENSEMBL )
+####n orm.count.toll10b.rlog.DEG=  norm.count.toll10b.rlog[DEGlist.toll10b, ]
+
+write.table(x = toll10b_3h_vs_5h, quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE, 
+            file =  paste(params$workingDir, params$dataDir,"toll10b.CDS.DE.lfc1.txt", sep = "/"))
+
+
+dim(toll9_3h_vs_5h)
+length(intersect(toll10b_3h_vs_5h$ENSEMBL, toll9_3h_vs_5h$ENSEMBL))
+DEGenens = full_join(toll10b_3h_vs_5h,toll9_3h_vs_5h)
+DEGenens = full_join(DEGenens,gd7_3h_vs_5h)
+
+
+#select only rows that will be used.
+similair = DEGenens%>% dplyr::select(l2fc_toll10b_3h_vstoll10b_5h,l2fc_gd7_3h_vsgd7_5h,l2fc_toll9_3h_vstoll9_5h,ENSEMBL) %>% dplyr::distinct(ENSEMBL ,.keep_all = TRUE)
+
+similair[is.na(similair)] = 0 
+# convert to dataframe
+similair2 = similair %>% dplyr::select( l2fc_toll10b_3h_vstoll10b_5h,l2fc_gd7_3h_vsgd7_5h,l2fc_toll9_3h_vstoll9_5h)
+
+#similair2[rowSums(similair2)>2,]
+similair2[abs(similair2) > 1] = 1
+similair2[abs(similair2) < 1] =0
+
+rownames(similair2) = similair$ENSEMBL
+library(UpSetR)
+
+
+colnames(similair2) = c("toll10b", "gd7", "toll9_10")
+pdf("diff_exp_genes_time.pdf" ,width = 7, height = 4)
+upset(similair2, nsets = 6,nintersects = NA,  point.size = 3.5, line.size = 2, 
+    mainbar.y.label = "Significant Correlation Intersections", sets.x.label = "Number of genes", 
+    text.scale = c(1.3, 1.3, 1, 1, 2, 1))
+dev.off()
+
+
+```
+
+# check specific gene
+#toll9_vs_10.3h[toll9_vs_10.3h$ENSEMBL %in% c("FBgn0003463"), ]
+
+
+toll9_vs_gd7.5h =getSigResult(dds.5h, contrast=c("mutant","toll9","gd7"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+toll9_vs_gd7.5h.lFC1 = toll9_vs_gd7.5h %>% filter(abs(log2FoldChange) > 1)  %>% dplyr::select(log2FoldChange,padj,ENSEMBL)
+colnames(toll9_vs_gd7.5h.lFC1) = c("l2fc_toll9_vs_gd7","padj_toll9_vs_gd7","ENSEMBL")
+
+toll10_vs_gd7.5h =getSigResult(dds.5h, contrast=c("mutant","toll10b","gd7"),
+                           geneNameColumn = "ENSEMBL",
+                           universe = universe, cutoff = 0.05)
+toll10_vs_gd7.5h.lFC1 = toll10_vs_gd7.5h %>% filter(abs(log2FoldChange) > 1) %>% dplyr::select(log2FoldChange,padj,ENSEMBL)
+colnames(toll10_vs_gd7.5h.lFC1) = c("l2fc_toll10b_vs_gd7","padj_toll10b_vs_gd7","ENSEMBL")
+
+
+
+DEGlist.5h = union(toll10_vs_gd7.5h.lFC1$ENSEMBL, toll9_vs_gd7.5h.lFC1$ENSEMBL )
+DEGlist.5h = union(DEGlist.5h, toll9_vs_10.5h.lFC1$ENSEMBL)
+
+
+norm.count.5h.rlog.DEG=  norm.count.5h.rlog[DEGlist.5h, ]
+norm.count.5h.rlog.DEG = left_join(norm.count.5h.rlog.DEG, toll10_vs_gd7.5h.lFC1)
+norm.count.5h.rlog.DEG = left_join(norm.count.5h.rlog.DEG, toll9_vs_gd7.5h.lFC1)
+norm.count.5h.rlog.DEG = left_join(norm.count.5h.rlog.DEG, toll9_vs_10.5h.lFC1)
+norm.count.5h.rlog.DEG = left_join(norm.count.5h.rlog.DEG, universe)
+
+colnames(norm.count.5h.rlog.DEG)[c(7,14,15,1,2,3,4,5,6,8,9,10,11,12,13)]
+norm.count.5h.rlog.DEG = norm.count.5h.rlog.DEG[ , c(7,14,15,1,2,3,4,5,6,8,9,10,11,12,13)]
+
+write.table(x = norm.count.5h.rlog.DEG, quote = FALSE, sep = "\t", col.names = TRUE, row.names = FALSE, 
+            file =  paste(params$workingDir, params$dataDir,"normcounts.CDS.DE.5h.lfc1.txt", sep = "/"))
+   
+   
+```
+
+
+
+
+
+```{r compare the different timepoints}
+
+
+
+
+
+
+dim(toll9_vs_10.3h.lFC1)
+dim(toll9_vs_gd7.3h.lFC1)
+dim(toll10_vs_gd7.3h.lFC1)
+
+
+dim(toll9_vs_gd7.5h.lFC1)
+dim(toll9_vs_10.5h.lFC1)
+dim(toll10_vs_gd7.5h.lFC1)
+
+
+length(DEGlist.5h)
+length(DEGlist.3h)
+
+```

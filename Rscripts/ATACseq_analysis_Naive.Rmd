@@ -1,0 +1,389 @@
+---
+title: "ChIPseq analysis"
+author: "Johan"
+date: "10/25/2019"
+output: html_document
+
+params:
+  workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+  proSeqDir: results/PROseq
+  proSeq.data: PROseq.data.tsv
+  ATACSeqDir: results/ATACseq
+  ATACSeq.data: ATACseq.data.tsv
+  ATACSeq.data.raw: ATACseq.data.raw.tsv
+  RscriptsDir: R_Analysis/Rscripts  
+  dataDir: data/ATACseq
+  sampleInfo: information/ChIP_ATAC_sampleInfo.tab.txt
+  sampleInfoATAC: information/ATAC_sampleInfo.tab.txt
+  count_ATAC: ATAC.peak.featureCount.count.tab.txt 
+  ATAC_Naive_normalised: ATAC.peak.Naive.featureCount.rlog.tab.txt 
+  Method: ATAC-Seq
+
+  RfunctionsDirectory: /Users/johanreimegard/GoogleDrive/git/RNAmappingPipeline/R
+  
+  
+---
+
+
+#Temporal analysis of Naive ATAC
+
+
+
+
+```{r setup, include=FALSE}
+
+#source(paste(params$RfunctionsDirectory,"ExpressionAnalysisFunctions.R",sep = "/"))
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+library(gplots)
+
+#install.packages("kableExtra")
+library(kableExtra)
+library("viridis")     
+
+
+
+
+
+gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28.99.gtf", sep = "/")
+
+
+
+```
+
+
+
+### Using feature count to get the difference between the samples
+
+```{r Adding the first analysis of the data}
+# install RColorBrewer if missing
+
+library(RColorBrewer)
+library(gplots)
+#library(GenomicFeatures)
+
+
+featureCountFile = paste(params$workingDir, params$dataDir,params$count_ATAC, sep = "/")
+
+FCdata = read.table( file = featureCountFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+peakInfo  = FCdata [,1:6]
+countData = FCdata[,-1:-6]
+rownames(countData) = peakInfo$Geneid
+
+SpatialGenesData = read.table(file = paste(params$workingDir,"results/combined.AllData.withMetaData.txt" ,sep = "/"), quote = "", sep = "\t"
+                     ,header = T)
+
+ATACregions = as.character(unique(SpatialGenesData$ATACseq_Geneid))
+
+
+```
+
+
+
+```{r handle the samples}
+
+sampleInfoFile =paste(params$workingDir, params$sampleInfo, sep = "/")
+sampleInfo = read.table( file = sampleInfoFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+
+sampleInfo$bamFiles2  =  gsub(pattern = "/",replacement = ".",x = sampleInfo$bamFiles)
+sampleInfo$bamFiles2  =  gsub(pattern = "-",replacement = ".",x = sampleInfo$bamFiles2)
+
+
+sampleInfo$Genotype = recode(sampleInfo$Genotype, Toll910 = "Toll9")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, `Toll9/10` = "Toll9")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, gd7 = "Gd7")
+
+sampleInfo =sampleInfo %>% filter(Assaytype == params$Method) 
+
+
+sampleInfoFile_ATAC =paste(params$workingDir, params$sampleInfoATAC, sep = "/")
+
+write_delim(x = sampleInfo, path = sampleInfoFile_ATAC, delim = "\t", col_names = TRUE,quote_escape = FALSE)
+
+
+sampleInfoCountTable = data.frame(bamFiles2 = colnames(countData))
+
+
+sampleInfo = inner_join(sampleInfo,sampleInfoCountTable)
+
+countData = countData[,sampleInfo$bamFiles2]
+sampleInfo$Nuclearcycle[is.na(sampleInfo$Nuclearcycle)]="Mutant"
+
+colnames(countData) = sampleInfo$SampleInfo
+
+
+```
+
+
+
+
+
+
+## Filtering
+
+### Keeping only the naive ATAC seq data.
+
+```{r differential gene expression analysis}
+sampleInfo_NC = sampleInfo %>% filter( Nuclearcycle != "Mutant" ) %>% arrange(Nuclearcycle, Time) 
+
+sampleInfo_NC$Time = as.numeric(sampleInfo_NC$Time)
+sampleInfo_NC = sampleInfo_NC %>% arrange(Nuclearcycle, Time) 
+sampleInfo_NC
+
+
+class(sampleInfo_NC$SampleInfo)
+countData_NC = countData[,sampleInfo_NC$SampleInfo]
+
+```
+
+
+
+```{r differential gene expression analysis 2 }
+
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+ #   install.packages("BiocManager")
+
+#BiocManager::install("DESeq2")
+
+library(DESeq2)
+
+exp.data = countData_NC
+metaInfo = sampleInfo_NC
+
+rownames(metaInfo) = sampleInfo_NC$SampleInfo
+
+metaInfo$Nuclearcycle = factor(metaInfo$Nuclearcycle)
+metaInfo$Time = factor(metaInfo$Time)
+
+class(metaInfo$Nuclearcycle)
+class(metaInfo$Time)
+
+dds <- DESeqDataSetFromMatrix(countData = exp.data,
+                               colData = metaInfo,
+                               design = ~Time+Nuclearcycle)
+
+
+#Remove rows with low counts and normalise samples for visualisation
+dds <- dds[ rowSums(counts(dds)) > 50, ]
+
+dim(dds)
+#Normalizing and change to 2 fold log changes. 
+rld <- rlog(dds)
+
+
+```
+
+
+```{r analysis of NC samples }
+
+
+
+#' ### Visualising the data
+data =  data.frame(assay(rld))
+
+
+#+ save1, include=FALSE
+#png(paste(params$workingDirectory, params$resultsDirectory,"SampleDistance.png", sep = "/"))
+plotSample2SampleDistance(assay(rld))
+#dev.off()
+
+#' 
+#'
+
+
+```
+
+```{r PCA analysis all data }
+data_Time = data[,sampleInfo_NC$SampleInfo]
+
+data_NC = data_Time %>% mutate(Geneid = rownames(data_Time)) %>%  
+  gather(key = SampleInfo, value = rlog , -Geneid ) %>%
+  inner_join(sampleInfo_NC) %>% dplyr::select(SampleInfo,Geneid, Assaytype, Nuclearcycle, Genotype ,rlog)
+
+
+Naive_ATAC_Normalised_file = paste(params$workingDir, params$dataDir,params$ATAC_Naive_normalised, sep = "/")
+
+write.table(x =data_NC, file = Naive_ATAC_Normalised_file,
+                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+```
+
+
+pdf(paste("ATACseq_toll_nonFixed_non_spiked_distance_analysis.pdf", sep ="_") ,width = 20, height = 20)
+plotSample2SampleDistance(data_Time)
+dev.off()
+#'  __Figure 1 Plotting sample to sample distance__ . 
+#'  0 means that they are identical and 1 means that they are totally different.  
+#'  The darker the blue the more similair. Also dendogram shows how similair they are. 
+#' 
+#' Samples do not cluster according to pre an post op. Most likely more due to difference in mapping (technical problem)
+#' 
+#' #### PCA analysis
+#' Running PCA on the samples and plotting the different variables to see which of the parameterrs that fit the different components the best.
+#' 
+#' First checking how much the different PC contribute. 
+
+
+mir.pca <- prcomp(t(data_Time), center = TRUE, scale = FALSE) 
+e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
+e.var = as.data.frame( e.var )
+e.var$PC = as.factor(1:nrow(e.var)) 
+e.var$Variance = e.var$e.var*100
+e.var$CumulativeVariance = cumsum(e.var$Variance)
+qplot(PC, Variance, data=e.var, geom = c("point")
+      , ylim = c(0,max(e.var$Variance)+5) 
+      ,ylab = "Variance (%)")
+
+#'  __Figure 2 Plotting PCA variance__.  
+#'  Displays how much each of the PC contributes to the overall expression.    
+#'  This suggest that the two first PC explains most of the variation.
+#'
+#+ save2, include=FALSE
+#ggsave(paste(params$workingDirectory,params$resultsDirectory, "PCAvariance.png", sep = "/"))
+#'
+#'
+pctable = as.data.frame(mir.pca$x)[, 1:5]
+pctable = cbind(pctable, sampleInfo_NC)
+pctable$Time = as.factor(pctable$Time)
+
+test  = plotPCAplot(PCAinfo = pctable, n.comp = 4,
+            varianceInfo = e.var, 
+            colorComponent = "Nuclearcycle",pchComponent = "Time"
+              
+)
+
+test
+ggsave(paste( params$Antibody,"ATACseq_Naive_NC_PCA_analysis.pdf", sep ="_"))
+
+
+
+ggplot(pctable) + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC2, color = Nuclearcycle, shape = Time))
+ggsave(paste( params$Antibody,"ATACseq_toll_nonFixed_non_spiked_PCA_line_analysis.pdf", sep ="_"))
+
+
+
+loadings = mir.pca$rotation[,1:3]
+
+
+
+meantime = pctable %>% dplyr::select(PC1,PC2,PC3,Nuclearcycle) %>%
+  dplyr::group_by(Nuclearcycle) %>%
+  dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2), PC3 = mean(PC3) )
+
+loadings1 = as.data.frame(t((t(loadings)-colMeans(loadings))/colSds(loadings)))
+loadings1$Geneid = rownames(loadings)
+
+loadings1 = loadings1 %>% mutate(Enhancer = Geneid %in% ATACregions)
+
+fileNameFigCDSsamples = paste( params$workingDir, params$proSeqDir, 
+                        paste("PCA_samples_with_decisionlines_CDS.pdf", sep = "_") ,
+                        sep = "/")
+ggplot(loadings1, mapping = aes(x = PC1,y = PC2))+ 
+  geom_point(mapping = aes(x = PC1,y = PC2, color = Enhancer))+
+  geom_point(data = pctable,  mapping = aes(x = PC1,y = PC2, shape =Nuclearcycle ))+
+  scale_color_viridis(discrete = TRUE, option = "D")+ 
+    facet_grid(.~Enhancer)
+
+
+
+
+ggplot(loadings1, mapping = aes(x = PC2))+ 
+  stat_ecdf(mapping = aes( color = Enhancer))+
+  scale_color_viridis(discrete = TRUE, option = "D")
+
+
+loadings1$MoreOpenInNC13= FALSE 
+loadings1$MoreOpenInNC13[loadings1$PC2 < 0]= TRUE 
+
+table(loadings1[, c("Enhancer","MoreOpenInNC13")])
+
+ggsave(fileNameFigCDSsamples)
+
+
+ks.test(loadings1$PC2[loadings1$Enhancer == TRUE], 
+        loadings1$PC2[loadings1$Enhancer == FALSE])
+
+
+roc_empirical_PC2 =  ROCit::rocit(score = -loadings1$PC2, class = -loadings1$Enhancer,
+                       negref = FALSE)         
+
+
+plot(roc_empirical_PC2, values = F)
+
+loadings1 = loadings1 %>% dplyr::select(Geneid, PC1, PC2, MoreOpenInNC13) %>% rename("ATACseq_Geneid" = Geneid)
+
+
+```
+
+
+```{r DEseq2 analysis }
+
+dds.2 <- DESeq(dds)
+```
+
+```{r DEseq2 analysis2 }
+
+DEresult = results(object = dds.2)
+DEresult.13vs11 = data.frame(DEresult)
+
+DEresult.13vs11$ATACseq_Geneid = rownames(DEresult.13vs11)
+
+DEresult.13vs11 = DEresult.13vs11 %>% mutate(Enhancer = ATACseq_Geneid %in% ATACregions)
+DEresult.13vs11 = DEresult.13vs11 %>% mutate(NaiveState = (padj <0.05))
+
+table(DEresult.13vs11[,c("Enhancer","NaiveState")])
+
+DEresult.13vs11.DE.enhancer = DEresult.13vs11 %>% filter(Enhancer ) %>% arrange(padj) %>%
+  dplyr::select(ATACseq_Geneid, NaiveState,log2FoldChange, padj) 
+
+
+
+ ggplot(DEresult.13vs11, mapping = aes(x = log2FoldChange, color = Enhancer))+ stat_ecdf() 
+
+
+  table(DEresult.13vs11[, c("NaiveState","Enhancer")])
+test = ggplot(DEresult.13vs11, mapping = aes(x = NaiveState))+ 
+  geom_bar(mapping = aes(y = ..prop.., group = Enhancer, fill = Enhancer))
+
+roc_empirical =  ROCit::rocit(score =-log( DEresult.13vs11$padj), class = DEresult.13vs11$Enhancer,
+                       negref = FALSE)         
+
+
+
+
+```
+
+
+
+
+
+```{r join the data f}
+
+plot(roc_empirical_PC2, values = F)
+
+plot(roc_empirical, values = F)
+
+
+
+ATACseq_Naive = inner_join(loadings1,DEresult.13vs11.DE.enhancer) %>% rename("ATAC_NC_PC2" =  PC2)
+
+qqplot(x =ATACseq_Naive$ATAC_NC_PC2, ATACseq_Naive$padj)
+
+SpatialGenesData = left_join(SpatialGenesData,ATACseq_Naive)
+
+write.table(file = paste(params$workingDir,"results/combined.AllData.withMetaData.ATACnaive.txt" ,sep = "/"),
+            x = SpatialGenesData, quote = FALSE, col.names = TRUE,row.names = FALSE, sep  = "\t") 
+                                  
+
+
+
+```

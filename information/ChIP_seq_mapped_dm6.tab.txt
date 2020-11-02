@@ -1,0 +1,17 @@
+experiment	dir4	bamFiles
+ChIP_seq_mapped_dm6	Toll10b_K27ac_2_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27ac_2_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll910_H3_2_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_H3_2_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll910_K27ac_2_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27ac_2_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	gd7_K27me3_1_R1	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27me3_1_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll910_K27me3_1_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27me3_1_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll10b_K27me3_1_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27me3_1_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll910_H3_1_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_H3_1_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll10b_K27ac_1_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27ac_1_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll910_K27me3_2_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27me3_2_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll910_Input_2_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_Input_2_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	gd7_K27ac_2_R1	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27ac_2_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	gd7_K27me3_2_R1	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27me3_2_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll910_Input_1_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_Input_1_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	gd7_K27ac_1_R1	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27ac_1_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll910_K27ac_1_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27ac_1_R1.dmel.bowtie2.sorted.bam
+ChIP_seq_mapped_dm6	Toll10b_K27me3_2_R1	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27me3_2_R1.dmel.bowtie2.sorted.bam

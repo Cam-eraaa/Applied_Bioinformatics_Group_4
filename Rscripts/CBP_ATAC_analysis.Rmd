@@ -1,0 +1,963 @@
+---
+title: "ChIPseq analysis"
+author: "Johan"
+date: "10/25/2019"
+output: html_document
+
+params:
+  workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+  proSeqDir: results/PROseq
+  proSeq.data: PROseq.data.tsv
+  RscriptsDir: R_Analysis/Rscripts  
+  dataDir: data/ChIPseq
+  
+  sampleInfo: information/ChIP_ATAC_sampleInfo.tab.txt
+  count_ATAC: ATAC.peak.featureCount.count.tab.txt 
+  Method: ATAC-Seq
+  chipSeqDir: results/chipSeq
+  chipSeqData: ATAC-CBP_dm6.featureCount.count.tab.txt
+  NormalisedChipSeqData: ATAC-CBP_dm6.featureCount.rlog.tab.txt
+  Antibody: ATAC-CBP_dm6
+  distanceCutoff: 2
+
+
+  RfunctionsDirectory: /Users/johanreimegard/GoogleDrive/git/RNAmappingPipeline/R
+  
+  
+---
+
+
+
+
+
+
+```{r setup, include=FALSE}
+
+source(paste(params$RfunctionsDirectory,"ExpressionAnalysisFunctions.R",sep = "/"))
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+library(gplots)
+
+library(knitr)
+#install.packages("kableExtra")
+library(kableExtra)
+library("viridis")     
+
+
+
+
+
+gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28.99.gtf", sep = "/")
+
+
+
+```
+
+```{r PROseq annotation}
+
+
+
+PROseqInfo = read.table( file = paste( params$workingDir, params$proSeqDir, params$proSeq.data,
+                          sep = "/"),
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+annotation2 =  PROseqInfo %>% filter(factor %in% c("Toll10b","Toll9","Gd7") & annotation2 == "DE") %>%
+  dplyr::select(geneID, annotation, distance, factor, direction ) %>%
+  distinct()
+
+
+# ChIPseq analysisdi
+```
+
+
+## a
+Add gene to transcript correlation
+
+```{r  add  transcript to gene Information}
+
+# Load in the fastq file that is generated as data from running multiqc on all samples. 
+gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28.99.gtf", sep = "/")
+gtfInfo = read.table(file = gtfFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
+
+
+gtfInfoGene = gtfInfo %>% dplyr::filter(V3 == "gene") 
+gtfInfoGene = gtfInfoGene[grep(pattern = "gene_biotype \"protein_coding\"",x = gtfInfoGene$V9 ),  ] 
+
+gtfInfoGene= gtfInfoGene %>% separate(col = V9,sep = ";",into =  c("geneID1", "geneName1"))
+gtfInfoGene= gtfInfoGene %>% separate(col = geneID1,sep = "\"",into =  c("irrelevant", "geneID"))
+gtfInfoGene= gtfInfoGene %>% separate(col = geneName1,sep = "\"",into =  c("irrelevant1", "geneName"))
+
+gtfInfoGene = gtfInfoGene  %>% dplyr::select(V1,V4,V5,V7,geneID) 
+PROseqGenes = inner_join(gtfInfoGene,  annotation2)
+PROseqGenes = PROseqGenes %>% dplyr::rename("Chr"= V1, "GeneStart" = V4,"GeneStop" = V5,"geneDir" = V7)
+PROseqGenes$Chr = paste ("chr",PROseqGenes$Chr, sep ="")
+
+
+
+gtfInfomRNA = gtfInfo %>% dplyr::filter(V3 == "transcript") 
+gtfInfomRNA = gtfInfomRNA[grep(pattern = "gene_biotype \"protein_coding\"",x = gtfInfomRNA$V9 ),  ] 
+
+gtfInfomRNA_DF= gtfInfomRNA %>% separate(col = V9,sep = ";",into =  c("geneID1", "transcriptID1"))
+gtfInfomRNA_DF= gtfInfomRNA_DF %>% separate(col = geneID1,sep = "\"",into =  c("irrelevant", "geneID"))
+gtfInfomRNA_DF= gtfInfomRNA_DF %>% separate(col = transcriptID1,sep = "\"",into =  c("irrelevant1", "transcriptID"))
+
+gene2transcriptInfo  = gtfInfomRNA_DF %>% dplyr::select(geneID,transcriptID)
+
+
+
+```
+
+
+## Reads mapping
+
+
+## Comparing mapping pattern between the samples
+
+### Using feature count to get the difference between the samples
+
+```{r Adding the first analysis of the data}
+# install RColorBrewer if missing
+
+library(RColorBrewer)
+library(gplots)
+library(GenomicFeatures)
+
+
+
+featureCountFile = paste(params$workingDir, params$dataDir,
+                         paste(params$Antibody , "featureCount.count.tab.txt", sep = "."), sep = "/")
+
+FCdata = read.table( file = featureCountFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+peakInfo  = FCdata [,1:6]
+countData = FCdata[,-1:-6]
+rownames(countData) = peakInfo$Geneid
+
+samples = colnames(countData)
+
+samples = gsub(pattern = "..CBP_ChIP_seq_mapped.CBP_toll_dm6only.bam_dm6.", replacement = "", x = samples)
+samples = gsub(pattern = ".dm6.bowtie2.sorted.bam", replacement = "", x = samples)
+
+colnames(countData) = samples
+
+sampleInfo = data.frame(sampleName = colnames(countData), sampleInfo = samples, stringsAsFactors = F)
+
+sampleInfo= sampleInfo %>% separate(sampleInfo, c("Genotype", "Replicate", "Input", "sample"), sep = "_", remove = F)
+sampleInfo$Genotype = recode(sampleInfo$Genotype, toll910 = "Toll9")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, gd7 = "Gd7")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, toll10B = "Toll10b")
+sampleInfo$sampleID = paste(sampleInfo$Genotype, sampleInfo$Replicate, sampleInfo$Input , sep = "_")
+
+
+countData = countData[,sampleInfo$sampleName]
+colnames(countData) = sampleInfo$sampleID
+
+
+```
+
+## Filtering
+
+
+```{r differential gene expression analysis}
+library(DESeq2)
+library(edgeR)
+
+exp.data = countData
+metaInfo = sampleInfo
+
+rownames(metaInfo) = sampleInfo$sampleID
+
+
+metaInfo$Genotype = as.factor(metaInfo$Genotype)
+metaInfo$sampleID = as.factor(metaInfo$sampleID)
+metaInfo$Input = as.factor(metaInfo$Input)
+
+
+dds <- DESeqDataSetFromMatrix(countData = exp.data,
+                               colData = metaInfo, ~1)
+
+
+#Remove rows with low counts and normalise samples for visualisation
+dds <- dds[ rowSums(counts(dds)) > 100, ]
+
+dim(dds)
+#Normalizing and change to 2 fold log changes. 
+test2 =   rpkm(countData, gene.length = peakInfo$Length)
+plotSample2SampleDistance(test2)
+
+rld <- rlog(dds)
+
+
+
+normExpression = as.data.frame(assay(rld))
+
+normExpression$geneID = rownames(normExpression)
+normExpressionDF  = normExpression %>% gather( key = sampleID, value = rlog, -geneID)
+normExpressionDF = inner_join(normExpressionDF, metaInfo)
+head(normExpressionDF)
+
+#normExpressionDF = inner_join(normExpressionDF, sampleInfo)
+
+
+ggplot(normExpressionDF, aes(x = rlog, color = Input)) + geom_density()
+
+geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>% 
+  dplyr::group_by (geneID) %>%
+  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
+
+geneInfo.QC2 = geneInfo %>% filter(overQC > 2)
+normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)
+
+ggplot(normExpressionDF.QC, aes(x = rlog, color = sampleName)) + geom_density()
+
+
+normExpressionDF.QC.CBP = normExpressionDF.QC %>% filter(Input == "CBP")
+normExpression.QC = normExpressionDF.QC.CBP %>%
+  dplyr::select(geneID, sampleName, rlog) %>% 
+  spread(key = sampleName, value = rlog)
+
+rownames(normExpression.QC) = normExpression.QC$geneID
+normExpression.QC = normExpression.QC[, -1]
+
+
+normExpressionDF.QC.CBP
+
+
+NormalisedCountFile = paste(params$workingDir, params$dataDir,
+                         paste(params$NormalisedChipSeqData, sep = "."), sep = "/")
+
+write.table(x = normExpressionDF.QC.CBP, file = NormalisedCountFile,
+                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+```
+
+
+
+```{R  check the normalised data }
+#' ### Visualising the data
+
+
+#+ save1, include=FALSE
+#png(paste(params$workingDirectory, params$resultsDirectory,"SampleDistance.png", sep = "/"))
+#plotSample2SampleDistance(assay(rld))
+#dev.off()
+
+#' 
+#'
+
+
+
+pdf(paste(params$workingDir, params$chipSeqDir, 
+  "CBP_ATACpeak_distance_analysis.pdf", sep ="/") ,width = 5, height = 5)
+plotSample2SampleDistance(normExpression.QC)
+dev.off()
+#'  __Figure 1 Plotting sample to sample distance__ . 
+#'  0 means that they are identical and 1 means that they are totally different.  
+#'  The darker the blue the more similair. Also dendogram shows how similair they are. 
+#' 
+#' Samples do not cluster according to pre an post op. Most likely more due to difference in mapping (technical problem)
+#' 
+#' #### PCA analysis
+#' Running PCA on the samples and plotting the different variables to see which of the parameterrs that fit the different components the best.
+#' 
+#' First checking how much the different PC contribute. 
+
+
+mir.pca <- prcomp(t(normExpression.QC), center = TRUE, scale = FALSE) 
+e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
+e.var = as.data.frame( e.var )
+e.var$PC = as.factor(1:nrow(e.var)) 
+e.var$Variance = e.var$e.var*100
+e.var$CumulativeVariance = cumsum(e.var$Variance)
+qplot(PC, Variance, data=e.var, geom = c("point")
+      , ylim = c(0,max(e.var$Variance)+5) 
+      ,ylab = "Variance (%)")
+
+#'  __Figure 2 Plotting PCA variance__.  
+#'  Displays how much each of the PC contributes to the overall expression.    
+#'  This suggest that the two first PC explains most of the variation.
+#'
+#+ save2, include=FALSE
+#ggsave(paste(params$workingDirectory,params$resultsDirectory, "PCAvariance.png", sep = "/"))
+#'
+#'
+pctable = as.data.frame(mir.pca$x)[, 1:5]
+pctable$sampleName = rownames(pctable)
+pctable = inner_join(pctable, metaInfo)
+
+
+test  = plotPCAplot(PCAinfo = pctable, n.comp = 4,
+            varianceInfo = e.var, 
+            colorComponent = "Genotype",pchComponent = "Replicate"
+              
+)
+
+test
+ggsave(paste(params$workingDir, params$chipSeqDir, 
+             paste( "CBP_ATACpeak_PCA_analysis.pdf", sep ="_"),
+             sep = "/"))
+
+
+
+mean = pctable %>% dplyr::select(PC1,PC2,Genotype) %>%
+  dplyr::group_by(Genotype) %>%
+  dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2))
+
+
+
+origo = data.frame(PC1=0, PC2 = 0)
+
+
+line.gd7 = rbind(mean[1,2:3],origo,-mean[1,2:3])
+line.gd7$factor = "Gd7"
+line.toll10b = rbind(mean[2,2:3],origo,-mean[2,2:3])
+line.toll10b$factor = "Toll10b"
+line.toll9 = rbind(mean[3,2:3],origo,-mean[3,2:3])
+line.toll9$factor = "Toll9"
+
+
+line = rbind(line.gd7,line.toll10b,line.toll9)
+
+ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC2, color = Genotype))
+ggsave(paste(params$workingDir, params$chipSeqDir,
+             paste( params$Antibody,"_toll_nonFixed_non_spiked_PCA_line_analysis.pdf", sep ="_"),
+             sep = "/"))
+
+
+
+
+```
+
+
+
+## Peak assignment
+
+```{r Assignment of peaks in time, mutant space }
+
+loadings = mir.pca$rotation[,1:2]
+
+
+mean = pctable %>% dplyr::select(PC1,PC2,Genotype) %>%
+  dplyr::group_by(Genotype) %>%
+  dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2) )
+
+
+origo = data.frame(PC1=0, PC2 = 0)
+
+line.gd7 = rbind(mean[1,2:3],origo,-mean[1,2:3])
+line.gd7$factor = "Gd7"
+line.toll10b = rbind(mean[2,2:3],origo,-mean[2,2:3])
+line.toll10b$factor = "Toll10b"
+line.toll9 = rbind(mean[3,2:3],origo,-mean[3,2:3])
+line.toll9$factor = "Toll9"
+#line.time = rbind(-meantime[1,2:3],origo,meantime[1,2:3])
+#line.time$factor = "Time"
+
+
+line = rbind(line.gd7,line.toll10b,line.toll9)
+
+
+pctable$factor  = pctable$Genotype
+
+
+fileNameFigCDSsamples = paste( params$workingDir, params$chipSeqDir, 
+                        paste(params$Antibody,"PCA_samples_with_decisionlines_CDS.pdf", sep = "_") ,
+                        sep = "/")
+ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC2, color = factor))+
+  scale_color_viridis(discrete = TRUE, option = "D")
+ggsave(fileNameFigCDSsamples)
+
+```
+
+# Gene scores
+
+```{r convert loadings to the factor Scores}
+loadings =mir.pca$rotation[,1:2]
+
+loadings1 = as.data.frame(t((t(loadings)-colMeans(loadings))/colSds(loadings)))
+loadings1$Geneid = rownames(loadings)
+
+
+
+#  as.data.frame(t((t(loadings)-colMeans(loadings))/colSds(loadings)))
+#loadings1 = as.data.frame(loadings)
+
+distance3d <- function(a,b){
+  v1 = a - b
+  
+  distance = ((v1[[1]]^2 + v1[[2]]^2 + v1[[3]]^2)^0.5)
+  return(distance)
+}
+
+
+distance2d <- function(a,b){
+  v1 = a - b
+  
+  distance = ((v1[[1]]^2 + v1[[2]]^2 )^0.5)
+  return(distance)
+}
+
+dist3d <- function(point,b,c) {
+  v1 <- b - c
+  v2 <- point - b      
+  v3 <- cross3d_prod(v1,v2)
+  area <- sqrt(sum(v3*v3))/2
+  d <- 2*area/sqrt(sum(v1*v1))
+  return(d)
+}
+
+cross3d_prod <- function(v1,v2){
+  v3 <- vector()
+  v3[1] <- v1[2]*v2[3]-v1[3]*v2[2]
+  v3[2] <- v1[3]*v2[1]-v1[1]*v2[3]
+  v3[3] <- v1[1]*v2[2]-v1[2]*v2[1]
+  return(v3)
+}
+
+dist2d <- function(point,b,c) {
+ v1 <- b - c
+ v2 <- point - b
+ m <- cbind(v1,v2)
+ d <- abs(det(m))/sqrt(sum(v1*v1))
+} 
+
+
+
+
+
+for(j in unique(line$factor)){
+  loadings1[[j]]=0
+  for(i in 1:nrow(loadings1)){
+  line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1,PC2)
+  loadings1[i,j] = dist2d(b =as.numeric(line1[1,]),
+                            c = as.numeric(line1[3,]),
+                            point = as.numeric(loadings1[i,1:2]))
+
+  }
+
+}
+
+tmp = loadings1
+tmp$distance =  ((tmp$PC1^2 + tmp$PC2^2 )^0.5)
+loadingsDF.all = tmp
+loadingsDF.all.factorDistance =loadingsDF.all %>% gather(key = factor, value = distance2Factor,Gd7,Toll10b,Toll9 )
+loadingsDF.all.factorDistance$distanceFactor = sqrt(loadingsDF.all.factorDistance$distance^2 -
+                                                   loadingsDF.all.factorDistance$distance2Factor^2)
+
+
+loadingsDF.all.factorDistance$direction = "Down"
+line$Dir = rep(c("Up","origo","Down"), 3)
+
+
+for(i in 1:nrow(loadingsDF.all.factorDistance)){
+  factor2 = loadingsDF.all.factorDistance[i,]$factor
+  UpPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Up") %>% dplyr::select(PC1,PC2)
+  DownPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Down") %>% dplyr::select(PC1,PC2)
+  point = loadingsDF.all.factorDistance[i,c("PC1","PC2")]
+  up = distance2d(as.numeric( UpPoint),as.numeric(point))
+  down = distance2d(as.numeric(DownPoint),as.numeric(point))
+  
+  if(up < down){
+    loadingsDF.all.factorDistance[i,"direction"] = "Up"
+  }else{
+    loadingsDF.all.factorDistance[i,"distanceFactor"] = 
+      -loadingsDF.all.factorDistance[i,"distanceFactor"]
+  }
+}
+
+
+
+
+loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select( Geneid,PC1, PC2, distance, factor,distanceFactor) %>% spread( key = factor, value = distanceFactor)
+
+
+loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(Geneid) %>% summarise(max = max(abs(distanceFactor)))
+ 
+
+
+
+
+loadingsDF.all.factorDistance$max=abs(loadingsDF.all.factorDistance$distanceFactor) 
+
+
+loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,loadingsDF.all.factorDistance.max) %>%
+  dplyr::select(Geneid, factor, direction)
+
+loadingsDF.all.factorDistance.max.peakInfo = inner_join (peakInfo,loadingsDF.all.factorDistance.max )
+
+loadingsDF.all.factorDistance.max.peakInfo = inner_join(
+  loadingsDF.all.factorDistance.max.peakInfo,
+  loadingsDF.all.factorDistance2
+)
+
+
+
+loadingsDF.all.factorDistance.max.peakInfo2 = 
+  loadingsDF.all.factorDistance.max.peakInfo %>%
+  dplyr::select(-PC1, -PC2,-distance)
+
+
+
+
+fileNameChiPseq = paste( params$workingDir, params$chipSeqDir,  
+                        paste(params$Antibody,"ChIPseq.peak.pattern.raw.tsv", sep = "."),
+                             sep = "/")
+write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameChiPseq,
+                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+loadingsDF.all.filtered = loadingsDF.all.factorDistance.max %>% filter(distance >params$distanceCutoff)  %>% dplyr::select(Geneid, factor, direction)
+
+loadingsDF.all.filtered2  = inner_join(loadingsDF.all.filtered, loadingsDF.all.factorDistance2)
+
+
+
+
+loadingsDF.all.filtered = loadingsDF.all.filtered2 
+dim(loadingsDF.all.filtered)
+
+loadingsDF.all.filtered.peakInfo = inner_join (peakInfo,loadingsDF.all.filtered )
+
+
+fileNameChiPseq = paste( params$workingDir, params$chipSeqDir,  
+                        paste(params$Antibody,"ChIPseq.peak.pattern.tsv", sep = "."),
+                             sep = "/")
+write.table(x = loadingsDF.all.filtered.peakInfo, file = fileNameChiPseq,
+                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+    
+```
+
+
+
+```{ add annotation  if overlapping }
+
+txdb <- makeTxDbFromGFF(file=gtfFile, dataSource="ensemblgenomes",format = "gtf")
+
+TR <- transcripts(txdb)
+
+PR <- promoters(txdb, upstream=2000, downstream=400)
+peakInfo$Chr = gsub(pattern = "chr",replacement = "", peakInfo$Chr)
+
+chipPeakData = makeGRangesFromDataFrame(peakInfo,
+                                      seqnames.field = colnames(peakInfo[2]), 
+                                      start.field = colnames(peakInfo[3]), 
+                                      end.field = colnames(peakInfo[4]), 
+                                      strand.field = colnames(peakInfo[5]))
+
+
+
+overlapPromoter = findOverlaps(PR,chipPeakData)
+OP = data.frame(overlapPromoter)
+PR.df = data.frame(PR)
+PR.df$queryHits = 1:nrow(PR.df)
+peakInfo$subjectHits = 1:nrow(peakInfo)
+
+
+peakInfo = inner_join(peakInfo, OP)
+peakInfo = inner_join(peakInfo, PR.df)
+
+promoterRegions = unique(peakInfo$Geneid)
+
+countData.expressed = countData[promoterRegions, ]
+
+
+
+```
+
+
+# Merge the data to the proSeq data
+```{r filterPeaks}
+
+#loadingsDF.all.filtered.peakInfo
+#PROseqGenes
+
+
+
+
+loadingsDF.all.filtered.peakInfo.location =  loadingsDF.all.filtered.peakInfo %>% dplyr::select(Chr,Start,End,Strand)
+
+chipPeakData = makeGRangesFromDataFrame(loadingsDF.all.filtered.peakInfo.location,
+                                      seqnames.field = "Chr", 
+                                      start.field = "Start", 
+                                      end.field = "End", 
+                                      strand.field = "Strand")
+
+
+PROseqData = makeGRangesFromDataFrame(PROseqGenes,
+                                      seqnames.field = "Chr", 
+                                      start.field = "GeneStart", 
+                                      end.field = "GeneStop", 
+                                      strand.field = "geneDir")
+
+
+
+
+df1  = data.frame(chipPeakData) 
+df1$ChIPid = 1:nrow(df1)
+df1 = df1 %>%  rename(seqnames = "Chr", start = "Start", end = "End")
+ChIP_peakInfo = inner_join(df1, loadingsDF.all.filtered.peakInfo)
+
+
+
+#PROseqGenes = PROseqGenes  %>% rename(V1 = "Chr", V4 = "GeneStart", V5 = "GeneStop", V7 = "geneDir")
+df2 = data.frame(PROseqData)
+df2$PROid = 1:nrow(df2)
+df2 = df2 %>%  rename(seqnames = "Chr", start = "GeneStart", end = "GeneStop", strand = "geneDir")
+
+PRO_seqInfo = inner_join(df2, PROseqGenes)
+
+
+test = data.frame(distanceToNearest(chipPeakData,PROseqData,  ignore.strand=TRUE))
+colnames(test) = c("ChIPid","PROid","EnhancerDistance")
+
+ChIP_peakInfo_link = inner_join(ChIP_peakInfo, test)
+
+
+ChIP_peakInfo_link = ChIP_peakInfo_link %>% 
+  rename( distance = "ChIP_distance", factor="ChIP_factor",Geneid = "ChIP_region", direction = "ChIP_direction")
+ChIP_peakInfo_link = ChIP_peakInfo_link %>%  dplyr::select(-strand) 
+PRO_seqInfo = PRO_seqInfo %>% 
+  rename( distance = "PRO_distance", factor="PRO_factor", direction = "PRO_direction") %>% 
+  dplyr::select(-width) 
+
+Both_data = inner_join(ChIP_peakInfo_link,PRO_seqInfo)
+Both_data$PRO_direction = gsub(pattern = "None", replacement = "Up", Both_data$PRO_direction)
+Both_data$PROseq_Classification = paste(Both_data$PRO_factor,Both_data$PRO_direction, sep = " " )
+Both_data$K27ac_Classification = paste(Both_data$ChIP_factor,Both_data$ChIP_direction, sep = " " )
+
+
+```
+
+
+
+```{r Visualising correlation  background}
+
+
+
+ggplot(Both_data, aes(x= log10(EnhancerDistance+1 )))+ geom_histogram()
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_distance.pdf", sep="/"), width = 8)
+
+confusion_matrix <- as.data.frame(table(Both_data$PROseq_Classification, Both_data$K27ac_Classification))
+colnames(confusion_matrix) = c("PROseq classification", "K27ac classification", "Freq")
+ggplot(data = confusion_matrix,
+       mapping = aes(x = `PROseq classification`,
+                     y = `K27ac classification`)) + 
+  geom_tile(aes(fill = Freq)) +
+  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+  scale_fill_gradient(low = "blue",
+                      high = "red",
+                      trans = "log")+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "All closest peak and gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is all distances  up- or downstream of gene") 
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_All.pdf", sep="/"), width = 8)
+
+
+
+ggplot(Both_data, mapping = aes(x =ChIP_factor , fill = ChIP_direction ))+ 
+  geom_bar() + 
+  facet_grid( cols = vars(PRO_factor,PRO_direction))+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "All closest peak and gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is all distances  up- or downstream of gene")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_All.barplot.pdf", sep="/"), width = 8)
+
+
+
+```
+
+
+
+```{r Visualising correlation  overlapping}
+
+Both_data.filtered.overlapping = Both_data %>% filter(EnhancerDistance == 0 )  %>% filter(ChIP_distance > 2 )
+
+
+
+
+confusion_matrix <- as.data.frame(table(Both_data.filtered.overlapping$PROseq_Classification, Both_data.filtered.overlapping$K27ac_Classification))
+colnames(confusion_matrix) = c("PROseq classification", "K27ac classification", "Freq")
+ggplot(data = confusion_matrix,
+       mapping = aes(x = `PROseq classification`,
+                     y = `K27ac classification`)) + 
+  geom_tile(aes(fill = Freq)) +
+  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+  scale_fill_gradient(low = "blue",
+                      high = "red",
+                      trans = "log")+
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "Distance = 0 (Overlapping)",
+              caption = "PROseq gene is subset of genes that where identified using PROseq data
+K27ac peak is subset of peaks that where identified using K27ac data
+         Distance is 0") 
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_0.pdf", sep="/"), width = 8)
+
+
+
+
+ggplot(Both_data.filtered.overlapping, mapping = aes(x =ChIP_factor , fill = ChIP_direction ))+ 
+  geom_bar() + 
+  facet_grid( cols = vars(PRO_factor,PRO_direction))+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "Distance = 0 (Overlapping)",
+              caption = "PROseq gene is subset of genes that where identified using PROseq data
+K27ac peak is subset of peaks that where identified using K27ac data
+         Distance is 0") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_0.barplot.pdf", sep="/"), width = 8)
+
+```
+
+```{r Visualising correlation  15 kb}
+
+Both_data.filtered.promoter = Both_data %>% filter(EnhancerDistance >= 0 &  EnhancerDistance < 15000 )
+
+
+
+confusion_matrix <- as.data.frame(table(Both_data.filtered.promoter$PROseq_Classification, Both_data.filtered.promoter$K27ac_Classification))
+colnames(confusion_matrix) = c("PROseq classification", "K27ac classification", "Freq")
+ggplot(data = confusion_matrix,
+       mapping = aes(x = `PROseq classification`,
+                     y = `K27ac classification`)) + 
+  geom_tile(aes(fill = Freq)) +
+  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+  scale_fill_gradient(low = "blue",
+                      high = "red",
+                      trans = "log")+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "0 - 15 kb up- or downstream of gene",
+              caption = "PROseq gene is subset of genes that where identified using PROseq data
+K27ac peak is subset of peaks that where identified using K27ac data
+         Peak is 0 - 15 kb up- or downstream of gene") 
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_15kb.pdf", sep="/"), width = 8)
+
+
+#ggplot(Both_data.filtered.promoter, mapping = aes(x =PRO_distance , y =  ChIP_distance, color = log10(EnhancerDistance+1) ))+ 
+#  geom_point() + 
+#  facet_grid(rows = vars(ChIP_factor,ChIP_direction), cols = vars(PRO_factor,PRO_direction)) + 
+#  labs(title = "K27ac peak and PROseq Gene correlation ",
+#              subtitle = "0 - 15 kb up- or downstream of gene",
+#              caption = "Gene is subset of genes that where identified using PROseq data
+#Genes are divided based on PROseq analysis annotation
+#         Peak is 0 - 15 kb up- or downstream of gene") 
+
+ggplot(Both_data.filtered.promoter, mapping = aes(x =ChIP_factor , fill = ChIP_direction ))+ 
+  geom_bar() + 
+  facet_grid( cols = vars(PRO_factor,PRO_direction))+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "0 - 15 kb up- or downstream of gene",
+              caption = "PROseq gene is subset of genes that where identified using PROseq data
+K27ac peak is subset of peaks that where identified using K27ac data
+         Peak is 0 - 15 kb up- or downstream of gene") 
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_15kb.barplot.pdf", sep="/"), width = 8)
+
+```
+```{r Visualising correlation  100 kb}
+
+Both_data.filtered.promoter = Both_data %>% filter(EnhancerDistance >  15000 &  EnhancerDistance < 100000 )
+
+
+
+confusion_matrix <- as.data.frame(table(Both_data.filtered.promoter$PROseq_Classification, Both_data.filtered.promoter$K27ac_Classification))
+colnames(confusion_matrix) = c("PROseq classification", "K27ac classification", "Freq")
+ggplot(data = confusion_matrix,
+       mapping = aes(x = `PROseq classification`,
+                     y = `K27ac classification`)) + 
+  geom_tile(aes(fill = Freq)) +
+  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+  scale_fill_gradient(low = "blue",
+                      high = "red",
+                      trans = "log")+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "15 - 100 kb up- or downstream of gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is 15 - 100 kb up- or downstream of gene") 
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_100kb.pdf", sep="/"), width = 8)
+
+
+#ggplot(Both_data.filtered.promoter, mapping = aes(x =PRO_distance , y =  ChIP_distance, color = log10(EnhancerDistance+1) ))+ 
+#  geom_point() + 
+#  facet_grid(rows = vars(ChIP_factor,ChIP_direction), cols = vars(PRO_factor,PRO_direction)) + 
+#  labs(title = "K27ac peak and PROseq Gene correlation ",
+#              subtitle = "0 - 15 kb up- or downstream of gene",
+#              caption = "Gene is subset of genes that where identified using PROseq data
+#Genes are divided based on PROseq analysis annotation
+#         Peak is 0 - 15 kb up- or downstream of gene") 
+
+ggplot(Both_data.filtered.promoter, mapping = aes(x =ChIP_factor , fill = ChIP_direction ))+ 
+  geom_bar() + 
+  facet_grid( cols = vars(PRO_factor,PRO_direction))+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "15 -100 kb up- or downstream of gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is 15 -100 kb up- or downstream of gene") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_100kb.barplot.pdf", sep="/"), width = 8)
+
+```
+
+```{r Visualising correlation  1000 kb}
+
+Both_data.filtered.promoter = Both_data %>% filter(EnhancerDistance >   100000 &  EnhancerDistance < 1000000 )
+
+
+
+confusion_matrix <- as.data.frame(table(Both_data.filtered.promoter$PROseq_Classification, Both_data.filtered.promoter$K27ac_Classification))
+colnames(confusion_matrix) = c("PROseq classification", "K27ac classification", "Freq")
+ggplot(data = confusion_matrix,
+       mapping = aes(x = `PROseq classification`,
+                     y = `K27ac classification`)) + 
+  geom_tile(aes(fill = Freq)) +
+  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+  scale_fill_gradient(low = "blue",
+                      high = "red",
+                      trans = "log")+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "100 - 1000 kb up- or downstream of gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is 100 - 1000 kb up- or downstream of gene") 
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_1000kb.pdf", sep="/"), width = 8)
+
+
+#ggplot(Both_data.filtered.promoter, mapping = aes(x =PRO_distance , y =  ChIP_distance, color = log10(EnhancerDistance+1) ))+ 
+#  geom_point() + 
+#  facet_grid(rows = vars(ChIP_factor,ChIP_direction), cols = vars(PRO_factor,PRO_direction)) + 
+#  labs(title = "K27ac peak and PROseq Gene correlation ",
+#              subtitle = "0 - 100 kb up- or downstream of gene",
+#              caption = "Gene is subset of genes that where identified using PROseq data
+#Genes are divided based on PROseq analysis annotation
+#         Peak is 0 - 100 kb up- or downstream of gene") 
+
+ggplot(Both_data.filtered.promoter, mapping = aes(x =ChIP_factor , fill = ChIP_direction ))+ 
+  geom_bar() + 
+  facet_grid( cols = vars(PRO_factor,PRO_direction))+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = "100 - 1000 kb up- or downstream of gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is 100 - 1000 kb up- or downstream of gene") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_1000kb.barplot.pdf", sep="/"), width = 8)
+
+```
+
+```{r Visualising correlation  1000 kb}
+
+Both_data.filtered.promoter = Both_data %>% filter(EnhancerDistance >   1000000  )
+
+
+
+confusion_matrix <- as.data.frame(table(Both_data.filtered.promoter$PROseq_Classification, Both_data.filtered.promoter$K27ac_Classification))
+colnames(confusion_matrix) = c("PROseq classification", "K27ac classification", "Freq")
+ggplot(data = confusion_matrix,
+       mapping = aes(x = `PROseq classification`,
+                     y = `K27ac classification`)) + 
+  geom_tile(aes(fill = Freq)) +
+  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+  scale_fill_gradient(low = "blue",
+                      high = "red",
+                      trans = "log")+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = ">1000 kb up- or downstream of gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is >100 kb up- or downstream of gene") 
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_10000kb.pdf", sep="/"), width = 8)
+
+
+#ggplot(Both_data.filtered.promoter, mapping = aes(x =PRO_distance , y =  ChIP_distance, color = log10(EnhancerDistance+1) ))+ 
+#  geom_point() + 
+#  facet_grid(rows = vars(ChIP_factor,ChIP_direction), cols = vars(PRO_factor,PRO_direction)) + 
+#  labs(title = "K27ac peak and PROseq Gene correlation ",
+#              subtitle = "0 - 100 kb up- or downstream of gene",
+#              caption = "Gene is subset of genes that where identified using PROseq data
+#Genes are divided based on PROseq analysis annotation
+#         Peak is 0 - 100 kb up- or downstream of gene") 
+
+ggplot(Both_data.filtered.promoter, mapping = aes(x =ChIP_factor , fill = ChIP_direction ))+ 
+  geom_bar() + 
+  facet_grid( cols = vars(PRO_factor,PRO_direction))+ 
+  labs(title = "K27ac peak and PROseq Gene correlation ",
+              subtitle = ">1000 kb up- or downstream of gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is >1000 kb up- or downstream of gene") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelation_10000kb.barplot.pdf", sep="/"), width = 8)
+
+```
+
+# Writing to file
+
+
+
+```{r getting a bed tool file with the interesting ChIP peaks }
+
+
+
+Both_data_same = Both_data %>% filter(PROseq_Classification == K27ac_Classification)
+Both_data_good = Both_data %>% filter(PRO_factor != ChIP_factor & ChIP_direction !=  PRO_direction)
+Both_data_Contradictory = Both_data %>% filter(PRO_factor == ChIP_factor & ChIP_direction !=  PRO_direction)
+
+Both_data_same$status = "Same"
+Both_data_good$status = "Good"
+Both_data_Contradictory$status = "Contradictory"
+test = rbind(Both_data_same,Both_data_good,Both_data_Contradictory)
+
+Both_data_bad = Both_data %>% filter(!ChIP_region %in% test$ChIP_region)
+Both_data_bad$status = "Bad"
+
+
+test = rbind(test,Both_data_bad)
+
+
+
+test$EnhancerDistance2 =test$EnhancerDistance
+test = test %>% filter(EnhancerDistance2 < 40000)
+test = test %>% filter(EnhancerDistance2 > 5000)
+
+ggplot(test, aes(x = EnhancerDistance2, color = status))+ geom_density(adjust = 1/4)
+
+
+bedFileGood = rbind(Both_data_same,Both_data_good) %>% filter(EnhancerDistance < 150000) %>% dplyr::select(Chr,Start,End, ChIP_region,   PROseq_Classification,K27ac_Classification,status, EnhancerDistance)
+
+
+bedFileGood$name = paste(bedFileGood$SYMBOL,bedFileGood$PROseq_Classification,bedFileGood$ChIP_region,bedFileGood$K27ac_Classification) 
+bedFileGood$score = 500
+bedFileGood$score[bedFileGood$status == "Same"] = 1000
+
+
+bedFileGoodPrint = bedFileGood %>% dplyr::select(Chr,Start,End,name, score)
+bedFileGoodPrint$strand = "."
+
+filename = paste(params$workingDir,params$K27acDir, "ChIP_PROseqCorrelatedRegions.bed", sep="/")
+write.table(x = bedFileGoodPrint,file = filename, quote = F, sep = "\t", row.names = F,col.names = F )
+
+
+
+
+ChIPdataGood = rbind(Both_data_same,Both_data_good) %>% filter(EnhancerDistance < 15000) %>% dplyr::select(geneID, ChIP_region,ChIP_factor,ChIP_direction, Gd7,Toll10b, Toll9) 
+unique(ChIPdataGood$geneID)
+filename = paste(params$workingDir,params$chipSeqDir, 
+                 params$chipSeqData, sep="/")
+write.table(x = ChIPdataGood,file = filename, quote = F, sep = "\t", row.names = F,col.names = T )
+
+
+length(unique(ChIPdataGood$geneID))
+
+155
+```
