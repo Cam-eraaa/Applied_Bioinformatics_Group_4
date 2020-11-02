@@ -1,0 +1,15 @@
+Status	bam_dmel/PRO_naive_R1_trimmed.dmel.bowtie2.sorted.bam	bam_dmel/PRO_naive_R2_trimmed.dmel.bowtie2.sorted.bam	bam_dmel/qPRO_naive_R1_trimmed.dmel.bowtie2.sorted.bam	bam_dmel/qPRO_naive_R2_trimmed.dmel.bowtie2.sorted.bam
+Assigned	2841974	4632493	1345597	1381170
+Unassigned_Unmapped	4318274	3272462	11972056	11630786
+Unassigned_Read_Type	0	0	0	0
+Unassigned_Singleton	0	0	0	0
+Unassigned_MappingQuality	0	0	0	0
+Unassigned_Chimera	0	0	0	0
+Unassigned_FragmentLength	0	0	0	0
+Unassigned_Duplicate	0	0	0	0
+Unassigned_MultiMapping	0	0	0	0
+Unassigned_Secondary	0	0	0	0
+Unassigned_NonSplit	0	0	0	0
+Unassigned_NoFeatures	8916977	13906044	5786965	4574047
+Unassigned_Overlapping_Length	0	0	0	0
+Unassigned_Ambiguity	0	0	0	0

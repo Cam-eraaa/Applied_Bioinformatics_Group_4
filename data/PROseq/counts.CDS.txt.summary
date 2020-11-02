@@ -1,0 +1,15 @@
+Status	bam_dmel6/gd7_2-5_3h_rep1.dmel6.bowtie2.sorted.bam	bam_dmel6/gd7_2-5_3h_rep2.dmel6.bowtie2.sorted.bam	bam_dmel6/gd7_4-5_5h_rep1.dmel6.bowtie2.sorted.bam	bam_dmel6/gd7_4-5_5h_rep2.dmel6.bowtie2.sorted.bam	bam_dmel6/toll10b_2-5_3h_rep1.dmel6.bowtie2.sorted.bam	bam_dmel6/toll10b_2-5_3h_rep2.dmel6.bowtie2.sorted.bam	bam_dmel6/toll10b_4-5_5h_rep1.dmel6.bowtie2.sorted.bam	bam_dmel6/toll10b_4-5_5h_rep2.dmel6.bowtie2.sorted.bam	bam_dmel6/toll9_10_2-5_3h_rep1.dmel6.bowtie2.sorted.bam	bam_dmel6/toll9_10_2-5_3h_rep2.dmel6.bowtie2.sorted.bam	bam_dmel6/toll9_10_4-5_5h_rep1.dmel6.bowtie2.sorted.bam	bam_dmel6/toll9_10_4-5_5h_rep2.dmel6.bowtie2.sorted.bam
+Assigned	4690027	2473762	2379472	2967415	2362328	2785858	3066969	2554115	3606077	3449776	1651485	3438168
+Unassigned_Unmapped	6480917	5013411	4774866	5135602	4930121	6324049	8113990	3954095	6449315	6614364	6502973	5226018
+Unassigned_Read_Type	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Singleton	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_MappingQuality	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Chimera	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_FragmentLength	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Duplicate	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_MultiMapping	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Secondary	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_NonSplit	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_NoFeatures	24753182	15034341	16979190	16461750	13783043	17637109	24040533	14630104	21691631	20193327	15529276	18944762
+Unassigned_Overlapping_Length	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Ambiguity	9924	4951	3004	3052	3990	4658	3116	3239	6722	6235	1586	3778
