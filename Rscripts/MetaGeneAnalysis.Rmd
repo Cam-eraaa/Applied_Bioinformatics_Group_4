@@ -1,0 +1,496 @@
+---
+title: "Metagene analysis"
+author: "Johan"
+date: "6/22/2020"
+output: html_document
+
+
+params:
+  workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+  proSeqDir: results/PROseq
+  proSeq.data: PROseq.data.tsv
+  ATACSeqDataDir: data/ATACseq
+  ATACseqData: ATAC.peak.featureCount.count.tab.txt
+  regionInfoATAC: information/ATAC_regionInfo.tab.txt
+  sampleInfoATAC: information/ATAC_sampleInfo.tab.txt
+
+
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+
+#BiocManager::install("metagene2")
+BiocManager::install("bamsignals")
+
+
+library(tidyverse)
+library(metagene2)
+library(GenomicRanges)
+library(Rsamtools)
+library(bamsignals)
+
+library("ggsci")
+
+cbPalette <- c("Gd7" ="#E69F00", "Toll10b" = "#56B4E9", "Toll9" = "#009E73", "gd7" ="#E69F00", "toll10b" = "#56B4E9", "toll9" = "#009E73" ,"dorsal_ectoderm"= "#F0E442","mesoderm"= "#0072B2","ventral_ectoderm"= "#D55E00", "Examples" = "#000000","Other" = "#99999903", "Dorsal Ectoderm"= "#F0E442","Mesoderm"= "#0072B2","Neural Ectoderm"= "#D55E00", "Examples" = "#000000","None" = "#99999904")
+
+```
+
+
+
+
+
+```{r}
+bampath <- system.file("extdata", "randomBam.bam", package="bamsignals")
+genes <- 
+  get(load(system.file("extdata", "randomAnnot.Rdata", package="bamsignals")))
+genes
+
+class(bampath)
+```
+## Including Plots
+
+You can also embed plots, for example:
+
+
+## GTF file
+
+```{r  add  transcript to gene Information}
+
+# Load in the fastq file that is generated as data from running multiqc on all samples. 
+gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28.99.gtf", sep = "/")
+gtfInfo = read.table(file = gtfFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
+
+
+gtfInfoGene = gtfInfo %>% dplyr::filter(V3 == "gene") 
+gtfInfoGene = gtfInfoGene[grep(pattern = "gene_biotype \"protein_coding\"",x = gtfInfoGene$V9 ),  ] 
+
+gtfInfoGene= gtfInfoGene %>% separate(col = V9,sep = ";",into =  c("geneID1", "geneName1"))
+gtfInfoGene= gtfInfoGene %>% separate(col = geneID1,sep = "\"",into =  c("irrelevant", "geneID"))
+gtfInfoGene= gtfInfoGene %>% separate(col = geneName1,sep = "\"",into =  c("irrelevant1", "geneName"))
+
+gtfInfoAnnotation = gtfInfoGene  %>% dplyr::select(V1,V4,V5,V7,geneID,geneName) 
+
+PROseqGenes = gtfInfoAnnotation %>% dplyr::rename("Chr"= V1, "Start" = V4,"End" = V5,"Strand" = V7)
+PROseqGenes$Chr = paste ("chr",PROseqGenes$Chr, sep ="")
+
+
+gtfInfomRNA = gtfInfo %>% dplyr::filter(V3 == "transcript") 
+gtfInfomRNA = gtfInfomRNA[grep(pattern = "gene_biotype \"protein_coding\"",x = gtfInfomRNA$V9 ),  ] 
+
+gtfInfomRNA_DF= gtfInfomRNA %>% separate(col = V9,sep = ";",into =  c("geneID1", "transcriptID1"))
+gtfInfomRNA_DF= gtfInfomRNA_DF %>% separate(col = geneID1,sep = "\"",into =  c("irrelevant", "geneID"))
+gtfInfomRNA_DF= gtfInfomRNA_DF %>% separate(col = transcriptID1,sep = "\"",into =  c("irrelevant1", "transcriptID"))
+
+gene2transcriptInfo  = gtfInfomRNA_DF %>% dplyr::select(geneID,transcriptID)
+
+
+
+```
+
+
+## Metagene analysis
+```{r PROseq, echo=FALSE}
+
+
+
+PROseqInfo = read.table( file = paste( params$workingDir, params$proSeqDir, params$proSeq.data,
+                          sep = "/"),
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+CombinedFile = paste(params$workingDir,"results/combined.AllData.withMetaData.ATACnaive.txt" ,sep = "/")
+
+AllData = read.table(file = CombinedFile, header = T, sep = "\t", quote = "", stringsAsFactors = F)
+
+
+
+sampleInfo = PROseqInfo %>% select(sampleName, mutant, time, replicate) %>% distinct()
+
+AllData2 = AllData %>% select(geneID, SYMBOL,kmeans_UMAP) %>% 
+  distinct() %>% 
+  filter(kmeans_UMAP != (c(3,7))) %>% mutate(newClass = "Dorsal ectoderm") %>% 
+  mutate(newClass = replace( x = newClass , list = kmeans_UMAP %in% c(1,2), "Neural ectoderm" ))  %>% 
+  mutate(newClass = replace( x = newClass , list = kmeans_UMAP %in% c(4,6), "Mesoderm" )) 
+
+
+
+
+PROseqInfoFiles = PROseqInfo %>% select(sampleName,bamFile) %>% distinct() 
+
+bamFiles = gsub(x = PROseqInfoFiles$bamFile,pattern = "bam_dmel6.", replacement = paste(params$workingDir,"bam/", sep = "/"))
+names(bamFiles) = PROseqInfoFiles$sampleName
+bamFiles = gsub(pattern = ".5_",replacement = "-5_", bamFiles)
+
+
+
+Locations = left_join(PROseqInfo, AllData2) %>% select(geneID,SYMBOL, Chr, Start, End, Strand,newClass ) %>% 
+  distinct() %>% arrange(Chr, Start) %>%
+  mutate(newClass = replace( x = newClass , list =is.na(newClass), "Background" )) 
+
+
+Locations = PROseqInfo %>% select(geneID) %>% distinct %>% inner_join(Locations)  
+Locations = Locations %>% filter(!geneID %in% c("FBgn0033638", "FBgn0015773"))
+Locations$Start[Locations$Strand == "+"] = Locations$Start[Locations$Strand == "+"] - 500
+Locations$End[Locations$Strand == "-"] = Locations$End[Locations$Strand == "-"] + 500
+Locations$Chr = paste("chr",Locations$Chr, sep = "")
+
+#Locations$ID2 = 1 
+#Locations$ID2[Locations$newClass == "Mesoderm" ] = 1:length(which(Locations$newClass == "Mesoderm" ))
+#Locations$ID2[Locations$newClass == "Neural ectoderm"] = 1:length(which(Locations$newClass == "Neural ectoderm"))
+#Locations$ID2[Locations$newClass == "Dorsal ectoderm" ] = 1:length(which(Locations$newClass == "Dorsal ectoderm" ))
+#Locations$ID2[Locations$newClass == "Background" ] = 1:length(which(Locations$newClass == "Background" ))
+
+
+
+
+regions = makeGRangesListFromDataFrame(Locations, split.field = "newClass",
+                                      seqnames.field = "Chr", 
+                                      start.field = "Start", 
+                                      end.field = "End", 
+                                      strand.field = "Strand", 
+                                      keep.extra.columns = TRUE)
+
+```
+
+
+
+```{r } 
+
+
+meteGeneFile = paste(params$workingDir, params$proSeqDir, "metaGene.tsv", sep = "/") 
+
+proms <- GenomicRanges::promoters(unlist(regions), upstream=1000, downstream=1000)
+
+#sigs <- bamProfile(bamfile, proms, verbose=FALSE)
+
+location = seq(from = -990, to = 990,by = 20)
+promoters = data.frame( geneID = rep(proms$geneID, each = length(location)), position = rep(location, length(proms)) )
+promoters.sense =promoters %>%  mutate(dir = "Sense")
+promoters.antisense =promoters %>%  mutate(dir = "Antisense")
+
+for(i in  1: length(bamFiles)){
+  binsize <- 20
+  binnedSigs <- bamProfile(bamFiles[i], proms, binsize=binsize, verbose=FALSE, ss=TRUE)
+  sigsArr <- alignSignals(binnedSigs)
+
+  test = data.frame(sigsArr["antisense",,])
+  colnames(test) = proms$geneID
+  test$position = location
+  testDF = test %>% gather(key = geneID, value = count, -position)
+  colnames(testDF)[3] = names(bamFiles)[i] 
+  promoters.antisense= inner_join(promoters.antisense, testDF)
+
+  test = data.frame(sigsArr["sense",,])
+  colnames(test) = proms$geneID
+  test$position = location
+  testDF = test %>% gather(key = geneID, value = count, -position)
+  colnames(testDF)[3] = names(bamFiles)[i] 
+  promoters.sense= inner_join(promoters.sense, testDF)
+}
+
+promoters   = rbind(promoters.antisense,promoters.sense)
+
+promotersDF = promoters %>% gather(key = sampleName, value = count,-geneID, -position, -dir)
+dim(promotersDF)
+ 
+promotersDF2 = promotersDF %>%
+  group_by(geneID) %>%
+  summarise(nrOfreads = sum(count), maxCount = max(count)) %>%
+  inner_join(promotersDF) %>%
+  mutate(relativeCount = count / maxCount) 
+
+
+write_delim(x = promotersDF2, path = file, delim = "\t", col_names = TRUE, quote_escape = FALSE)
+```
+
+
+
+```{r  Figure 5 metagenePlot}
+
+meteGeneFile = paste(params$workingDir, params$proSeqDir, "metaGene.tsv", sep = "/") 
+
+promotersDF2 = read_delim(file = meteGeneFile, delim = "\t",quote = "", col_names = TRUE)
+promotersDF3 = Locations %>% select(geneID, newClass )  %>% inner_join(promotersDF2) %>% inner_join(sampleInfo)%>% 
+  group_by(mutant,newClass, position, dir ) %>%
+  summarise(relative_countMean = mean(relativeCount), meanCount = mean(nrOfreads), countMeanFinal = relative_countMean*meanCount)
+
+promotersDF_AntiSense = promotersDF3 %>% filter(dir == "Antisense")
+
+
+promotersDF_AntiSense = promotersDF_AntiSense %>% filter(position  >(-500))
+#unique(promotersDF2$newClass)
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color =  mutant) ) + facet_wrap(newClass~., scales = "free_y" )+ geom_line()+scale_color_manual(values=cbPalette)
+
+ggsave("Metagene.proseq.sense.1.pdf")
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_npg()
+
+ggsave("Metagene.proseq.sense.2.npg.pdf")
+
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_aaas()
+
+ggsave("Metagene.proseq.sense.2.aas.pdf")
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_ucscgb()
+
+ggsave("Metagene.proseq.sense.2.ucscgb.pdf")
+
+
+promotersDF_sense = promotersDF3 %>% filter(dir == "Sense")
+
+
+promotersDF_sense = promotersDF_sense %>% filter(position  >(-500))
+#unique(promotersDF2$newClass)
+ggplot(data = promotersDF_sense,aes( x = position, y = log(countMeanFinal), color =  mutant) ) + facet_wrap(newClass~.)+ geom_line()+scale_color_npg()
+
+ggsave("Metagene.proseq.antisense.1.pdf")
+
+ggplot(data = promotersDF_sense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~. )+ geom_line()+scale_color_npg()
+
+ggsave("Metagene.proseq.antisense.2.pdf")
+
+
+
+
+
+promotersDF_AntiSense = promotersDF_AntiSense %>% filter(position  >(-50) & position < 500)
+#unique(promotersDF2$newClass)
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color =  mutant) ) + facet_wrap(newClass~. )+ geom_line()+scale_color_manual(values=cbPalette)
+
+ggsave("Metagene.proseq.sense.gbc.1.pdf")
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_npg()
+
+ggsave("Metagene.proseq.sense.gbc.2.npg.pdf")
+
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_aaas()
+
+ggsave("Metagene.proseq.sense.gbc.2.aas.pdf")
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_ucscgb()
+
+ggsave("Metagene.proseq.sense.gbc.2.ucscgb.pdf")
+
+
+
+
+  
+
+```
+
+## MetaEnhancer analysis
+
+```{r PROseq, echo=FALSE}
+
+
+sampleInfoFile_ATAC =paste(params$workingDir, params$sampleInfoATAC, sep = "/")
+sampleInfoATAC = read_delim( file = sampleInfoFile_ATAC, delim = "\t",quote = "",  col_names = TRUE)
+
+regionInfoFileATAC = sampleInfoFile_ATAC =paste(params$workingDir, params$regionInfoATAC, sep = "/")
+regionInfoFileATAC = read_delim( file = regionInfoFileATAC, delim = "\t",quote = "",  col_names = TRUE)
+
+
+CombinedFile = paste(params$workingDir,"results/combined.AllData.withMetaData.ATACnaive.txt" ,sep = "/")
+AllData = read.table(file = CombinedFile, header = T, sep = "\t", quote = "", stringsAsFactors = F)
+
+
+AllData2 = AllData %>% select(ATACseq_Geneid, SYMBOL,kmeans_UMAP) %>% 
+  distinct() %>% 
+  filter(kmeans_UMAP != (c(3,7))) %>% mutate(newClass = "Dorsal ectoderm") %>% 
+  mutate(newClass = replace( x = newClass , list = kmeans_UMAP %in% c(1,2), "Neural ectoderm" ))  %>% 
+  mutate(newClass = replace( x = newClass , list = kmeans_UMAP %in% c(4,6), "Mesoderm" )) %>%
+  rename(Geneid = "ATACseq_Geneid")
+
+
+
+
+
+
+Locations = left_join(regionInfoFileATAC, AllData2) %>% select(Geneid,SYMBOL, Chr, Start, End, Strand,newClass ) %>% 
+  distinct() %>% arrange(Chr, Start) %>%
+  mutate(newClass = replace( x = newClass , list =is.na(newClass), "Background" )) 
+
+
+
+regions = makeGRangesListFromDataFrame(Locations, split.field = "newClass",
+                                      seqnames.field = "Chr", 
+                                      start.field = "Start", 
+                                      end.field = "End", 
+                                      strand.field = "Strand", 
+                                      keep.extra.columns = TRUE)
+
+```
+
+
+
+```{r } 
+
+
+enhancers = unlist(regions)
+
+meteGeneFile = paste(params$workingDir, params$proSeqDir, "metaGene.tsv", sep = "/") 
+
+
+location = seq(from = 1, to = 100,by = 1)
+enhancersDF = data.frame( geneID = rep(enhancers$Geneid, each = length(location)), position = rep(location, length(enhancers)) )
+
+for(i in  1: length(bamFiles)){
+  binnedSigs <- bamCoverage(bamFiles[i], enhancers)
+  coverage = list()
+  for(j in 1:length(enhancers)){
+    test = data.frame(count = binnedSigs[j], position = 1:length(binnedSigs[j]) ,
+                      bin = ceiling((1:length(binnedSigs[j]))*100/length(binnedSigs[j]))) %>%
+      group_by(bin) %>%
+      summarise(count = mean(count),.groups = 'drop')
+    
+    
+    if(nrow(test)!= 100){
+      mean = mean(test$count)
+      addingIn = data.frame(bin = 1:100, count2 = mean)
+      test = left_join(addingIn ,test )
+      test$count[is.na(test$count)] =  test$count2[is.na(test$count)]
+      test = test %>% select(bin, count) 
+    }
+    
+    coverage[[enhancers$Geneid[j]]] = test$count
+    
+  }
+  length(unlist(coverage))
+  enhancersDF[[names(bamFiles)[i]]] = unlist(coverage)
+  
+}
+enhancersDF
+
+enhancersDF2 = enhancersDF %>% gather(key = sampleName, value = count,-geneID, -position)
+dim(promotersDF)
+ 
+enhancersDF3= enhancersDF2 %>%
+  group_by(geneID) %>%
+  summarise(nrOfreads = sum(count), maxCount = max(count)) %>%
+  inner_join(enhancersDF2) %>%
+  mutate(relativeCount = count / maxCount) 
+
+
+
+
+write_delim(x = promotersDF2, path = file, delim = "\t", col_names = TRUE, quote_escape = FALSE)
+```
+
+```{r  Figure 5 metagenePlot}
+
+Locations = Locations  %>% rename(geneID = "Geneid")
+meteGeneFile = paste(params$workingDir, params$proSeqDir, "metaGene.tsv", sep = "/") 
+
+enhancersDF3 %>% select(geneID, nrOfreads) %>% distinct() %>% ggplot(mapping = aes(x = log(nrOfreads)))+ geom_density()
+
+enhancersDF4 = enhancersDF3 %>% filter(log(nrOfreads) > 4 )
+enhancersDF4 = Locations %>% select(geneID, newClass )  %>% inner_join(enhancersDF4) %>% inner_join(sampleInfo)
+
+enhancersDF4 = enhancersDF4 %>% 
+  group_by(mutant,time, newClass, position) %>%
+  summarise(relative_countMean = mean(relativeCount), meanCount = mean(count), countMeanFinal = relative_countMean*meanCount)
+enhancersDF5
+
+enhancersDF6 = enhancersDF5 %>% group_by(newClass, position ) %>% summarise(min = min(meanCount)) %>% inner_join(enhancersDF5)%>%
+  mutate(diff = meanCount - min)
+
+ggplot(enhancersDF6 ,aes(x = position, y=diff, color = mutant) )+
+  geom_line()+ 
+  facet_grid(newClass~time)+ geom_line()+scale_color_manual(values=cbPalette)
+
+table(is.na(enhancersDF4$relativeCount))
+
+enhancersDF4 %>% filter(is.na(relativeCount))
+````
+
+promotersDF2 = read_delim(file = meteGeneFile, delim = "\t",quote = "", col_names = TRUE)
+promotersDF3 = Locations %>% select(geneID, newClass )  %>% inner_join(promotersDF2) %>% inner_join(sampleInfo)
+  
+  
+  
+  group_by(mutant,newClass, position, dir ) %>%
+  summarise(relative_countMean = mean(relativeCount), meanCount = mean(nrOfreads), countMeanFinal = relative_countMean*meanCount)
+
+promotersDF_AntiSense = promotersDF3 %>% filter(dir == "Antisense")
+
+
+promotersDF_AntiSense = promotersDF_AntiSense %>% filter(position  >(-500))
+#unique(promotersDF2$newClass)
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color =  mutant) ) + facet_wrap(newClass~., scales = "free_y" )+ geom_line()+scale_color_manual(values=cbPalette)
+
+ggsave("Metagene.proseq.sense.1.pdf")
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_npg()
+
+ggsave("Metagene.proseq.sense.2.npg.pdf")
+
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_aaas()
+
+ggsave("Metagene.proseq.sense.2.aas.pdf")
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_ucscgb()
+
+ggsave("Metagene.proseq.sense.2.ucscgb.pdf")
+
+
+promotersDF_sense = promotersDF3 %>% filter(dir == "Sense")
+
+
+promotersDF_sense = promotersDF_sense %>% filter(position  >(-500))
+#unique(promotersDF2$newClass)
+ggplot(data = promotersDF_sense,aes( x = position, y = log(countMeanFinal), color =  mutant) ) + facet_wrap(newClass~.)+ geom_line()+scale_color_npg()
+
+ggsave("Metagene.proseq.antisense.1.pdf")
+
+ggplot(data = promotersDF_sense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~. )+ geom_line()+scale_color_npg()
+
+ggsave("Metagene.proseq.antisense.2.pdf")
+
+
+
+
+
+promotersDF_AntiSense = promotersDF_AntiSense %>% filter(position  >(-50) & position < 500)
+#unique(promotersDF2$newClass)
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color =  mutant) ) + facet_wrap(newClass~. )+ geom_line()+scale_color_manual(values=cbPalette)
+
+ggsave("Metagene.proseq.sense.gbc.1.pdf")
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_npg()
+
+ggsave("Metagene.proseq.sense.gbc.2.npg.pdf")
+
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_aaas()
+
+ggsave("Metagene.proseq.sense.gbc.2.aas.pdf")
+
+ggplot(data = promotersDF_AntiSense,aes( x = position, y = log(countMeanFinal), color = newClass ) ) + facet_wrap(mutant~., scales = "free_y" )+ geom_line()+scale_color_ucscgb()
+
+ggsave("Metagene.proseq.sense.gbc.2.ucscgb.pdf")
+
+
+
+
+  
+
+```
+
+
+

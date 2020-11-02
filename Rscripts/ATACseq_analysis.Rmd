@@ -1,0 +1,147 @@
+---
+title: "ATACseq analysis"
+author: "Johan"
+date: "10/25/2019"
+output: html_document
+
+params:
+  workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+  RscriptsDir: R_Analysis/Rscripts  
+  dataDir: data/PROseq
+  
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+library(knitr)
+#install.packages("kableExtra")
+library(kableExtra)
+
+```
+
+# ATAC seq  analysis.
+
+
+# Loading the ATAC seq analysis meta data 
+
+```{r load the meta data for the samples }
+
+metaData = read.table(file = "~/git/flyEmbryogenesis/information/ATACseq2.txt", 
+           header = TRUE, sep = "\t", quote = "", stringsAsFactors = FALSE)
+
+
+metaData= metaData %>% separate(col = Bamfile,sep = "\\.",into =  c("NGI_sample_name", "genome"))
+
+
+metaData %>% select(NGI_sample_name,Sample_name,Mutant,Replicate,Time.point) %>%
+  kable() %>%
+  kable_styling()
+
+
+```
+
+
+
+Followed the analysis suggestion in  [ATAC-seq Guidelines](https://informatics.fas.harvard.edu/atac-seq-guidelines.html#peak)
+
+First reads were trimmed using cutadapt. 
+
+Then they were mapped using bowtie2
+
+Then they were ordered by name using samtools .
+
+Then they were analysed using Genrich (# right now only the samples until 81 have been analysed. Hopefully the last will be done until tomorrow-)
+
+## Results
+
+
+
+
+### Running Genrich
+
+```{shell genrich code}
+
+Genrich -e chrM  -r -j -t $BAM_SORTED_NAME  -o Genrich/$FILENAME_BASE.genrich.encode.narrowPeak
+
+```
+
+
+### Bedtools jaccard
+
+First comparison result is analysing how similair the narrow peak calls are between the samples as described [here](https://github.com/arq5x/bedtools-protocols/blob/master/bedtools.md#bp6--measuring-dataset-similarity)  
+
+```{shell running the bedtools jaccard analysis in the Genrich directory}
+module load bioinfo-tools 
+module load BEDTools 
+
+
+
+rm pairwise_jaccard.txt
+ file_labels=`ls *.narrowPeak | sed -e 's/.genrich.encode.narrowPeak//g'`
+    echo name" "$file_labels >> pairwise_jaccard.txt
+    for file1 in `ls *.narrowPeak`
+    do
+        # make reasonable file labels
+        file1_short=`echo $file1 \
+                    | sed -e 's/.genrich.encode.narrowPeak//g'`
+        echo -n $file1_short >> pairwise_jaccard.txt
+
+        for file2 in `ls *.narrowPeak`;
+        do
+            # compute the jaccard stat for these two files.
+            echo bedtools jaccard \
+                       -a $file1 \
+                       -b $file2 
+                       
+            jaccard=`bedtools jaccard \
+                       -a $file1 \
+                       -b $file2`
+            echo $jaccard
+            jaccardOneValue=`echo $jaccard|cut -d " " -f 7`
+            echo $jaccardOneValue
+            # report the jaccard stat for these two files
+            echo -n " "$jaccardOneValue  >> pairwise_jaccard.txt
+        done
+        echo >> pairwise_jaccard.txt
+    done
+    
+    
+    
+```
+
+#### Visualising the data in R 
+
+```{r Adding the first analysis of the data}
+# install RColorBrewer if missing
+if (!require("RColorBrewer")) {
+    install.packages("RColorBrewer")
+}
+library(RColorBrewer)
+library(gplots)
+jaccard_table <- read.table('~/git/flyEmbryogenesis/data/ATACseq/pairwise_jaccard.txt', header=TRUE, stringsAsFactors = F)
+
+
+rownames(metaData) = metaData$NGI_sample_name
+
+md1 = metaData[jaccard_table$name,]
+jaccard_table <- jaccard_table[, -1]
+
+rownames(jaccard_table) <- md1$Sample_name
+colnames(jaccard_table) <- md1$Sample_name
+
+jaccard_matrix <- as.matrix(jaccard_table)
+heatmap.2(jaccard_matrix, 
+              col=brewer.pal(9,"Blues"), 
+              margins = c(8, 8),
+              density.info = "none",
+              trace="none")
+
+
+```
+
+

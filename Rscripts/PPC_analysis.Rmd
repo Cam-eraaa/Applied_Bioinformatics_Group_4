@@ -1,0 +1,629 @@
+---
+title: "ChIPseq analysis"
+author: "Johan"
+date: "10/25/2019"
+output: html_document
+
+params:
+  workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+  ATACSeqDir: data/ATACseq
+  ATACdata: ATAC_Toll_PPC.featureCount.count.tab.txt
+  ATACdata.normalised: ATAC_Toll_PPC.featureCount.rlog.tab.txt
+  ChipSeqDir: data/ChIPseq
+  CBPcdata: CBP_PPC.featureCount.count.tab.txt
+  CBPcdata.normalised: CBP_PPC.featureCount.rlog.tab.txt
+  ChIPdata: ChIP_Toll_PPC.featureCount.count.tab.txt
+  ChIPdata.normalised: ChIP_Toll_PPC.featureCount.rlog.tab.txt
+
+  proSeqDir: results/PROseq
+  proSeq.data: PROseq.data.tsv
+
+
+  sampleInfo: information/ChIP_ATAC_sampleInfo.tab.txt
+  RscriptsDir: R_Analysis/Rscripts  
+  dataDir: data/ATACseq
+
+  RfunctionsDirectory: /Users/johanreimegard/GoogleDrive/git/RNAmappingPipeline/R
+  
+  
+---
+
+
+
+
+```{r setup, include=FALSE}
+
+source(paste(params$RfunctionsDirectory,"ExpressionAnalysisFunctions.R",sep = "/"))
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+library(gplots)
+
+#install.packages("kableExtra")
+library(kableExtra)
+library("viridis")     
+library(DESeq2)
+library(edgeR)
+
+
+
+
+
+gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28.99.gtf", sep = "/")
+
+
+
+```
+
+
+#ATAC-seq
+
+### Using feature count to get the difference between the samples
+
+```{r Adding the first analysis of the data}
+# install RColorBrewer if missing
+
+library(RColorBrewer)
+library(gplots)
+#library(GenomicFeatures)
+
+
+ATACfeatureCountFile = paste(params$workingDir, params$ATACSeqDir,params$ATACdata, sep = "/")
+
+FCdata = read.table( file = ATACfeatureCountFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+peakInfo  = FCdata [,1:6]
+countData = FCdata[,-1:-6]
+rownames(countData) = peakInfo$Geneid
+
+SpatialGenesData = read.table(file = paste(params$workingDir,"results/combined.AllData.withMetaData.txt" ,sep = "/"), quote = "", sep = "\t"
+                     ,header = T)
+
+ATACregions = as.character(unique(SpatialGenesData$ATACseq_Geneid))
+
+
+```
+
+
+
+```{r handle the samples}
+
+sampleInfoFile =paste(params$workingDir, params$sampleInfo, sep = "/")
+sampleInfo = read.table( file = sampleInfoFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+
+sampleInfo$bamFiles2  =  gsub(pattern = "/",replacement = ".",x = sampleInfo$bamFiles)
+sampleInfo$bamFiles2  =  gsub(pattern = "-",replacement = ".",x = sampleInfo$bamFiles2)
+
+
+sampleInfo$Genotype = recode(sampleInfo$Genotype, Toll910 = "Toll9")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, `Toll9/10` = "Toll9")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, gd7 = "Gd7")
+
+sampleInfo =sampleInfo %>% filter(Assaytype == "ATAC-Seq") 
+sampleInfo =sampleInfo %>% filter(is.na(Nuclearcycle) )
+sampleInfo =sampleInfo %>% filter(!grepl("Naive|Fixed|spiked-in",SampleInfo))
+
+sampleInfo$bamFiles2 = gsub(pattern = "..ATAC_seq_mapped_dm6", 
+                           replacement = "ATAC_seq_mapped_dm6",
+                           x = sampleInfo$bamFiles2)
+
+
+sampleInfoCountTable = data.frame(bamFiles2 = colnames(countData))
+
+intersect(colnames(countData), sampleInfo$bamFiles2)
+sampleInfo = inner_join(sampleInfo,sampleInfoCountTable)
+
+countData = countData[,sampleInfo$bamFiles2]
+
+
+colnames(countData) = sampleInfo$SampleInfo
+
+```
+
+
+```{r differential gene expression analysis 2 }
+
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+ #   install.packages("BiocManager")
+
+#BiocManager::install("DESeq2")
+
+library(DESeq2)
+
+exp.data = countData
+metaInfo = sampleInfo
+
+rownames(metaInfo) = sampleInfo$SampleInfo
+
+metaInfo$Genotype = factor(metaInfo$Genotype)
+metaInfo$Time = factor(metaInfo$Time)
+
+
+dds <- DESeqDataSetFromMatrix(countData = exp.data,
+                               colData = metaInfo,
+                               design = ~Time+Genotype)
+
+
+#Remove rows with low counts and normalise samples for visualisation
+dds <- dds[ rowSums(counts(dds)) > 50, ]
+
+dim(dds)
+#Normalizing and change to 2 fold log changes. 
+rld <- rlog(dds)
+
+
+
+```
+
+
+```{r analysis of NC samples }
+
+
+
+#' ### Visualising the data
+data =  data.frame(assay(rld))
+
+
+#+ save1, include=FALSE
+#png(paste(params$workingDirectory, params$resultsDirectory,"SampleDistance.png", sep = "/"))
+plotSample2SampleDistance(assay(rld))
+#dev.off()
+
+#' 
+#'
+
+
+```
+
+
+```{r analysis of NC samples }
+
+
+
+
+
+normExpression = as.data.frame(assay(rld))
+
+normExpression$geneID = rownames(normExpression)
+normExpressionDF  = normExpression %>% gather( key = SampleInfo, value = rlog, -geneID)
+normExpressionDF = inner_join(normExpressionDF, sampleInfo)
+
+
+ggplot(normExpressionDF, aes(x = rlog, color = Time)) + geom_density()
+
+geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, SampleInfo) %>% 
+  dplyr::group_by (geneID) %>%
+  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
+
+geneInfo.QC2 = geneInfo %>% filter(overQC > 2)
+normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)
+
+ggplot(normExpressionDF.QC, aes(x = rlog, color = Time)) + geom_density()
+
+
+
+ATACfeatureRlogFile = paste(params$workingDir, params$ATACSeqDir,params$ATACdata.normalised, sep = "/")
+
+write.table(x = normExpressionDF.QC, file = ATACfeatureRlogFile,
+                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+ATAC_PPC = normExpressionDF.QC%>% dplyr::rename(transcriptID = "geneID" )
+
+ATAC_PPC = ATAC_PPC %>% 
+  group_by(transcriptID,Genotype, Time) %>%
+  summarise(meanATAC_PPC = mean(rlog))
+
+```
+
+
+
+# CBP
+
+
+
+```{r Adding the first analysis of the data}
+# install RColorBrewer if missing
+
+
+featureCountFile = paste(params$workingDir, params$ChipSeqDir,
+                         params$CBPcdata , sep = "/")
+
+FCdata = read.table( file = featureCountFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+peakInfo  = FCdata [,1:6]
+countData = FCdata[,-1:-6]
+rownames(countData) = peakInfo$Geneid
+
+samples = colnames(countData)
+
+samples = gsub(pattern = "X.proj.snic2019.30.14.nobackup.CBP_ChIP_seq_mapped.CBP_toll_dm6only.bam_dm6.", replacement = "", x = samples)
+samples = gsub(pattern = ".dm6.bowtie2.sorted.bam", replacement = "", x = samples)
+
+colnames(countData) = samples
+
+sampleInfo = data.frame(sampleName = colnames(countData), sampleInfo = samples, stringsAsFactors = F)
+
+sampleInfo= sampleInfo %>% separate(sampleInfo, c("Genotype", "Replicate", "Input", "sample"), sep = "_", remove = F)
+sampleInfo$Genotype = recode(sampleInfo$Genotype, toll910 = "Toll9")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, gd7 = "Gd7")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, toll10B = "Toll10b")
+sampleInfo$sampleID = paste(sampleInfo$Genotype, sampleInfo$Replicate, sampleInfo$Input , sep = "_")
+
+
+countData = countData[,sampleInfo$sampleName]
+colnames(countData) = sampleInfo$sampleID
+
+
+```
+
+## Filtering
+
+
+```{r differential gene expression analysis}
+
+
+exp.data = countData
+metaInfo = sampleInfo
+
+rownames(metaInfo) = sampleInfo$sampleID
+
+
+metaInfo$Genotype = as.factor(metaInfo$Genotype)
+metaInfo$sampleID = as.factor(metaInfo$sampleID)
+metaInfo$Input = as.factor(metaInfo$Input)
+
+
+dds <- DESeqDataSetFromMatrix(countData = exp.data,
+                               colData = metaInfo, ~1)
+
+
+#Remove rows with low counts and normalise samples for visualisation
+dds <- dds[ rowSums(counts(dds)) > 100, ]
+
+dim(dds)
+#Normalizing and change to 2 fold log changes. 
+
+rld <- rlog(dds)
+
+
+
+normExpression = as.data.frame(assay(rld))
+
+normExpression$geneID = rownames(normExpression)
+normExpressionDF  = normExpression %>% gather( key = sampleID, value = rlog, -geneID)
+normExpressionDF = inner_join(normExpressionDF, metaInfo)
+head(normExpressionDF)
+
+#normExpressionDF = inner_join(normExpressionDF, sampleInfo)
+
+
+ggplot(normExpressionDF, aes(x = rlog, color = Input)) + geom_density()
+
+geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>% 
+  dplyr::group_by (geneID) %>%
+  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
+
+geneInfo.QC2 = geneInfo %>% filter(overQC > 2)
+normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)
+
+ggplot(normExpressionDF.QC, aes(x = rlog, color = sampleName)) + geom_density()
+
+
+normExpressionDF.QC.CBP = normExpressionDF.QC %>% filter(Input == "CBP")
+normExpression.QC = normExpressionDF.QC.CBP %>%
+  dplyr::select(geneID, sampleName, rlog) %>% 
+  spread(key = sampleName, value = rlog)
+
+rownames(normExpression.QC) = normExpression.QC$geneID
+normExpression.QC = normExpression.QC[, -1]
+
+
+
+featureCountFile.normalised = paste(params$workingDir, params$ChipSeqDir,
+                         params$CBPcdata.normalised , sep = "/")
+
+write.table(x = normExpressionDF.QC.CBP, file = featureCountFile.normalised,
+                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+CBP_PPC = normExpressionDF.QC.CBP
+
+CBP_PPC = CBP_PPC %>% dplyr::rename(transcriptID = "geneID" )
+
+CBP_PPC = CBP_PPC %>% group_by(transcriptID,Genotype) %>%
+  summarise(meanCBP_PPC = mean(rlog))
+
+
+```
+
+# ChIP
+
+## Data
+```{r Adding the first analysis of the data}
+# install RColorBrewer if missing
+
+
+featureCountFile = paste(params$workingDir, params$ChipSeqDir,
+                         params$ChIPdata , sep = "/")
+
+FCdata = read.table( file = featureCountFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+peakInfo  = FCdata [,1:6]
+countData = FCdata[,-1:-6]
+rownames(countData) = peakInfo$Geneid
+```
+
+
+## Samples
+
+```{r handle the samples}
+
+sampleInfoFile =paste(params$workingDir, params$sampleInfo, sep = "/")
+sampleInfo = read.table( file = sampleInfoFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+
+sampleInfo$bamFiles2  =  gsub(pattern = "/",replacement = ".",x = sampleInfo$bamFiles)
+sampleInfo$bamFiles2  =  gsub(pattern = "-",replacement = ".",x = sampleInfo$bamFiles2)
+
+
+sampleInfo$Genotype = recode(sampleInfo$Genotype, Toll910 = "Toll9")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, `Toll9/10` = "Toll9")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, gd7 = "Gd7")
+
+sampleInfo =sampleInfo %>% filter(Assaytype == "ChIP-seq") 
+sampleInfo =sampleInfo %>% filter(is.na(Nuclearcycle) )
+
+
+sampleInfo  = sampleInfo %>% mutate(sampleID= paste(Antibody, Genotype,Replicate, sep = "_")) 
+
+
+sampleInfo.K27me3 = sampleInfo %>% filter(Antibody == "K27me3") 
+sampleInfo.H3 = sampleInfo %>% filter(Antibody == "H3") 
+
+```
+
+## K27ac
+```{r test the data}
+sampleInfo.K27ac = sampleInfo %>% filter(Antibody == "K27ac") 
+
+countData.K27ac = countData[,sampleInfo.K27ac$bamFiles2]
+colnames(countData.K27ac) = sampleInfo.K27ac$sampleID
+
+
+exp.data = countData.K27ac
+metaInfo = sampleInfo.K27ac
+
+rownames(metaInfo) = metaInfo$sampleID
+
+
+dds <- DESeqDataSetFromMatrix(countData = exp.data,
+                               colData = metaInfo, ~1)
+
+
+#Remove rows with low counts and normalise samples for visualisation
+dds <- dds[ rowSums(counts(dds)) > 100, ]
+
+dim(dds)
+#Normalizing and change to 2 fold log changes. 
+
+rld <- rlog(dds)
+
+
+
+normExpression = as.data.frame(assay(rld))
+
+normExpression$geneID = rownames(normExpression)
+normExpressionDF  = normExpression %>% gather( key = sampleID, value = rlog, -geneID)
+normExpressionDF = inner_join(normExpressionDF, metaInfo)
+head(normExpressionDF)
+
+#normExpressionDF = inner_join(normExpressionDF, sampleInfo)
+
+
+ggplot(normExpressionDF, aes(x = rlog, color = Genotype)) + geom_density()
+
+geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleID) %>% 
+  dplyr::group_by (geneID) %>%
+  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
+
+geneInfo.QC2 = geneInfo %>% filter(overQC > 2)
+normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)
+
+ggplot(normExpressionDF.QC, aes(x = rlog, color = sampleID)) + geom_density()
+
+
+
+
+#featureCountFile.normalised = paste(params$workingDir, params$ChipSeqDir,
+#                         params$CBPcdata.normalised , sep = "/")
+
+#write.table(x = normExpressionDF.QC.CBP, file = featureCountFile.normalised,
+#                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+K27ac_PPC = normExpressionDF.QC
+
+K27ac_PPC = K27ac_PPC %>% dplyr::rename(transcriptID = "geneID" )
+
+K27ac_PPC2 = K27ac_PPC %>% group_by(transcriptID,Genotype) %>%
+  summarise(meanK27ac_PPC = mean(rlog))
+
+
+```
+## K27me3
+```{r test the data}
+sampleInfo.K27ac = sampleInfo %>% filter(Antibody == "K27me3") 
+
+countData.K27me3 = countData[,sampleInfo.K27me3$bamFiles2]
+colnames(countData.K27me3) = sampleInfo.K27me3$sampleID
+
+
+exp.data = countData.K27me3
+metaInfo = sampleInfo.K27me3
+
+rownames(metaInfo) = metaInfo$sampleID
+
+
+dds <- DESeqDataSetFromMatrix(countData = exp.data,
+                               colData = metaInfo, ~1)
+
+
+#Remove rows with low counts and normalise samples for visualisation
+dds <- dds[ rowSums(counts(dds)) > 100, ]
+
+dim(dds)
+#Normalizing and change to 2 fold log changes. 
+
+rld <- rlog(dds)
+
+
+
+normExpression = as.data.frame(assay(rld))
+
+normExpression$geneID = rownames(normExpression)
+normExpressionDF  = normExpression %>% gather( key = sampleID, value = rlog, -geneID)
+normExpressionDF = inner_join(normExpressionDF, metaInfo)
+head(normExpressionDF)
+
+#normExpressionDF = inner_join(normExpressionDF, sampleInfo)
+
+
+ggplot(normExpressionDF, aes(x = rlog, color = Genotype)) + geom_density()
+
+geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleID) %>% 
+  dplyr::group_by (geneID) %>%
+  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
+
+geneInfo.QC2 = geneInfo %>% filter(overQC > 2)
+normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)
+
+ggplot(normExpressionDF.QC, aes(x = rlog, color = sampleID)) + geom_density()
+
+
+
+
+#featureCountFile.normalised = paste(params$workingDir, params$ChipSeqDir,
+#                         params$CBPcdata.normalised , sep = "/")
+
+#write.table(x = normExpressionDF.QC.CBP, file = featureCountFile.normalised,
+#                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+K27me3_PPC = normExpressionDF.QC
+
+K27me3_PPC = K27me3_PPC %>% dplyr::rename(transcriptID = "geneID" )
+
+K27me3_PPC2 = K27me3_PPC %>% group_by(transcriptID,Genotype) %>%
+  summarise(meanK27me3_PPC = mean(rlog))
+
+
+```
+
+
+
+
+
+#PROseq
+
+```{r PROseq}
+
+
+
+PROseqFile = paste( params$workingDir, params$proSeqDir, params$proSeq.data,
+                          sep = "/")
+
+PROseqInfo = read.table( file = PROseqFile,
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F)
+
+
+
+PROseqInfo1  = PROseqInfo %>% select(sampleName, mutant, time, replicate, transcriptID, rlog, PI,GBClog,PPClog)
+
+
+PROSeq_PI = PROseqInfo1 %>% group_by(transcriptID,mutant, time) %>%
+  summarise(meanPI = mean(PI), .groups = 'drop')
+
+PROSeq_PI = PROSeq_PI %>%
+  dplyr::rename(Genotype = "mutant") %>%  dplyr::rename(Time = "time")
+PROSeq_PI$Genotype = recode(PROSeq_PI$Genotype, toll9 = "Toll9")
+PROSeq_PI$Genotype = recode(PROSeq_PI$Genotype, `toll10b` = "Toll10b")
+PROSeq_PI$Genotype = recode(PROSeq_PI$Genotype, gd7 = "Gd7")
+PROSeq_PI$Genotype = recode(PROSeq_PI$Genotype, gd7 = "Gd7")
+
+
+PROSeq_PI = PROseqInfo %>% select(transcriptID,annotation2) %>% inner_join(PROSeq_PI)
+
+
+```
+
+
+#Correlation 
+
+
+```{r correlation}
+
+ATAC_PPC$Genotype = recode(ATAC_PPC$Genotype, `Toll10B` = "Toll10b")
+Correlation = inner_join(PROSeq_PI, CBP_PPC)
+Correlation =inner_join(Correlation, ATAC_PPC)
+Correlation =inner_join(Correlation, K27ac_PPC2)
+
+Correlation2 = Correlation %>% 
+  dplyr::rename(CBP_ChIPseq = "meanCBP_PPC") %>%
+  dplyr::rename(ATACseq = "meanATAC_PPC") %>%
+  dplyr::rename(K27ac_ChIPseq = "meanK27ac_PPC") %>%
+  gather(key = SeqType,
+         value = PPC_coverage,
+         CBP_ChIPseq,
+         ATACseq ,
+         K27ac_ChIPseq
+         )
+  
+  
+
+ggplot( data = Correlation2, 
+        mapping = aes(x = meanPI, 
+                      y = PPC_coverage))+
+  geom_point(aes(color = annotation2))+ 
+  geom_smooth(method = "lm", aes(color = Genotype)) +
+  facet_grid(SeqType+ annotation2~Genotype)
+ggsave("../figures/Fig5.Correlation.pdf")
+
+
+
+
+
+
+
+
+
+cor.test(x =Correlation$meanPI, Correlation$meanCBP_PPC, 
+                    method = "pearson" )
+
+cor.test(x =Correlation$meanPI, Correlation$meanATAC_PPC, 
+                    method = "pearson" )
+
+
+cor.test(x =Correlation$meanPI, Correlation$meanK27ac_PPC, 
+                    method = "pearson" )
+
+
+
+
+
+```
+
+
