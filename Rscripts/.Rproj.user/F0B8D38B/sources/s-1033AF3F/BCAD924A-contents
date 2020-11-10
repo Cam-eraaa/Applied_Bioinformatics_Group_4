@@ -8,18 +8,13 @@ params:
     datadir: ~/Applied_Bioinformatics_Group_4/data_johan/data/PROseq
     Rscriptsdir: ~/Applied_Bioinformatics_Group_4/script/original_method
     workingdir: ~/Applied_Bioinformatics_Group_4/results/original_method
-    proSeqDir: /Applied_Bioinformatics_Group_4/results/original_method/PRO-seq
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 #install.packages("kableExtra")
 #install.packages("RColorBrewer")
-#install.packages("viridis")
 library(RColorBrewer)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
 library(gplots)
 library(tidyverse)
 library(knitr)
@@ -27,24 +22,14 @@ library(kableExtra)
 library(DESeq2)
 ```
 
-# PROseq data analysis
+## R Markdown
 
-## Loading the data
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-```{r Load the data,  }
-featureCountFile = paste(params$workingDir, params$dataDir,"counts.CDS.txt", sep = "/")
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-FCdata = read.table( file = featureCountFile, header = TRUE, 
-                     sep = "\t", quote = "",  
-                     stringsAsFactors = FALSE)
+## Including Plots
 
-geneInfo  = FCdata [,1:6]
-geneInfo  = geneInfo[,c(1,6)]
-countData = FCdata[,-1:-6]
-rownames(countData) = geneInfo$Geneid
-```
+You can also embed plots, for example:
 
-
-
-
-
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

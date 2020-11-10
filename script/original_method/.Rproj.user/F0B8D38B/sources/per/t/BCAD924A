@@ -5,6 +5,7 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
+<<<<<<< HEAD:script/original_method/.Rproj.user/F0B8D38B/sources/per/t/BCAD924A
     "hash" : "1778591071",
     "id" : "BCAD924A",
     "lastKnownWriteTime" : 1605000115,
@@ -15,6 +16,18 @@
         "cursorPosition" : "19,14",
         "last_setup_crc32" : "",
         "scrollLine" : "6",
+=======
+    "hash" : "0",
+    "id" : "BCAD924A",
+    "lastKnownWriteTime" : 1605012677,
+    "last_content_update" : 1605012677084,
+    "path" : "~/Applied_Bioinformatics_Group_4/script/original_method/test.rmd",
+    "project_path" : "test.rmd",
+    "properties" : {
+        "cursorPosition" : "12,27",
+        "last_setup_crc32" : "1033AF3F6ddfb868",
+        "scrollLine" : "1",
+>>>>>>> parent of d160bd8... Changed scripts:script/original_method/.Rproj.user/F0B8D38B/sources/s-1033AF3F/BCAD924A
         "tempName" : "Untitled1"
     },
     "read_only" : false,

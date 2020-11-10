@@ -1,0 +1,50 @@
+---
+title: "testing"
+author: "Jenny Jakobsson"
+date: "11/9/2020"
+output: html_document
+
+params: 
+    datadir: ~/Applied_Bioinformatics_Group_4/data_johan/data/PROseq
+    Rscriptsdir: ~/Applied_Bioinformatics_Group_4/script/original_method
+    workingdir: ~/Applied_Bioinformatics_Group_4/results/original_method
+    proSeqDir: /Applied_Bioinformatics_Group_4/results/original_method/PRO-seq
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("kableExtra")
+#install.packages("RColorBrewer")
+#install.packages("viridis")
+library(RColorBrewer)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gplots)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(DESeq2)
+```
+
+# PROseq data analysis
+
+## Loading the data
+
+```{r Load the data,  }
+featureCountFile = paste(params$workingDir, params$dataDir,"counts.CDS.txt", sep = "/")
+
+FCdata = read.table( file = featureCountFile, header = TRUE, 
+                     sep = "\t", quote = "",  
+                     stringsAsFactors = FALSE)
+
+geneInfo  = FCdata [,1:6]
+geneInfo  = geneInfo[,c(1,6)]
+countData = FCdata[,-1:-6]
+rownames(countData) = geneInfo$Geneid
+```
+
+
+
+
+

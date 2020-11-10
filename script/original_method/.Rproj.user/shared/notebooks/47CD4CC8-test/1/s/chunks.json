@@ -1,5 +1,9 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 {"chunk_definitions":[{"chunk_id":"csetup_chunk","chunk_label":"setup","document_id":"BCAD924A","expansion_state":0,"options":{"engine":"r","include":false,"label":"setup"},"row":27,"row_count":1,"visible":true}],"default_chunk_options":{},"doc_write_time":1605013687,"working_dir":null}
 =======
 {"chunk_definitions":[{"chunk_id":"csetup_chunk","chunk_label":"setup","document_id":"BCAD924A","expansion_state":0,"options":{"engine":"r","include":false,"label":"setup"},"row":22,"row_count":1,"visible":true},{"chunk_id":"clvlimek3vv13","chunk_label":"cars","document_id":"BCAD924A","expansion_state":0,"options":{"engine":"r","label":"cars"},"row":32,"row_count":1,"visible":true},{"chunk_id":"cni3rj6vda2r7","chunk_label":"pressure","document_id":"BCAD924A","expansion_state":0,"options":{"echo":false,"engine":"r","label":"pressure"},"row":40,"row_count":1,"visible":true}],"doc_write_time":1604997560}
 >>>>>>> parent of fbec2ee... Changed directories to new organization of data. Also knitted into html doc
+=======
+{"chunk_definitions":[{"chunk_id":"csetup_chunk","chunk_label":"setup","document_id":"BCAD924A","expansion_state":0,"options":{"engine":"r","include":false,"label":"setup"},"row":22,"row_count":1,"visible":true}],"doc_write_time":1605012672}
+>>>>>>> parent of d160bd8... Changed scripts
