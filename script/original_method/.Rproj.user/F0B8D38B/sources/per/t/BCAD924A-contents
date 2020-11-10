@@ -7,28 +7,14 @@ output: html_document
 params: 
     datadir: ~/Applied_Bioinformatics_Group_4/data
     Rscriptsdir: ~/Applied_Bioinformatics_Group_4/script/original_method
-<<<<<<< HEAD
-    workingdir: ~/Applied_Bioinformatics_Group_4/results/original_method
-    proSeqDir: /Applied_Bioinformatics_Group_4/results/original_method/PRO-seq
-=======
     workingdir: ~/Applied_Bioinformatics_Group_4/results_Jenny
->>>>>>> parent of fbec2ee... Changed directories to new organization of data. Also knitted into html doc
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-<<<<<<< HEAD
-#install.packages("kableExtra")
-#install.packages("RColorBrewer")
-#install.packages("viridis")
-=======
 install.packages("kableExtra")
 if (!require("RColorBrewer")) {install.packages("RColorBrewer")}
->>>>>>> parent of fbec2ee... Changed directories to new organization of data. Also knitted into html doc
 library(RColorBrewer)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
 library(gplots)
 library(tidyverse)
 library(knitr)

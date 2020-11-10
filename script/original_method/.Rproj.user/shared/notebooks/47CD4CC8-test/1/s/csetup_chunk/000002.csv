@@ -1,4 +1,5 @@
 "0","knitr::opts_chunk$set(echo = TRUE)"
+<<<<<<< HEAD
 "0","#install.packages(""kableExtra"")"
 "0","#install.packages(""RColorBrewer"")"
 "0","#install.packages(""viridis"")"
@@ -11,3 +12,5 @@
 "0","library(knitr)"
 "0","library(kableExtra)"
 "0","library(DESeq2)"
+=======
+>>>>>>> parent of fbec2ee... Changed directories to new organization of data. Also knitted into html doc
