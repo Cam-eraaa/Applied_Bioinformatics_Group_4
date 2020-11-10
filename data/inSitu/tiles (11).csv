@@ -1,4 +1,0 @@
-VTID,Chrosome,Start,End,Length,Verification Status,Positive,stg4_6,stg7_8,stg9_10,stg11_12,stg13_14,stg15_16
-VT35629,chr3LHet,209393,211691,2298,correct,0,NA,NA,NA,NA,NA,NA
-VT35631,chr3LHet,212650,214727,2077,correct,1,anterior_endoderm_AISN;3,anterior_endoderm_anlage;4,anterior_endoderm_anlage;4,epipharynx_primordium;4|hypopharynx_primordium;3,epipharynx;4|hypopharynx;3,pharynx;3
-VT35633,chr3LHet,216677,218853,2176,correct,0,NA,NA,NA,NA,NA,NA
