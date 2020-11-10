@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1605012810327.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "62051D20",
+    "lastKnownWriteTime" : 1605012023,
+    "last_content_update" : 1605012023,
+    "path" : "~/Applied_Bioinformatics_Group_4/data_johan/Rscripts/PROseq_analysis_First.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "11,2",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
