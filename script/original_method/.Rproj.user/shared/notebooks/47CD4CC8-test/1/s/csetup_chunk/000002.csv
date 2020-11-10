@@ -1,1 +1,263 @@
 "0","knitr::opts_chunk$set(echo = TRUE)"
+"0","install.packages(""kableExtra"")"
+"2","trying URL 'https://cran.rstudio.com/bin/macosx/el-capitan/contrib/3.6/kableExtra_1.3.1.tgz'
+"
+"2","Content type 'application/x-gzip'"
+"2"," length 1848850 bytes (1.8 MB)
+"
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","="
+"2","
+"
+"2","downloaded 1.8 MB
+
+"
+"1","
+"
+"1",""
+"1","The downloaded binary packages are in
+	/var/folders/7y/c7v9j2_161730jtsnz0p9vtc0000gn/T//RtmpnCYuEf/downloaded_packages"
+"1",""
+"1","
+"
+"0","if (!require(""RColorBrewer"")) {install.packages(""RColorBrewer"")}"
+"2","Loading required package: RColorBrewer
+"
+"0","library(RColorBrewer)"
+"0","library(gplots)"
+"2","
+Attaching package: ‘gplots’
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    lowess
+
+"
+"0","library(tidyverse)"
+"2","Registered S3 method overwritten by 'dplyr':
+  method           from
+  print.rowwise_df     
+"
+"2","Registered S3 methods overwritten by 'dbplyr':
+  method         from
+  print.tbl_lazy     
+  print.tbl_sql      
+"
+"2","[30m── [1mAttaching packages[22m ──────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──[39m
+"
+"2","[30m[32m✓[30m [34mggplot2[30m 3.3.0     [32m✓[30m [34mpurrr  [30m 0.3.4
+[32m✓[30m [34mtibble [30m 3.0.1     [32m✓[30m [34mdplyr  [30m 0.8.5
+[32m✓[30m [34mtidyr  [30m 1.0.3     [32m✓[30m [34mstringr[30m 1.4.0
+[32m✓[30m [34mreadr  [30m 1.3.1     [32m✓[30m [34mforcats[30m 0.5.0[39m
+"
+"2","[30m── [1mConflicts[22m ─────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+[31mx[30m [34mdplyr[30m::[32mfilter()[30m masks [34mstats[30m::filter()
+[31mx[30m [34mdplyr[30m::[32mlag()[30m    masks [34mstats[30m::lag()[39m
+"
+"0","library(knitr)"
+"0","library(kableExtra)"
+"2","Registered S3 methods overwritten by 'htmltools':
+  method               from         
+  print.html           tools:rstudio
+  print.shiny.tag      tools:rstudio
+  print.shiny.tag.list tools:rstudio
+"
+"2","
+Attaching package: ‘kableExtra’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    group_rows
+
+"
+"0","library(DESeq2)"
+"2","Loading required package: S4Vectors
+"
+"2","package ‘S4Vectors’ was built under R version 3.6.3"
+"2","Loading required package: stats4
+"
+"2","Loading required package: BiocGenerics
+"
+"2","Loading required package: parallel
+"
+"2","
+Attaching package: ‘BiocGenerics’
+
+"
+"2","The following objects are masked from ‘package:parallel’:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ, clusterExport, clusterMap, parApply,
+    parCapply, parLapply, parLapplyLB, parRapply, parSapply, parSapplyLB
+
+"
+"2","The following objects are masked from ‘package:dplyr’:
+
+    combine, intersect, setdiff, union
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames, dirname, do.call, duplicated,
+    eval, evalq, Filter, Find, get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply, match,
+    mget, order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank, rbind, Reduce, rownames,
+    sapply, setdiff, sort, table, tapply, union, unique, unsplit, which, which.max, which.min
+
+"
+"2","
+Attaching package: ‘S4Vectors’
+
+"
+"2","The following objects are masked from ‘package:dplyr’:
+
+    first, rename
+
+"
+"2","The following object is masked from ‘package:tidyr’:
+
+    expand
+
+"
+"2","The following object is masked from ‘package:gplots’:
+
+    space
+
+"
+"2","The following object is masked from ‘package:base’:
+
+    expand.grid
+
+"
+"2","Loading required package: IRanges
+"
+"2","
+Attaching package: ‘IRanges’
+
+"
+"2","The following objects are masked from ‘package:dplyr’:
+
+    collapse, desc, slice
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    reduce
+
+"
+"2","Loading required package: GenomicRanges
+"
+"2","Loading required package: GenomeInfoDb
+"
+"2","package ‘GenomeInfoDb’ was built under R version 3.6.3"
+"2","Loading required package: SummarizedExperiment
+"
+"2","Loading required package: Biobase
+"
+"2","Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with 'browseVignettes()'. To cite Bioconductor,
+    see 'citation(""Biobase"")', and for packages 'citation(""pkgname"")'.
+
+"
+"2","Loading required package: DelayedArray
+"
+"2","package ‘DelayedArray’ was built under R version 3.6.3"
+"2","Loading required package: matrixStats
+"
+"2","
+Attaching package: ‘matrixStats’
+
+"
+"2","The following objects are masked from ‘package:Biobase’:
+
+    anyMissing, rowMedians
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    count
+
+"
+"2","Loading required package: BiocParallel
+"
+"2","
+Attaching package: ‘DelayedArray’
+
+"
+"2","The following objects are masked from ‘package:matrixStats’:
+
+    colMaxs, colMins, colRanges, rowMaxs, rowMins, rowRanges
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    simplify
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    aperm, apply, rowsum
+
+"
+"2","Registered S3 method overwritten by 'htmlwidgets':
+  method           from         
+  print.htmlwidget tools:rstudio
+"
+"2","Registered S3 method overwritten by 'data.table':
+  method           from
+  print.data.table     
+"
