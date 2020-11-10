@@ -7,9 +7,9 @@ output: html_document
 params:
   workingDir: /Users/johanreimegard/git/Applied_Bioinformatics_Group_4
   dataDir: data/PROseq
+  RfunctionsDirectory: 
   proSeqDir: results/PROseq
   proSeq.data: PROseq.data.tsv
-  
   rerun: FALSE
 
 ---
@@ -29,8 +29,6 @@ library(knitr)
 #install.packages("kableExtra")
 library(kableExtra)
 
-library(RColorBrewer)
-library(gplots)
 
 ##install.packages("viridis")  # Install
 library("viridis")     
@@ -41,19 +39,51 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # PROseq analysis
 
+## Pre QC analysis
 
 
-## Load the read count from the CDS regions of the genes 
+```{r  add fastqc}
+
+# Load in the fastq file that is generated as data from running multiqc on all samples. 
+fastqcFile = paste(params$workingDir, params$dataDir,"multiqc_fastqc.txt", sep = "/")
+fastqc = read.table(file = fastqcFile, header = T, sep = "\t")
 
 
+# Use only some of the columns .
+fastqc_info = fastqc %>% dplyr::select(Sample,avg_sequence_length,Total.Sequences )
+
+# Spread the data from idxSummary agains so that each species gets its own column 
+sampleInfo =   idxSummary %>% dplyr::select(species, Sample, TotalCount) %>% spread(key = species, value = TotalCount)
+
+# Join idx stats and fastqc stats 
+sampleInfo = inner_join(sampleInfo,fastqc_info) 
+
+# Nr unmapped by subtraction
+unmapped  = sampleInfo %>% dplyr::group_by(Sample) %>% dplyr::summarize(unmapped = Total.Sequences-Drosophila-Mouse)
+sampleInfo = inner_join(sampleInfo,unmapped)
 
 
-```{r Load the data,  }
+# Plot the data in a html format table. 
+
+
+sampleInfo %>% dplyr::select(Sample,avg_sequence_length,Total.Sequences,Drosophila,Mouse,unmapped) %>%
+  kable() %>%
+  kable_styling()
+
+
+```
+
+
+### Comparing mapping pattern between the samples
+
+
+```{r Load the data, include=FALSE }
 # install RColorBrewer if missing
 #if (!require("RColorBrewer")) {
 #  install.packages("RColorBrewer")
 #}
-
+library(RColorBrewer)
+library(gplots)
 featureCountFile = paste(params$workingDir, params$dataDir,"counts.CDS.txt", sep = "/")
 
 FCdata = read.table( file = featureCountFile, header = TRUE, 
@@ -67,11 +97,9 @@ rownames(countData) = geneInfo$Geneid
 ```
 
 
-
-## Create sample information
-
 ```{r Create meta data table for samples , include=FALSE}
 
+sampleInfoOld = sampleInfo
 sampleInfo = data.frame(bamFile =  colnames(countData))
 sampleInfo= sampleInfo %>% separate(col = bamFile,sep = "\\.",into =  c("dir", "mutant","sampleInfo"), remove = FALSE)
 sampleInfo = sampleInfo %>% separate(col = sampleInfo,sep = "_",into =  c("irrelevant", "time","replicate"))
@@ -81,8 +109,6 @@ sampleInfo = sampleInfo %>% separate(col = mutant,sep = "_",into =  c("mutant"))
 sampleInfo = sampleInfo %>% dplyr::select(bamFile,mutant,time,replicate)
 sampleInfo = sampleInfo %>% unite("sampleName", mutant:time:replicate, remove = FALSE )
 sampleInfo = sampleInfo %>% dplyr::select(bamFile,sampleName,mutant,time,replicate)
-
-
 
 
 rownames(sampleInfo) = sampleInfo$bamFile
@@ -95,72 +121,103 @@ sampleInfo = sampleInfo %>% dplyr::select(sampleName,mutant,time,replicate,bamFi
 
 
 ```
-## Create gene info
 
-Remove all genes that is not expressed in any sample and start adding known information about the genes.
 
-```{r remove genes with no expression, include=FALSE}
+```{r first qc analysis}
 
 geneExpression = log(rowSums(countData))
 
 hist(geneExpression)
 
-geneInfo$logExpression  =log(rowSums(countData))
+geneInfo$expression  =log(rowSums(countData))
 
-geneInfo.QC = geneInfo %>% filter(logExpression > 1) 
+geneInfo.QC = geneInfo %>% filter(expression > 1) 
 countData.QC =  countData[geneInfo.QC$Geneid,]
+
+distance = cor((countData.QC))
+
+distance_matrix <- as.matrix(distance)
+heatmap.2(distance_matrix, 
+          col=brewer.pal(9,"Blues"), 
+          density.info = "none",
+          trace="none")
 
 
 ```
-## Add information about genes involved in the differentiation of the tissues.
 
-```{r script to check the known genes , include=FALSE}
+
+```{r script to check the known genes. }
 
 knownGenes = read.table(file = paste(params$workingDir,"information/FlyBase_IDs.txt", sep = "/"),
                         sep = "\t", header = F, quote = "", stringsAsFactors = F)
 colnames(knownGenes) = c("Submitted ID", "Current ID","Converted ID","Related record")
 
+roshanGenes = read.table(file = paste(params$workingDir,"information/PROseq_DEG_IGB_validated.txt", sep = "/"),
+                         sep = "\t", header = T, quote = "", stringsAsFactors = F)
+colnames(roshanGenes) = c("SYMBOL", "Mutant")
+
 
 geneInfo.QC$knownGene = "No"
 geneInfo.QC$knownGene[geneInfo.QC$Geneid %in% knownGenes$`Current ID`] = "Yes"
+
+table(geneInfo.QC$knownGene)
+
+countData.QC.knownTargets =  countData[geneInfo.QC$Geneid[geneInfo.QC$knownGene == "Yes"],]
+distance = cor((countData.QC.knownTargets))
+
+distance_matrix <- as.matrix(distance)
+pdf(file = "PROseqData.HeatMap.knownGenes.pdf")
+heatmap.2(distance_matrix, 
+          col=brewer.pal(9,"Blues"), 
+          margins = c(8, 8),
+          density.info = "none",
+          trace="none")
+
+dev.off()
 
 
 ```
 
 
 #### Identifying that two samples have wrong lables and needs to be switched.
-
-So it turns out that there was a label switch in the samples.. After going back to the lab-book we could identify the switch and therefore we make the change. Still we keep the information which bamfile belongs to which sample. 
-```{r change the two files that differ, include=FALSE}
+```{r change the two files that differ}
 # Change filenames 
 test = sampleInfo["toll10b_5h_rep1", ]
 sampleInfo["toll10b_5h_rep1", ] = sampleInfo["gd7_5h_rep1", ]  
-sampleInfo["gd7_5h_rep1", ] = test
-
+sampleInfo["gd7_5h_rep1", ] = test 
 colnames(countData) = sampleInfo$sampleName
+rownames(sampleInfo) = sampleInfo$sampleName
+countData.QC =  countData[geneInfo.QC$Geneid,]
 
-sampleInfo.QC  = sampleInfo
-sampleInfo.QC$sampleName = rownames(sampleInfo)
-sampleInfo.QC %>% select(sampleName, bamFile) %>% separate(col = sampleName,sep = "_",into =  c("mutant", "time","replicate"), remove = FALSE)
+countData.QC.knownTargets =  countData[geneInfo.QC$Geneid[geneInfo.QC$knownGene == "Yes"],]
+distance = cor((countData.QC.knownTargets))
 
-sampleInfo.QC %>% 
-  kable() %>%
-  kable_styling()
+distance_matrix <- as.matrix(distance)
+
+
+pdf(file = "PROseqData.HeatMap.knownGenes.pdf")
+heatmap.2(distance_matrix, 
+          col=brewer.pal(9,"Blues"), 
+          margins = c(8, 8),
+          density.info = "none",
+          trace="none")
+
+dev.off()
 
 
 
 ```
 
+## Differentiall expresssion analysis
+
+###Normalising data and removinvg lowly expressed genes
 
 
-
-
-
-```{r differential gene expression analysis, include=FALSE}
+```{r differential gene expression analysis}
 library(DESeq2)
 
 exp.data = countData.QC
-metaInfo = sampleInfo.QC
+metaInfo = sampleInfo
 
 
 metaInfo$mutant = as.factor(metaInfo$mutant)
@@ -184,7 +241,7 @@ head(normExpression)
 normExpression$geneID = rownames(normExpression)
 normExpressionDF  = normExpression %>% gather( key = sampleName, value = rlog, -geneID)
 
-normExpressionDF = inner_join(normExpressionDF, sampleInfo.QC)
+normExpressionDF = inner_join(normExpressionDF, sampleInfo)
 
 
 ggplot(normExpressionDF, aes(x = rlog, color = sampleName, linetype = time)) + geom_density()
@@ -208,16 +265,30 @@ normExpression.QC = normExpression.QC[, -1]
 
 
 
-
-
 ```
 
 
 ### Visualising the data
 ```{r heatmap of samples}
 
+#+ save1, include=FALSE
+#png(paste(params$workingDirectory, params$proSeqDirectory,"SampleDistance.png", sep = "/"))
+#plotSample2SampleDistance(assay(rld))
+#dev.off()
+
+#' 
+#'
 plotSample2SampleDistance(normExpression.QC)
 #'  __Figure 1 Plotting sample to sample distance__ . 
+#'  0 means that they are identical and 1 means that they are totally different.  
+#'  The darker the blue the more similair. Also dendogram shows how similair they are. 
+#' 
+#' Samples do not cluster according to pre an post op. Most likely more due to difference in mapping (technical problem)
+#' 
+#' #### PCA analysis
+#' Running PCA on the samples and plotting the different variables to see which of the parameterrs that fit the different components the best.
+#' 
+#' First checking how much the different PC contribute. 
 
 ```
 
@@ -257,6 +328,10 @@ test
 #ggsave("PCA_analysis.pdf")
 
 
+ggplot(data = pctable, mapping = aes(x = PC1, y =  PC3, color = mutant)) + geom_point()
+
+ggplot(data = pctable, mapping = aes(x = PC2, y =  PC5, color = mutant, shape = time)) + geom_point(aes(shape=time))
+
 loadings = mir.pca$rotation[,1:3]
 
 
@@ -291,6 +366,12 @@ pctable$factor =  recode(pctable$factor, toll9 = "Toll9")
 pctable$factor =  recode(pctable$factor, toll10b = "Toll10b")
 
 
+fileNameFigCDSsamples = paste( params$workingDir, params$proSeqDir, 
+                        paste("PCA_samples_with_decisionlines_CDS.pdf", sep = "_") ,
+                        sep = "/")
+ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC2,y = PC3, color = factor, shape = time))+
+  scale_color_viridis(discrete = TRUE, option = "D")
+ggsave(fileNameFigCDSsamples)
 ```
 
 
@@ -301,9 +382,12 @@ qplot(PC, Variance, data=e.var, geom = c("point")
       ,ylab = "Variance (%)")
 
 test
-
+fileNameFigCDSsamples = paste( params$workingDir, params$proSeqDir, 
+                        paste("PCA_samples_with_decisionlines_CDS.pdf", sep = "_") ,
+                        sep = "/")
 ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC2,y = PC3, color = factor, shape = time))+
   scale_color_viridis(discrete = TRUE, option = "D")
+ggsave(fileNameFigCDSsamples)
 
 ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC2, color = factor, shape = time))+
   scale_color_viridis(discrete = TRUE, option = "D")
@@ -313,64 +397,27 @@ ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom
 
 ### Print PROseq data to file 
 
-```{r save the files}
+```{r visualise all individual genes2}
+
+PROseq.data.print  = PROseq.data
+
+PROseq.data.print =  PROseq.data.print %>% dplyr::select(-Mutant)
+
+
+fileNamePROseq = paste( params$workingDir, params$proSeqDir,  
+                        params$proSeq.data,
+                             sep = "/")
+write.table(x = PROseq.data.print, file = fileNamePROseq,
+                  quote = F, sep = "\t", col.names = T, row.names = F) 
+      
+PROseq.data.selected  = PROseq.data %>%filter (annotation2 == "DE") %>%dplyr::select(geneID,transcriptID, factor,direction) %>% distinct()
 
 
 
-
-
-
-sampleInfoFile = paste(params$workingDir, params$dataDir,"sampleInfo.QC.tab.txt", sep = "/")
-
-write.table(x = sampleInfo.QC, 
-            file = sampleInfoFile,
-            quote = F,
-            sep =  "\t",
-            row.names = F,
-            col.names = T
-            )
-
-
-
-geneTableFile = paste(params$workingDir, params$dataDir,"gene.QC.tab.txt", sep = "/")
-
-
-write.table(x = geneInfo.QC, 
-            file = geneTableFile,
-            quote = F,
-            sep =  "\t",
-            row.names = F,
-            col.names = T
-)
-
-
-
-
-
-countTableFile = paste(params$workingDir, params$dataDir,"counts.QC.tab.txt", sep = "/")
-
-
-write.table(x = countData.QC, 
-            file = countTableFile,
-            quote = F,
-            sep =  "\t",
-            row.names = T,
-            col.names = T
-            )
-
-
-
-rlogTableFile = paste(params$workingDir, params$dataDir,"rlog.QC.tab.txt", sep = "/")
-
-
-write.table(x = normExpression.QC, 
-            file = rlogTableFile,
-            quote = F,
-            sep =  "\t",
-            row.names = T,
-            col.names = T
-            )
-
+write.table(x = PROseq.data.selected, 
+            file = paste( params$workingDir, params$proSeqDir, 
+                          "selectedGenes.tsv" ,sep = "/"),
+            quote = F, sep = "\t", col.names = TRUE, row.names = F)  
 
 
 

@@ -1,0 +1,84 @@
+
+# How to create one bowtie2 index file for two genomes. 
+
+
+## Directory setup
+
+These steps are just to setup the structure of the data. In general I like to have the fasta seqeunces in one directory and the annotation in another. I then try to add new directories for the different index files so that it will be easy to see which of the ones that I have 
+
+```{shell Final structure of the hybrid genome data}
+
+# Structure determined by using the command  tree
+├── annotation
+├── bowtie2Index
+│   ├── dm3_mm.1.bt2
+│   ├── dm3_mm.2.bt2
+│   ├── dm3_mm.3.bt2
+│   └── dm3_mm.4.bt2
+└── fasta
+    ├── dm3.fa.gz
+    ├── dm3_mm.GRCm38.fa
+    └── Mus_musculus.GRCm38.69.dna.toplevel.fa.gz -> /sw/data/reference/Mus_musculus/GRCm38/dna.ensembl.org_20130114/Mus_musculus.GRCm38.69.dna.toplevel.fa.gz
+
+```
+
+
+
+
+## Setup structure and link genome files. 
+
+```{shell setup directory structure  }
+
+mkdir mouse_dm_hybrid
+cd mouse_dm_hybrid
+
+mkdir fasta
+mkdir annotation
+bowtie2Index
+cd fasta
+ln -s ../.././dm3/UCSC/dm3/Sequence/WholeGenomeFasta/genome.fa dm3.genome.fa.gz 
+ln -s /sw/data/reference/Mus_musculus/GRCm38/dna.ensembl.org_20130114/Mus_musculus.GRCm38.69.dna.toplevel.fa.gz . 
+```
+
+
+
+# Small comment on how I did this.  
+In this example I take the extra step of actually merge the files before because one of the references are gzipped and I cant use that when running bowtie2. Otherwirse it is possible to create bowtie2index from multiple files. For more read [here](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#options-1) 
+
+
+## Concatenate into one file and create a bowtie2Index
+
+```{shell create bowtie2Index file }
+
+#merge two gzipped files using zcat (zcat can read gzipped files)
+
+cd fasta
+zcat dm3.fa.gz  Mus_musculus.GRCm38.69.dna.toplevel.fa.gz >  dm3_mm.GRCm38.fa 
+cd ..
+
+
+# load modules on UPPMAX
+module load bioinfo-tools  
+module load bowtie2/2.3.5.1
+
+
+#Build Bowtie2 index 
+bowtie2-build  fasta/dm3_mm.GRCm38.fa bowtie2Index/dm3_mm
+```
+
+
+## Gzip hybrid fasta file since I will not use it again.
+
+```{shell gzip file }
+
+#gzip merged file 
+cd fasta
+gzip  dm3_mm.GRCm38.fa 
+cd ..
+```
+
+
+## Done
+
+Now a hybrid  bowtie2 index file is ready to be mapped against.
+

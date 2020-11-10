@@ -1,0 +1,15 @@
+experiment	dir4	bamFiles
+Zetlinger_ChIP-mapped	gd7_WCE_rep4	./Zetlinger_ChIP-mapped/bam_dm6/gd7_WCE_rep4.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	Tol10b_H3K4me1_rep2	./Zetlinger_ChIP-mapped/bam_dm6/Tol10b_H3K4me1_rep2.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	gd7_zld_rep1	./Zetlinger_ChIP-mapped/bam_dm6/gd7_zld_rep1.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	gd7_zld_rep2	./Zetlinger_ChIP-mapped/bam_dm6/gd7_zld_rep2.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	Tol10b_H3K4me1_rep1	./Zetlinger_ChIP-mapped/bam_dm6/Tol10b_H3K4me1_rep1.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	Toll10b_WCE_rep5	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_WCE_rep5.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	Toll10b_WCE_rep3	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_WCE_rep3.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	gd7_H3K4me1_rep1	./Zetlinger_ChIP-mapped/bam_dm6/gd7_H3K4me1_rep1.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	gd7_WCE_rep2	./Zetlinger_ChIP-mapped/bam_dm6/gd7_WCE_rep2.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	Toll10b_zld_rep1	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_zld_rep1.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	Tol10b_WCE_rep4	./Zetlinger_ChIP-mapped/bam_dm6/Tol10b_WCE_rep4.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	Toll10b_WCE_rep2	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_WCE_rep2.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	Toll10b_zld_rep2	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_zld_rep2.dm6.bowtie2.sorted.bam
+Zetlinger_ChIP-mapped	gd7_WCE_rep1	./Zetlinger_ChIP-mapped/bam_dm6/gd7_WCE_rep1.dm6.bowtie2.sorted.bam

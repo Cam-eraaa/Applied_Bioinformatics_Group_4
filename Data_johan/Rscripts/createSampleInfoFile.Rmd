@@ -1,0 +1,551 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+params:
+  workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+  #workingDir: /Users/roshan/projects/tollTranscription/m_mannervik_19
+  synonymsFileIn: information/fb_synonym_fb_2019_06.tsv  
+  knownTargetsFile: information/pipe_Toll_known_Targets.txt
+  EisenInfoFile: Eisen-ChIP_data-info.txt
+  ZetlingerInfoFile: Zetlinger-ChIP-DATA-info.txt
+  WieshausInfoFile: Weishaus-ATAC_data-info.txt
+  dataDir: data/PROseq
+
+---
+
+# Fixing the bamFiles
+
+```{r}
+library(tidyverse)
+
+bamFilesInfoFile  = paste(params$workingDir,"information/bamFiles.txt", sep = "/") 
+bamFilesInfo = read.table(file = bamFilesInfoFile, header = FALSE)
+colnames(bamFilesInfo) = "bamFiles"
+
+bamFilesInfo = bamFilesInfo %>% separate(col = bamFiles,sep = "/",into =  c("dir1", "dir2","dir3","dir4","dir5"), remove = FALSE)
+bamFilesInfo = bamFilesInfo %>%  filter(dir2 != "dm3")
+bamFilesInfo1 = bamFilesInfo %>% filter(is.na(dir5))
+
+bamFilesInfo2 = bamFilesInfo %>% filter(!is.na(dir5))
+
+```
+
+
+Fixing the bamFiles for the ones with only four subirectorirs
+```{r fix bamFilesInfo1}
+
+bamFilesInfo1 = bamFilesInfo1 %>% dplyr::select(dir2, dir4, bamFiles)
+bamFilesInfo1$dir4 = gsub(pattern =  ".dm6.bowtie2.sorted.bam", replacement =  "", bamFilesInfo1$dir4)
+bamFilesInfo1$dir4 = gsub(pattern =  ".dmel.bowtie2.sorted.bam", replacement =  "", bamFilesInfo1$dir4)
+bamFilesInfo1$dir4 = gsub(pattern =  ".dm6_yeast.bowtie2.sorted.bam", replacement =  "", bamFilesInfo1$dir4)
+bamFilesInfo1$dir4 = gsub(pattern =  ".dmel6.bowtie2.sorted.bam", replacement =  "", bamFilesInfo1$dir4)
+
+
+
+```
+
+
+### CBP data info
+```{r fix bamFilesInfo2}
+
+
+bamFilesInfo2 = bamFilesInfo2 %>% dplyr::select(dir2, dir3,dir5, bamFiles)
+bamFilesInfo2$dir5 = gsub(pattern =  ".dmel.bowtie2.sorted.bam", replacement =  "", bamFilesInfo2$dir5)
+
+bamFilesInfo2= bamFilesInfo2 %>% separate(col = dir3,sep = "_",into =  c("protein", "celltype","treatment"), remove = FALSE)
+
+bamFilesInfo2= bamFilesInfo2 %>% separate(col = dir5,sep = "_",into =  c("drug", "time","replicate","antibody","sampleNr"), remove = FALSE)
+
+bamFilesInfo21 = bamFilesInfo2 %>% filter(!is.na(sampleNr))
+bamFilesInfo22 = bamFilesInfo2 %>% filter(is.na(sampleNr))
+bamFilesInfo221 = bamFilesInfo22 %>% filter(!is.na(antibody))
+bamFilesInfo222 = bamFilesInfo22 %>% filter(is.na(antibody))
+
+
+bamFilesInfo221$sampleNr = bamFilesInfo221$antibody
+bamFilesInfo221$antibody= bamFilesInfo221$replicate
+bamFilesInfo221$replicate= bamFilesInfo221$time
+bamFilesInfo221$time = 30
+
+bamFilesInfo222$sampleNr = bamFilesInfo222$time
+bamFilesInfo222$antibody= "none"
+bamFilesInfo222$replicate= "none"
+bamFilesInfo222$time = 30
+
+bamFilesInfo2new =  rbind(bamFilesInfo21,bamFilesInfo221,bamFilesInfo222)
+
+bamFilesInfo2new = bamFilesInfo2new %>% dplyr::select(dir2, protein, celltype,treatment,drug,time,replicate,antibody,sampleNr, bamFiles)
+bamFilesInfo2new =  dplyr::rename(bamFilesInfo2new,experiment = dir2)
+unique(bamFilesInfo2new$experiment)
+
+fileName = paste(unique(bamFilesInfo2new$experiment),"tab.txt", sep = ".") 
+file = paste(params$workingDir,"information",fileName, sep = "/")
+bamFilesInfo1Experiment = bamFilesInfo2new
+write.table(file =file, x = bamFilesInfo1Experiment, quote = F,sep = "\t",row.names =F, col.names = T) 
+
+
+```
+
+
+
+### Creating first files
+```{r  }
+bamFilesInfo1 =  dplyr::rename(bamFilesInfo1,experiment = dir2)
+Experiments = unique(bamFilesInfo1$experiment)
+
+
+for(i in 1:length(Experiments)){
+  fileName = paste(Experiments[i],"tab.txt", sep = ".") 
+  file = paste(params$workingDir,"information",fileName, sep = "/")
+  bamFilesInfo1Experiment = bamFilesInfo1 %>% filter(experiment == Experiments[i])
+  if(!file.exists(file)){
+    write.table(file =file, x = bamFilesInfo1Experiment, quote = F,sep = "\t",row.names =F, col.names = T) 
+  }  
+  
+}
+
+```
+### Creating first files
+
+
+### Eisen_ChIP_seq_mapped
+```{r  }
+i = 1
+
+fileName = paste(Experiments[i],"tab.txt", sep = ".") 
+fileNameNew = paste(Experiments[i],"updated.tab.txt", sep = ".") 
+fileIn = paste(params$workingDir,"information",fileName, sep = "/")
+fileOut = paste(params$workingDir,"information",fileNameNew, sep = "/")
+
+EisenFile = paste(params$workingDir,"information","Eisen-ChIP-data-info.txt", sep = "/")
+
+sampeInfo = read.table(file =fileIn , header = T,sep = "\t",quote = "",stringsAsFactors = F)
+sampeInfo =  dplyr::rename(sampeInfo,SRRid = dir4)
+
+Eisen = read.table(file =EisenFile, header = F,sep = "\t",quote = "",stringsAsFactors = F)
+colnames(Eisen) = c("sampleInfo","SRRid")
+
+Eisen$sampleInfo = gsub(pattern = "for", replacement = "", Eisen$sampleInfo)
+Eisen$sampleInfo = gsub(pattern = "at", replacement = "", Eisen$sampleInfo)
+
+Eisen$sampleInfo = gsub(pattern = "in", replacement = "", Eisen$sampleInfo)
+
+EisenInput = Eisen[grep(pattern = "Input", x = Eisen$sampleInfo), ]
+EisenChIP = Eisen[-grep(pattern = "Input", x = Eisen$sampleInfo), ]
+
+EisenEarlyembryos = EisenChIP[grep(pattern = "cycle", x = EisenChIP$sampleInfo), ]
+Eisen_wt_vs_zld = EisenChIP[grep(pattern = "embryo", x = EisenChIP$sampleInfo), ]
+#Eisen_wt_vs_zld$sapleinfo = gsub(pattern = "embryos", replacement = "", Eisen_wt_vs_zld$sampleInfo)
+#Eisen_wt_vs_zld$sampleinfo = gsub(pattern = "mutant", replacement = "", Eisen_wt_vs_zld$sampleInfo)
+
+EisenEarlyembryos$sampleInfo[1] = "H4K5ac ChIP-seq cycle 8"
+
+EisenEarlyembryos_sampeInfo = EisenEarlyembryos %>% separate(col = sampleInfo,sep = " ",into =  c("Antibody", "assaytype","trash", "Nuclearcycle", "geneotype"), remove = FALSE)
+
+
+Eisen_wt_vs_zld_sampeInfo = Eisen_wt_vs_zld %>% separate(col = sampleInfo,sep = " ",into =  c("Antibody", "assaytype","Nuclearcycle", "geneotype"), remove = FALSE)
+
+
+EisenEarlyembryos_sampeInfo$geneotype = "wt"
+Eisen_wt_vs_zld_sampeInfo$Nuclearcycle = "2_4_hrs"
+
+
+
+colnames(EisenEarlyembryos_sampeInfo)
+colnames(Eisen_wt_vs_zld_sampeInfo)
+EisenEarlyembryos_sampeInfo = EisenEarlyembryos_sampeInfo[ , colnames(Eisen_wt_vs_zld_sampeInfo)]
+
+
+
+EisenInput_sampeInfo = EisenInput %>% separate(col = sampleInfo,sep = " ",into =  c("trash", "trash1","trash2","Nuclearcycle"), remove = FALSE)  %>% select(sampleInfo,Nuclearcycle,SRRid)
+
+EisenInput_sampeInfo$Antibody = "Input"
+EisenInput_sampeInfo$assaytype = "ChIP-seq"
+EisenInput_sampeInfo$geneotype = "wt"
+
+EisenInput_sampeInfo = EisenInput_sampeInfo[, colnames(Eisen_wt_vs_zld_sampeInfo)]
+
+EisenChIPNew = rbind(EisenEarlyembryos_sampeInfo,Eisen_wt_vs_zld_sampeInfo,EisenInput_sampeInfo)
+
+EisenChIPNew = inner_join(EisenChIPNew, sampeInfo)
+EisenChIPNew = EisenChIPNew %>% dplyr::select(sampleInfo,Antibody,assaytype,Nuclearcycle,geneotype,SRRid,bamFiles) 
+EisenChIPNew = EisenChIPNew %>% dplyr::rename(SampleInfo = sampleInfo,Assaytype = assaytype,Genotyope = geneotype) 
+
+if(!file.exists(fileOut)){
+  write.table(file =fileOut, x = EisenChIPNew, quote = F,sep = "\t",row.names =F, col.names = T) 
+}
+```
+
+
+### Wieshaus_ATAC-seq_mapped
+```{r  }
+i = 2
+
+fileName = paste(Experiments[i],"tab.txt", sep = ".") 
+fileNameNew = paste(Experiments[i],"updated.tab.txt", sep = ".") 
+fileIn = paste(params$workingDir,"information",fileName, sep = "/")
+fileOut = paste(params$workingDir,"information",fileNameNew, sep = "/")
+
+
+WeishausFile = paste(params$workingDir,"information","Weishaus-ATAC_data-info.txt", sep = "/")
+
+sampeInfo = read.table(file =fileIn , header = T,sep = "\t",quote = "",stringsAsFactors = F)
+sampeInfo =  dplyr::rename(sampeInfo,SRRid = dir4)
+
+Weishaus = read.table(file =WeishausFile, header = F,sep = "\t",quote = "",stringsAsFactors = F)
+colnames(Weishaus) = c("sampleInfo","SRRid")
+
+
+Weishaus_sampeInfo = Weishaus %>% separate(col = sampleInfo,sep = "_",into =  c("Geneotype","trash" ,"nuclearcycle","time" ,"replicate" ), remove = FALSE)
+
+Weishaus_sampeInfo = inner_join(sampeInfo,Weishaus_sampeInfo)
+
+
+Weishaus_sampeInfo = Weishaus_sampeInfo %>% select(SRRid,bamFiles,sampleInfo,Geneotype,nuclearcycle,time,replicate)
+Weishaus_sampeInfo = Weishaus_sampeInfo %>% dplyr::rename(SampleInfo = sampleInfo,Genotype = Geneotype, Nuclearcycle=nuclearcycle,Time =time,Replicate= replicate)
+
+#Do some steps to get all the information
+if(!file.exists(fileOut)){
+  write.table(file =fileOut, x = Weishaus_sampeInfo, quote = F,sep = "\t",row.names =F, col.names = T) 
+}
+
+
+
+```
+
+
+### Toll_ATAC-seq_mapped
+```{r  }
+i =4
+
+fileName = paste(Experiments[i],"tab.txt", sep = ".") 
+fileNameNew = paste(Experiments[i],"updated.tab.txt", sep = ".") 
+fileIn = paste(params$workingDir,"information",fileName, sep = "/")
+fileOut = paste(params$workingDir,"information",fileNameNew, sep = "/")
+
+
+
+sampeInfo = read.table(file =fileIn , header = T,sep = "\t",quote = "",stringsAsFactors = F)
+sampeInfo =  dplyr::rename(sampeInfo, seqID = dir4)
+sampeInfo =  dplyr::rename(sampeInfo, SampleInfo = X)
+
+
+sampeInfo = sampeInfo %>% separate(col = SampleInfo,sep = "_",into =  c("Genotype", "Time", "Replicate" ), remove = FALSE)
+
+sampeInfo$Treatment = "non_fixed"
+sampeInfo$Treatment[grep(pattern = "Fixed", x =sampeInfo$ATAC_Info )]  = "fixed"
+sampeInfo$Treatment[grep(pattern = "spiked-in", x =sampeInfo$ATAC_Info )] = "spiked-in"
+
+#Do some steps to get all the information
+if(!file.exists(fileOut)){
+  write.table(file =fileOut, x = sampeInfo, quote = F,sep = "\t",row.names =F, col.names = T) 
+}
+
+
+```
+
+
+### ChIP
+```{  not used anymore because we add }
+i = 3
+
+fileName = paste(Experiments[i],"tab.txt", sep = ".") 
+fileNameNew = paste(Experiments[i],"updated.tab.txt", sep = ".") 
+fileIn = paste(params$workingDir,"information",fileName, sep = "/")
+fileOut = paste(params$workingDir,"information",fileNameNew, sep = "/")
+
+ChIPFile = paste(params$workingDir,"information","ChIP_seq_mapped_dm6.tab.txt", sep = "/")
+
+sampeInfo = read.table(file =fileIn , header = T,sep = "\t",quote = "",stringsAsFactors = F)
+sampeInfo =  dplyr::rename(sampeInfo,)
+
+ChIP = read.table(file =ChIPFile, header = T,sep = "\t",quote = "",stringsAsFactors = F)
+colnames(ChIP) = c("Experiment", "SampleInfo", "bamFiles")
+sampeInfo =  dplyr::rename(sampeInfo,ChIP_Info = dir4)
+
+ChIP_sampeInfo = ChIP %>% separate(col = sampeInfo, sep = "_",into =  c("Genotype", "Antybody","replicate","trash"), remove = FALSE)
+
+ChIP_sampeInfo$Nuclearcycle = "2_4_hrs"
+ChIP_sampeInfo$SRRid = "SRR"
+
+if(!file.exists(fileOut)){
+  write.table(file =fileOut, x = EisenChIPNew, quote = F,sep = "\t",row.names =F, col.names = T) 
+}
+```
+
+#### Zetlinger_ChIP
+
+```{r  }
+i = 5
+
+fileName = paste(Experiments[i],"tab.txt", sep = ".") 
+fileNameNew = paste(Experiments[i],"updated.tab.txt", sep = ".") 
+fileIn = paste(params$workingDir,"information",fileName, sep = "/")
+fileOut = paste(params$workingDir,"information",fileNameNew, sep = "/")
+
+ZetlingerFile = paste(params$workingDir,"information","Zetlinger_ChIP-mapped.tab.txt", sep = "/")
+
+sampeInfo = read.table(file =fileIn , header = T,sep = "\t",quote = "",stringsAsFactors = F)
+sampeInfo = sampeInfo %>% dplyr::rename(SampleInfo  = dir4)
+
+ZetChIP = read.table(file =ZetlingerFile, header = T,sep = "\t",quote = "",stringsAsFactors = F)
+colnames(ZetChIP) = c("Experiment", "sampeInfo", "bamFiles")
+
+
+ZetChIP_sampeInfo = ZetChIP %>% separate(col = sampeInfo, sep = "_",into =  c("Genotype", "Antibody","Replicate","trash"), remove = FALSE)
+
+ZetChIP_sampeInfo$Nuclearcycle = "2_4_hrs"
+ZetChIP_sampeInfo$SRRid = "SRR"
+
+Toll_ChIP = rbind(ChIP_sampeInfo, ZetChIP_sampeInfo)
+
+if(!file.exists(fileOut)){
+  write.table(file =fileOut, x = sampeInfoUpdated, quote = F,sep = "\t",row.names =F, col.names = T) 
+}
+
+sampeInfo = read.table(file =fileOut , header = T,sep = "\t",quote = "",stringsAsFactors = F)
+
+sampeInfo  =sampeInfo %>%  dplyr::rename(SampleInfo = sampeInfo, Antibody = Antybody, Replicate = replicate )
+sampeInfoUpdated  =sampeInfo %>%  dplyr::select(Experiment,  SampleInfo, Genotype, Antibody, Replicate, bamFiles, Nuclearcycle, SRRid)
+
+
+
+```
+
+
+### Merging all the sampleInfo into one file. 
+
+
+```{r headers}
+headers
+
+```
+
+```{r harmonizing the files}
+
+sampleInfoList = list()
+
+ # removing some of the files . 
+
+Experiments = Experiments[c(1,2,4,5)] 
+headers = "SampleInfo"
+for(i in 1:length(Experiments)){
+  fileNameNew = paste(Experiments[i],"updated.tab.txt", sep = ".") 
+  fileOut = paste(params$workingDir,"information",fileNameNew, sep = "/")
+  sampleInfoList[i] = list(read.table(file =fileOut , header = T,sep = "\t",quote = "",stringsAsFactors = F))
+  headers = union(headers, colnames(sampleInfoList[[i]]))
+}
+
+headers
+
+for(i in 1:length(Experiments)){
+
+
+i = 1
+temp = sampleInfoList[[i]]
+#temp =dplyr::rename(temp, Genotype= Genotyope)
+temp["Time"] = "NA"        
+temp["Replicate"] = "Rep1"  
+temp["Experiment"] = "Eisen Chip-Seq"
+temp["Treatment"] = "NA"
+
+sampleInfoList[i] = list(temp)
+
+
+
+i = 2
+temp = sampleInfoList[[i]]
+#temp =dplyr::rename(temp, Genotype= Genotyope)
+temp["Antibody"] = "NA"        
+temp["Assaytype"] = "ATAC-Seq"  
+temp["Experiment"] = "Wieschaus ATAC-Seq"
+temp["Treatment"] = "NA"
+sampleInfoList[i] = list(temp)
+
+
+
+
+
+i = 3
+temp = sampleInfoList[[i]]
+temp =dplyr::rename(temp, Experiment= experiment)
+temp["Antibody"] = "NA"        
+temp["Assaytype"] = "ATAC-Seq"  
+temp["Nuclearcycle"] = "NA"  
+temp["Experiment"] = "Toll ATAC-Seq"
+temp["Treatment"] = "NA"
+sampleInfoList[i] = list(temp)
+
+
+
+i = 4
+temp = sampleInfoList[[i]]
+#temp =dplyr::rename(temp, Experiment= experiment)
+temp["Time"] = "2_4_hrs"  
+temp["Assaytype"] = "ChIP-Seq"  
+temp["Nuclearcycle"] = "NA"  
+temp["Experiment"] = "Toll ChIP-Seq"
+temp["Treatment"] = "NA"
+sampleInfoList[i] = list(temp)
+
+
+headers = "SampleInfo"
+
+for(i in 1:length(Experiments)){
+  headers = union(headers, colnames(sampleInfoList[[i]]))
+}
+
+setdiff(colnames(sampleInfoList[[2]]), colnames(sampleInfoList[[1]]))
+
+all = rbind(sampleInfoList[[1]],sampleInfoList[[2]]) 
+setdiff(colnames(sampleInfoList[[3]]), colnames(all))
+all = dplyr::rename(all, seqID = SRRid)
+all =  rbind(all, sampleInfoList[[3]])
+sampleInfoList[[4]] = dplyr::rename(sampleInfoList[[4]], seqID = SRRid)
+all =  rbind(all, sampleInfoList[[4]])
+
+
+fileNameNew = paste("ChIP_ATAC_sampleInfo.tab.txt", sep = ".") 
+fileOut = paste(params$workingDir,"information",fileNameNew, sep = "/")
+all$Assaytype[all$Assaytype == "ChIP-Seq"] = "ChIP-seq"
+write.table(file =fileOut, x = all, quote = F,sep = "\t",row.names =F, col.names = T) 
+
+
+
+```
+
+
+
+
+```{r generich ChIP seq }
+
+all$Genotype[all$Genotype == "Tol10b"] = "Toll10b"
+all$Antibody[all$Antibody == "WCE"] = "Input"
+
+ChIPseq = all %>% dplyr::filter(Experiment == "Toll ChIP-Seq")
+
+Genotypes = unique(ChIPseq$Genotype)
+Antibodies = unique(ChIPseq$Antibody)
+# remove Input
+Antibodies = Antibodies[c(1,2,3,5,6)]
+
+i =1
+j = 1
+
+blackListFile = "/proj/snic2019-30-14/private/genomes/dm6/dm6-blacklist.v2.bed"
+
+data.frame()
+
+
+
+GenerichCalls = data.frame(test = 1:20, call = "test" ,stringsAsFactors = F)
+counts = 1
+for (i in 1:length(Antibodies)){
+  for (j in 1:length(Genotypes)){
+    experiment = ChIPseq %>%  filter(Antibody == Antibodies[i] & Genotype ==Genotypes[j] )
+    if(nrow(experiment) > 0){
+      experiment$bamFiles = gsub(pattern = "sorted.bam","sorted.name.bam", experiment$bamFiles)
+      input = ChIPseq %>%  filter(Antibody == "Input" & Genotype ==Genotypes[j])
+      input$bamFiles = gsub(pattern = "sorted.bam","sorted.name.bam", input$bamFiles)
+      GenerichCall = paste( "Genrich",
+                            "-r -y -g 20",
+                            paste( "-f",paste("Genrich",paste(Antibodies[i],Genotypes[j],"genrich.encode.narrowPeak.log",sep = "_"), sep  ="/")),
+                            paste( "-k",paste("Genrich",paste(Antibodies[i],Genotypes[j],"genrich.encode.narrowPeak.pileups",sep = "_"), sep  ="/")),
+                            paste( "-b",paste("Genrich",paste(Antibodies[i],Genotypes[j],"genrich.encode.narrowPeak.intervals",sep = "_"), sep  ="/")),
+                            paste( "-R",paste("Genrich",paste(Antibodies[i],Genotypes[j],"genrich.encode.narrowPeak.pcrDuplicates",sep = "_"), sep  ="/")),
+                            paste( "-E",blackListFile, sep = " "),
+                            paste( "-t",paste(experiment$bamFiles, collapse = ","), sep  =" "),
+                            paste( "-c",paste(input$bamFiles, collapse = ","), sep  =" "),
+                            paste( "-o",paste("Genrich",paste(Antibodies[i],Genotypes[j],"genrich.encode.narrowPeak",sep = "_"), sep  ="/")),
+                            sep = " ")
+      GenerichCall
+      GenerichCalls[counts ,2 ] = GenerichCall
+      counts = counts + 1
+    }
+    
+  }
+}
+
+GenerichCalls = GenerichCalls[1:11,2]
+
+write.table(file = "ChIPseq.genrich.sh", x = GenerichCalls, quote = F, row.names = F, col.names = F)
+info = data.frame(calls = GenerichCalls)
+
+dim(info)
+
+
+as.data.frame(test =GenerichCalls)
+
+fileConn<-file("Genrich.ChIPseq1.sh")
+writeLines(c("cd /proj/snic2019-30-14/nobackup"), fileConn)
+for(i in 1:length(GenerichCalls)){
+  
+writeLines(GenerichCalls[[i]], fileConn)
+ 
+  
+}
+
+close(fileConn)
+
+
+
+    experiment = ChIPseq %>%  filter(Antibody == Antibodies[5] & Genotype ==Genotypes[2] )
+
+    nrow(experiment)
+
+
+
+
+
+
+
+```
+
+```{r run featureCount on chipseq data}
+
+
+#      featureCounts -F SAF -a Genrich/K27me3.genrich.encode.narrowPeak.merged.SAF -o ChIPseq/K27me3.counts.regions.txt ChIP_seq_mapped_dm6/bam_dmel/gd7_K27me3_2_R1.dmel.bowtie2.sorted.bam  ChIP_seq_mapped_dm6/bam_dmel/gd7_K27me3_1_R1.dmel.bowtie2.sorted.bam
+
+featureCountCalls = data.frame(test = 1:20, call = "test" ,stringsAsFactors = F)
+counts = 1
+i = 1
+for (i in 1:length(Antibodies)){
+  experiment = ChIPseq %>%  filter(Antibody == Antibodies[i])
+  input = ChIPseq %>%  filter(Antibody == "Input")
+  
+  if(nrow(experiment) > 0){
+    featureCountCall = paste( "featureCounts  -F SAF -T 5",
+                              paste( "-a",paste("Genrich",paste(Antibodies[i],"genrich.encode.narrowPeak.merged.SAF",sep = "."), sep  ="/"),  sep  =" "),
+                              paste( "-o",paste("ChIPseq",paste(Antibodies[i],"featureCount.count.tab.txt",sep = "."), sep  ="/"), sep  =" "),
+                              paste(experiment$bamFiles, collapse = " "),
+                              paste(input$bamFiles, collapse = " "), sep = " ") 
+    featureCountCalls[counts ,2 ] = featureCountCall
+    counts = counts + 1
+  }
+  
+}
+
+featureCountCalls = featureCountCalls[c(1, 3:5),2]
+
+write.table(file = "ChIPseq.featureCount.sh", x = featureCountCalls, quote = F, row.names = F, col.names = F)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
