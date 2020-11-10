@@ -1,0 +1,15 @@
+Status	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27me3_1_R1.dmel.bowtie2.sorted.bam	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27me3_1_R1.dmel.bowtie2.sorted.bam	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27me3_1_R1.dmel.bowtie2.sorted.bam	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27me3_2_R1.dmel.bowtie2.sorted.bam	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27me3_2_R1.dmel.bowtie2.sorted.bam	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27me3_2_R1.dmel.bowtie2.sorted.bam	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_Input_2_R1.dmel.bowtie2.sorted.bam	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_Input_1_R1.dmel.bowtie2.sorted.bam	./Zetlinger_ChIP-mapped/bam_dm6/gd7_WCE_rep4.dm6.bowtie2.sorted.bam	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_WCE_rep5.dm6.bowtie2.sorted.bam	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_WCE_rep3.dm6.bowtie2.sorted.bam	./Zetlinger_ChIP-mapped/bam_dm6/gd7_WCE_rep2.dm6.bowtie2.sorted.bam	./Zetlinger_ChIP-mapped/bam_dm6/Tol10b_WCE_rep4.dm6.bowtie2.sorted.bam	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_WCE_rep2.dm6.bowtie2.sorted.bam	./Zetlinger_ChIP-mapped/bam_dm6/gd7_WCE_rep1.dm6.bowtie2.sorted.bam
+Assigned	7279395	6067992	8736553	2817725	6901723	4809545	580795	850700	1397239	1278183	83316	273410	163269	559187	475996
+Unassigned_Unmapped	1352398	4935894	1700005	17589789	1033286	1368121	1110995	1707536	2569565	4279956	223496	792613	437000	1191556	1207035
+Unassigned_Read_Type	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Singleton	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_MappingQuality	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Chimera	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_FragmentLength	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Duplicate	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_MultiMapping	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Secondary	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_NonSplit	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_NoFeatures	19467827	24744032	21632891	11106969	16600818	23954154	18372485	25724509	40885574	46512372	2879991	8711066	5779820	15213802	14975647
+Unassigned_Overlapping_Length	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+Unassigned_Ambiguity	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
