@@ -1,21 +1,13 @@
 ---
-title: "ATACseq analysis"
+title: "ChIPseq analysis"
 author: "Johan"
 date: "10/25/2019"
 output: html_document
 
 params:
   workingDir: /Users/johanreimegard/git/Applied_Bioinformatics_Group_4
-  ATACSeqDir: results/ATACseq
-  RscriptsDir: R_Analysis/Rscripts  
   dataDir: data/ChIPseq
-  count_ATAC: ATAC.CBP.peak.featureCount.count.tab.txt
-  count_ATAC_QC: ATAC.CBP.peak.featureCount.count.QC.tab.txt
-  normalisedATACpeakData: ATAC.CBP.peak.featureCount.rlog.tab.txt
-  Method: ATAC-Seq
-
-  RfunctionsDirectory: /Users/johanreimegard/GoogleDrive/git/RNAmappingPipeline/R
-  
+  chipSeqData: CBP/CBP-CBP_dm6.featureCount.count.tab.txt 
   
 ---
 
@@ -32,10 +24,9 @@ library(tidyverse)
 
 library(gplots)
 
+library(knitr)
 #install.packages("kableExtra")
 library(kableExtra)
-library(DESeq2)
-
 library("viridis")     
 
 
@@ -49,7 +40,6 @@ gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28
 ```
 
 
-
 ## Reads mapping
 
 
@@ -57,14 +47,16 @@ gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28
 
 ### Using feature count to get the difference between the samples
 
-```{r Adding the first analysis of the data}
+```{r Adding the first analysis of the data ,message=FALSE ,warning = FALSE}
 # install RColorBrewer if missing
 
 library(RColorBrewer)
 library(gplots)
 
 
-featureCountFile = paste(params$workingDir, params$dataDir,params$count_ATAC, sep = "/")
+
+featureCountFile = paste(params$workingDir, params$dataDir,
+                         params$chipSeqData, sep = "/")
 
 FCdata = read.table( file = featureCountFile, header = TRUE, 
                      sep = "\t", quote = "",  
@@ -73,78 +65,52 @@ FCdata = read.table( file = featureCountFile, header = TRUE,
 peakInfo  = FCdata [,1:6]
 countData = FCdata[,-1:-6]
 rownames(countData) = peakInfo$Geneid
-
 ```
 
 
+```{r sample info ,message=FALSE ,warning = FALSE}
+samples = colnames(countData)
 
-```{r handle the samples}
+samples = gsub(pattern = "..CBP_ChIP_seq_mapped.CBP_toll_dm6only.bam_dm6.", replacement = "", x = samples)
+samples = gsub(pattern = ".dm6.bowtie2.sorted.bam", replacement = "", x = samples)
 
-sampleInfoFile =paste(params$workingDir, params$sampleInfo, sep = "/")
-sampleInfo = read.table( file = sampleInfoFile, header = TRUE, 
-                     sep = "\t", quote = "",  
-                     stringsAsFactors = FALSE)
+colnames(countData) = samples
 
+sampleInfo = data.frame(sampleName = colnames(countData), sampleInfo = samples, stringsAsFactors = F)
 
-sampleInfo$bamFiles2  =  gsub(pattern = "/",replacement = ".",x = sampleInfo$bamFiles)
-sampleInfo$bamFiles2  =  gsub(pattern = "-",replacement = ".",x = sampleInfo$bamFiles2)
-
-
-sampleInfo$Genotype = recode(sampleInfo$Genotype, Toll910 = "Toll9")
-sampleInfo$Genotype = recode(sampleInfo$Genotype, `Toll9/10` = "Toll9")
+sampleInfo= sampleInfo %>% separate(sampleInfo, c("Genotype", "Replicate", "Input", "sample"), sep = "_", remove = F)
+sampleInfo$Genotype = recode(sampleInfo$Genotype, toll910 = "Toll9")
 sampleInfo$Genotype = recode(sampleInfo$Genotype, gd7 = "Gd7")
-
-sampleInfo =sampleInfo %>% filter(Assaytype == params$Method) 
-
-sampleInfoCountTable = data.frame(bamFiles2 = colnames(countData))
+sampleInfo$Genotype = recode(sampleInfo$Genotype, toll10B = "Toll10b")
+sampleInfo$sampleID = paste(sampleInfo$Genotype, sampleInfo$Replicate, sampleInfo$Input , sep = "_")
 
 
-sampleInfo = inner_join(sampleInfo,sampleInfoCountTable)
-
-countData = countData[,sampleInfo$bamFiles2]
-sampleInfo$Nuclearcycle[is.na(sampleInfo$Nuclearcycle)]="Mutant"
-
-
-
-colnames(countData) = sampleInfo$SampleInfo
-
-
-fixedSamples = sampleInfo$SampleInfo[grep(pattern = "Fixed", x = sampleInfo$SampleInfo)]
-spikedSamples = sampleInfo$SampleInfo[grep(pattern = "spiked", x = sampleInfo$SampleInfo)]
-
-
-
-sampleInfo_Mutants = sampleInfo %>% filter( Nuclearcycle == "Mutant" ) %>%
-  filter(!SampleInfo %in% fixedSamples) %>%
-  filter(!SampleInfo %in% spikedSamples)
-
-countData_mutants = countData[,sampleInfo_Mutants$SampleInfo  ]
-
-
+countData = countData[,sampleInfo$sampleName]
+colnames(countData) = sampleInfo$sampleID
 
 
 ```
-
-
-
-
-
 
 ## Filtering
 
-```{r differential gene expression analysis}
 
-exp.data = countData_mutants
-metaInfo = sampleInfo_Mutants
+```{r differential gene expression analysis ,message=FALSE ,warning = FALSE}
+library(DESeq2)
+library(edgeR)
 
-rownames(metaInfo) = sampleInfo_Mutants$SampleInfo
+exp.data = countData
+metaInfo = sampleInfo
 
-metaInfo$Antibody = as.factor(metaInfo$Antibody)
+rownames(metaInfo) = sampleInfo$sampleID
+
+
 metaInfo$Genotype = as.factor(metaInfo$Genotype)
+metaInfo$sampleID = as.factor(metaInfo$sampleID)
+metaInfo$Input = as.factor(metaInfo$Input)
+
 
 dds <- DESeqDataSetFromMatrix(countData = exp.data,
-                               colData = metaInfo,
-                               design = ~Genotype )
+                               colData = metaInfo, ~1)
 
 
 #Remove rows with low counts and normalise samples for visualisation
@@ -152,43 +118,37 @@ dds <- dds[ rowSums(counts(dds)) > 100, ]
 
 dim(dds)
 #Normalizing and change to 2 fold log changes. 
+test2 =   rpkm(countData, gene.length = peakInfo$Length)
+plotSample2SampleDistance(test2)
+
 rld <- rlog(dds)
 
 
+
 normExpression = as.data.frame(assay(rld))
-head(normExpression)
 
 normExpression$geneID = rownames(normExpression)
-normExpressionDF  = normExpression %>% gather( key = sampleName, value = rlog, -geneID)
+normExpressionDF  = normExpression %>% gather( key = sampleID, value = rlog, -geneID)
+normExpressionDF = inner_join(normExpressionDF, metaInfo)
+head(normExpressionDF)
 
 #normExpressionDF = inner_join(normExpressionDF, sampleInfo)
 
 
-ggplot(normExpressionDF, aes(x = rlog, color = sampleName)) + geom_density()
+ggplot(normExpressionDF, aes(x = rlog, color = Input)) + geom_density()
 
-geneInfo = normExpressionDF %>% 
-  dplyr::select(geneID, rlog, sampleName) %>% 
+peakInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>% 
   dplyr::group_by (geneID) %>%
-  dplyr::summarize ( min = min(rlog), 
-                     max = max(rlog), 
-                     mean = mean(rlog), 
-                     sd = sd(rlog), 
-                     overQC = length(which(rlog > 5))
-                     ) 
+  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
 
-
-
-geneInfo.QC2 = geneInfo %>% 
-  filter(overQC > 2)
-
-normExpressionDF.QC = normExpressionDF %>%
-  filter(geneID %in% geneInfo.QC2$geneID)
+peakInfo.QC = peakInfo %>% filter(overQC > 2)
+normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% peakInfo.QC$geneID)
 
 ggplot(normExpressionDF.QC, aes(x = rlog, color = sampleName)) + geom_density()
 
 
-
-normExpression.QC = normExpressionDF.QC %>%
+normExpressionDF.QC.CBP = normExpressionDF.QC %>% filter(Input == "CBP")
+normExpression.QC = normExpressionDF.QC.CBP %>%
   dplyr::select(geneID, sampleName, rlog) %>% 
   spread(key = sampleName, value = rlog)
 
@@ -196,27 +156,15 @@ rownames(normExpression.QC) = normExpression.QC$geneID
 normExpression.QC = normExpression.QC[, -1]
 
 
+
 ```
 
 
 
-```{r PCA on the sampleData}
+```{R  check the normalised data  ,message=FALSE ,warning = FALSE}
+
 
 plotSample2SampleDistance(normExpression.QC)
-
-
-
-#'  __Figure 1 Plotting sample to sample distance__ . 
-#'  0 means that they are identical and 1 means that they are totally different.  
-#'  The darker the blue the more similair. Also dendogram shows how similair they are. 
-#' 
-#' Samples do not cluster according to pre an post op. Most likely more due to difference in mapping (technical problem)
-#' 
-#' #### PCA analysis
-#' Running PCA on the samples and plotting the different variables to see which of the parameterrs that fit the different components the best.
-#' 
-#' First checking how much the different PC contribute. 
-
 
 mir.pca <- prcomp(t(normExpression.QC), center = TRUE, scale = FALSE) 
 e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
@@ -228,65 +176,46 @@ qplot(PC, Variance, data=e.var, geom = c("point")
       , ylim = c(0,max(e.var$Variance)+5) 
       ,ylab = "Variance (%)")
 
-#'  __Figure 2 Plotting PCA variance__.  
-#'  Displays how much each of the PC contributes to the overall expression.    
-#'  This suggest that the two first PC explains most of the variation.
-#'
-#+ save2, include=FALSE
-#ggsave(paste(params$workingDirectory,params$resultsDirectory, "PCAvariance.png", sep = "/"))
-#'
-#'
+
+
 
 
 pctable = as.data.frame(mir.pca$x)[, 1:5]
-pctable = cbind(pctable, sampleInfo_Mutants)
+pctable$sampleName = rownames(pctable)
+pctable = inner_join(pctable, metaInfo)
 
 
 test  = plotPCAplot(PCAinfo = pctable, n.comp = 4,
             varianceInfo = e.var, 
-            colorComponent = "Genotype",pchComponent = "Time"
+            colorComponent = "Genotype",pchComponent = "Replicate"
               
 )
 
 test
 
-mean = pctable %>% dplyr::select(PC1,PC2,PC3,Genotype) %>%
-  dplyr::group_by(Genotype) %>%
-  dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2), PC3 = mean(PC3) )
-
-
-
-origo = data.frame(PC2=0, PC3 = 0)
-
-
-line.gd7 = rbind(mean[1,3:4],origo,-mean[1,3:4])
-line.gd7$factor = "Gd7"
-line.toll10b = rbind(mean[2,3:4],origo,-mean[2,3:4])
-line.toll10b$factor = "Toll10b"
-line.toll9 = rbind(mean[3,3:4],origo,-mean[3,3:4])
-line.toll9$factor = "Toll9"
-
-
-line = rbind(line.gd7,line.toll10b,line.toll9)
-
-ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC2,y = PC3, color = Genotype, shape = Time))
 
 
 
 
 ```
 
+
 ### Print PROseq data to file 
 
-```{r save the files}
+```{r save the files ,message=FALSE ,warning = FALSE}
 
 
 
-## Saving sampleInfo File
 
-sampleInfoFile = paste(params$workingDir, params$dataDir,"sampleInfo.QC.tab.txt", sep = "/")
 
-write.table(x = sampleInfo_Mutants, 
+
+sampleInfoFile = paste(params$workingDir, params$dataDir,"CBP/CBP.CBP.sampleInfo.QC.tab.txt", sep = "/")
+
+sampleInfo.QC = sampleInfo %>% 
+  filter (Input == "CBP") %>%
+  select(sampleInfo, sampleID, Genotype, Replicate, Input)
+
+write.table(x = sampleInfo.QC, 
             file = sampleInfoFile,
             quote = F,
             sep =  "\t",
@@ -296,18 +225,9 @@ write.table(x = sampleInfo_Mutants,
 
 
 
+peakTableFile = paste(params$workingDir, params$dataDir,"CBP/CBP.CBP.peak.QC.tab.txt", sep = "/")
 
-
-## Saving peakInfo File
-
-peakInfo_QC = peakInfo %>% 
-  dplyr::rename(geneID = Geneid) %>% 
-  inner_join( geneInfo.QC2)
-
-peakTableFile = paste(params$workingDir, params$dataDir,"peaks.QC.tab.txt", sep = "/")
-
-
-write.table(x = peakInfo_QC, 
+write.table(x = peakInfo.QC, 
             file = peakTableFile,
             quote = F,
             sep =  "\t",
@@ -316,21 +236,29 @@ write.table(x = peakInfo_QC,
 )
 
 
+countData.QC = countData[peakInfo.QC$geneID,sampleInfo.QC$sampleID]
 
 
-count_ATAC_QC_File = paste(params$workingDir, params$dataDir,
-                         paste(params$count_ATAC_QC, sep = "."), sep = "/")
-
-
-
-countData.QC = countData_mutants[peakInfo_QC$geneID,
-                                 sampleInfo_Mutants$SampleInfo
-                                 ]
-
+countTableFile = paste(params$workingDir, params$dataDir,"CBP/CBP.CBP.counts.QC.tab.txt", sep = "/")
 
 
 write.table(x = countData.QC, 
-            file = count_ATAC_QC_File,
+            file = countTableFile,
+            quote = F,
+            sep =  "\t",
+            row.names = T,
+            col.names = T
+            )
+
+
+
+rlogTableFile = paste(params$workingDir, params$dataDir,"CBP/CBP.CBP.rlog.QC.tab.txt", sep = "/")
+
+
+rlogExpression.QC = normExpression[peakInfo.QC$geneID,sampleInfo.QC$sampleID]
+ 
+write.table(x = rlogExpression.QC, 
+            file = rlogTableFile,
             quote = F,
             sep =  "\t",
             row.names = T,
@@ -340,20 +268,7 @@ write.table(x = countData.QC,
 
 
 
-## Saving normalised count file
-NormalisedCountFile = paste(params$workingDir, params$dataDir,
-                         paste(params$normalisedATACpeakData, sep = "."), sep = "/")
-
-normExpression.QC = normExpression[peakInfo_QC$geneID,
-                                 sampleInfo_Mutants$SampleInfo
-                                 ]
-
-write.table(x = normExpression.QC, file = NormalisedCountFile,
-                  quote = F, sep = "\t", col.names = T, row.names = T) 
-
-
 ```
-
 
 
 

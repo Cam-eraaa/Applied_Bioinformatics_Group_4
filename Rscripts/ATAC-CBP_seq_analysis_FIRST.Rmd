@@ -58,7 +58,7 @@ gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28
 
 ### Using feature count to get the difference between the samples
 
-```{r Adding the first analysis of the data}
+```{r Adding the first analysis of the data ,message=FALSE ,warning = FALSE}
 # install RColorBrewer if missing
 
 library(RColorBrewer)
@@ -79,7 +79,7 @@ rownames(countData) = peakInfo$Geneid
 
 
 
-```{r handle the samples}
+```{r handle the samples ,message=FALSE ,warning = FALSE}
 
 sampleInfoFile =paste(params$workingDir, params$sampleInfo, sep = "/")
 sampleInfo = read.table( file = sampleInfoFile, header = TRUE, 
@@ -133,7 +133,7 @@ countData_mutants = countData[,sampleInfo_Mutants$SampleInfo  ]
 
 ## Filtering
 
-```{r differential gene expression analysis}
+```{r differential gene expression analysis ,message=FALSE ,warning = FALSE}
 
 exp.data = countData_mutants
 metaInfo = sampleInfo_Mutants
@@ -201,7 +201,7 @@ normExpression.QC = normExpression.QC[, -1]
 
 
 
-```{r PCA on the sampleData}
+```{r PCA on the sampleData ,message=FALSE ,warning = FALSE}
 
 plotSample2SampleDistance(normExpression.QC)
 
@@ -277,9 +277,9 @@ ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom
 
 ```
 
-### Print PROseq data to file 
+### Print ATAC data to file 
 
-```{r save the files}
+```{r save the files ,message=FALSE ,warning = FALSE}
 
 
 
