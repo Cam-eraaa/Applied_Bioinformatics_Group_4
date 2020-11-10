@@ -1,6 +1,7 @@
 {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     "cursorPosition" : "33,23",
     "last_setup_crc32" : "1033AF3Fb6adf02b",
     "scrollLine" : "30",
@@ -14,5 +15,10 @@
     "last_setup_crc32" : "1033AF3F6ddfb868",
     "scrollLine" : "1",
 >>>>>>> parent of d160bd8... Changed scripts
+=======
+    "cursorPosition" : "19,14",
+    "last_setup_crc32" : "",
+    "scrollLine" : "6",
+>>>>>>> parent of fbec2ee... Changed directories to new organization of data. Also knitted into html doc
     "tempName" : "Untitled1"
 }
