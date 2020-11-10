@@ -5,12 +5,12 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "0",
+    "hash" : "2960334888",
     "id" : "62051D20",
     "lastKnownWriteTime" : 1605012023,
     "last_content_update" : 1605012023,
     "path" : "~/Applied_Bioinformatics_Group_4/data_johan/Rscripts/PROseq_analysis_First.Rmd",
-    "project_path" : null,
+    "project_path" : "PROseq_analysis_First.Rmd",
     "properties" : {
         "cursorPosition" : "11,2",
         "scrollLine" : "0"

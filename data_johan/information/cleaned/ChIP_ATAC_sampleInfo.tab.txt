@@ -1,0 +1,164 @@
+SampleInfo	Antibody	Assaytype	Nuclearcycle	Genotype	seqID	bamFiles	Time	Treatment	Replicate	Experiment
+H4K5ac ChIP-seq cycle 8	H4K5ac	ChIP-seq	8	wt	SRR1505698	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505698.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H4K5ac ChIP-seq cycle 12	H4K5ac	ChIP-seq	12	wt	SRR1505699	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505699.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H4K5ac ChIP-seq cycle 14a	H4K5ac	ChIP-seq	14a	wt	SRR1505700	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505700.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H4K5ac ChIP-seq cycle 14c	H4K5ac	ChIP-seq	14c	wt	SRR1505701	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505701.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H4K8ac ChIP-seq cycle 8	H4K8ac	ChIP-seq	8	wt	SRR1505702	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505702.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H4K8ac ChIP-seq cycle 12	H4K8ac	ChIP-seq	12	wt	SRR1505703	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505703.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H4K8ac ChIP-seq cycle 14a	H4K8ac	ChIP-seq	14a	wt	SRR1505704	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505704.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H4K8ac ChIP-seq cycle 14c	H4K8ac	ChIP-seq	14c	wt	SRR1505705	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505705.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K18ac ChIP-seq cycle 8	H3K18ac	ChIP-seq	8	wt	SRR1505706	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505706.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K18ac ChIP-seq cycle 12	H3K18ac	ChIP-seq	12	wt	SRR1505707	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505707.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K18ac ChIP-seq cycle 14a	H3K18ac	ChIP-seq	14a	wt	SRR1505708	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505708.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K18ac ChIP-seq cycle 14c	H3K18ac	ChIP-seq	14c	wt	SRR1505709	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505709.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K27ac ChIP-seq cycle 8	H3K27ac	ChIP-seq	8	wt	SRR1505710	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505710.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K27ac ChIP-seq cycle 12	H3K27ac	ChIP-seq	12	wt	SRR1505712	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505712.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K27ac ChIP-seq cycle 14a	H3K27ac	ChIP-seq	14a	wt	SRR1505713	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505713.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K27ac ChIP-seq cycle 14c	H3K27ac	ChIP-seq	14c	wt	SRR1505714	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505714.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me1 ChIP-seq cycle 8	H3K4me1	ChIP-seq	8	wt	SRR1505715	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505715.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me1 ChIP-seq cycle 12	H3K4me1	ChIP-seq	12	wt	SRR1505716	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505716.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me1 ChIP-seq cycle 14a	H3K4me1	ChIP-seq	14a	wt	SRR1505717	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505717.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me1 ChIP-seq cycle 14c	H3K4me1	ChIP-seq	14c	wt	SRR1505718	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505718.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me3 ChIP-seq cycle 8	H3K4me3	ChIP-seq	8	wt	SRR1505719	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505719.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me3 ChIP-seq cycle 12	H3K4me3	ChIP-seq	12	wt	SRR1505720	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505720.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me3 ChIP-seq cycle 14a	H3K4me3	ChIP-seq	14a	wt	SRR1505721	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505721.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me3 ChIP-seq cycle 14c	H3K4me3	ChIP-seq	14c	wt	SRR1505722	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505722.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K9ac ChIP-seq cycle 8	H3K9ac	ChIP-seq	8	wt	SRR1505723	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505723.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K9ac ChIP-seq cycle 12	H3K9ac	ChIP-seq	12	wt	SRR1505724	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505724.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K9ac ChIP-seq cycle 14a	H3K9ac	ChIP-seq	14a	wt	SRR1505725	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505725.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K9ac ChIP-seq cycle 14c	H3K9ac	ChIP-seq	14c	wt	SRR1505726	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505726.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K27me3 ChIP-seq cycle 12	H3K27me3	ChIP-seq	12	wt	SRR1505727	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505727.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K27me3 ChIP-seq cycle 14a	H3K27me3	ChIP-seq	14a	wt	SRR1505728	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505728.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K27me3 ChIP-seq cycle 14c	H3K27me3	ChIP-seq	14c	wt	SRR1505729	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505729.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K36me3 ChIP-seq cycle 12	H3K36me3	ChIP-seq	12	wt	SRR1505730	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505730.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K36me3 ChIP-seq cycle 14a	H3K36me3	ChIP-seq	14a	wt	SRR1505731	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505731.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K36me3 ChIP-seq cycle 14c	H3K36me3	ChIP-seq	14c	wt	SRR1505732	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505732.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3 ChIP-seq cycle 8	H3	ChIP-seq	8	wt	SRR1505733	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505733.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3 ChIP-seq cycle 12	H3	ChIP-seq	12	wt	SRR1505734	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505734.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3 ChIP-seq cycle 14a	H3	ChIP-seq	14a	wt	SRR1505735	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505735.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3 ChIP-seq cycle 14c	H3	ChIP-seq	14c	wt	SRR1505736	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505736.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+Zelda ChIP-seq  wt embryos	Zelda	ChIP-seq	2_4_hrs	wt	SRR1508419	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1508419.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+Zelda ChIP-seq  zelda mutant embryos	Zelda	ChIP-seq	2_4_hrs	zelda	SRR1508420	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1508420.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3 ChIP-seq  wt embryos	H3	ChIP-seq	2_4_hrs	wt	SRR1508421	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1508421.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3 ChIP-seq  zelda mutant embryos	H3	ChIP-seq	2_4_hrs	zelda	SRR1508422	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1508422.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me1 ChIP-seq  wt embryos	H3K4me1	ChIP-seq	2_4_hrs	wt	SRR1508423	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1508423.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K4me1 ChIP-seq  zelda mutant embryos	H3K4me1	ChIP-seq	2_4_hrs	zelda	SRR1508424	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1508424.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K18ac ChIP-seq  wt embryos	H3K18ac	ChIP-seq	2_4_hrs	wt	SRR1508425	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1508425.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+H3K18ac ChIP-seq  zelda mutant embryos	H3K18ac	ChIP-seq	2_4_hrs	zelda	SRR1508426	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1508426.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+Input  cycle 8 ChIP-seq samples	Input	ChIP-seq	8	wt	SRR1505737	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505737.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+Input  cycle 12 ChIP-seq samples	Input	ChIP-seq	12	wt	SRR1505738	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505738.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+Input  cycle 14a ChIP-seq samples	Input	ChIP-seq	14a	wt	SRR1505739	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505739.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+Input  cycle 14c ChIP-seq samples	Input	ChIP-seq	14c	wt	SRR1505740	./Eisen_ChIP_seq_mapped/bam_dm6/SRR1505740.dm6.bowtie2.sorted.bam	NA	NA	Rep1	Eisen Chip-Seq
+WT_15121502_NC11_03_rep1	NA	ATAC-Seq	NC11	WT	SRR3727933	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727933.dm6.bowtie2.sorted.bam	3	NA	rep1	Wieschaus ATAC-Seq
+WT_15042205_NC13_03_rep1	NA	ATAC-Seq	NC13	WT	SRR3727955	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727955.dm6.bowtie2.sorted.bam	3	NA	rep1	Wieschaus ATAC-Seq
+WT_15042302_NC12_03_rep3	NA	ATAC-Seq	NC12	WT	SRR3727944	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727944.dm6.bowtie2.sorted.bam	3	NA	rep3	Wieschaus ATAC-Seq
+WT_15042802_NC13_18_rep3	NA	ATAC-Seq	NC13	WT	SRR3727972	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727972.dm6.bowtie2.sorted.bam	18	NA	rep3	Wieschaus ATAC-Seq
+WT_15042405_NC12_06_rep3	NA	ATAC-Seq	NC12	WT	SRR3727947	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727947.dm6.bowtie2.sorted.bam	6	NA	rep3	Wieschaus ATAC-Seq
+WT_15042106_NC12_03_rep1	NA	ATAC-Seq	NC12	WT	SRR3727942	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727942.dm6.bowtie2.sorted.bam	3	NA	rep1	Wieschaus ATAC-Seq
+WT_15042804_NC13_03_rep3	NA	ATAC-Seq	NC13	WT	SRR3727957	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727957.dm6.bowtie2.sorted.bam	3	NA	rep3	Wieschaus ATAC-Seq
+WT_15121604_NC11_09_rep2	NA	ATAC-Seq	NC11	WT	SRR3727940	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727940.dm6.bowtie2.sorted.bam	9	NA	rep2	Wieschaus ATAC-Seq
+WT_15042404_NC13_18_rep2	NA	ATAC-Seq	NC13	WT	SRR3727971	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727971.dm6.bowtie2.sorted.bam	18	NA	rep2	Wieschaus ATAC-Seq
+WT_15042204_NC13_12_rep1	NA	ATAC-Seq	NC13	WT	SRR3727964	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727964.dm6.bowtie2.sorted.bam	12	NA	rep1	Wieschaus ATAC-Seq
+WT_15042303_NC12_09_rep2	NA	ATAC-Seq	NC12	WT	SRR3727949	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727949.dm6.bowtie2.sorted.bam	9	NA	rep2	Wieschaus ATAC-Seq
+WT_15042306_NC13_03_rep2	NA	ATAC-Seq	NC13	WT	SRR3727956	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727956.dm6.bowtie2.sorted.bam	3	NA	rep2	Wieschaus ATAC-Seq
+WT_15121801_NC11_06_rep3	NA	ATAC-Seq	NC11	WT	SRR3727938	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727938.dm6.bowtie2.sorted.bam	6	NA	rep3	Wieschaus ATAC-Seq
+WT_15042403_NC13_15_rep2	NA	ATAC-Seq	NC13	WT	SRR3727968	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727968.dm6.bowtie2.sorted.bam	15	NA	rep2	Wieschaus ATAC-Seq
+WT_15121602_NC11_03_rep2	NA	ATAC-Seq	NC11	WT	SRR3727934	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727934.dm6.bowtie2.sorted.bam	3	NA	rep2	Wieschaus ATAC-Seq
+WT_15042304_NC12_12_rep2	NA	ATAC-Seq	NC12	WT	SRR3727952	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727952.dm6.bowtie2.sorted.bam	12	NA	rep2	Wieschaus ATAC-Seq
+WT_15042702_NC12_12_rep3	NA	ATAC-Seq	NC12	WT	SRR3727953	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727953.dm6.bowtie2.sorted.bam	12	NA	rep3	Wieschaus ATAC-Seq
+WT_15042806_NC13_15_rep3	NA	ATAC-Seq	NC13	WT	SRR3727969	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727969.dm6.bowtie2.sorted.bam	15	NA	rep3	Wieschaus ATAC-Seq
+WT_15042104_NC12_12_rep1	NA	ATAC-Seq	NC12	WT	SRR3727951	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727951.dm6.bowtie2.sorted.bam	12	NA	rep1	Wieschaus ATAC-Seq
+WT_15121802_NC11_03_rep3	NA	ATAC-Seq	NC11	WT	SRR3727935	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727935.dm6.bowtie2.sorted.bam	3	NA	rep3	Wieschaus ATAC-Seq
+WT_15042902_NC13_12_rep3	NA	ATAC-Seq	NC13	WT	SRR3727966	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727966.dm6.bowtie2.sorted.bam	12	NA	rep3	Wieschaus ATAC-Seq
+WT_15042704_NC13_06_rep3	NA	ATAC-Seq	NC13	WT	SRR3727960	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727960.dm6.bowtie2.sorted.bam	6	NA	rep3	Wieschaus ATAC-Seq
+WT_15042305_NC13_12_rep2	NA	ATAC-Seq	NC13	WT	SRR3727965	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727965.dm6.bowtie2.sorted.bam	12	NA	rep2	Wieschaus ATAC-Seq
+WT_15042107_NC12_09_rep1	NA	ATAC-Seq	NC12	WT	SRR3727948	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727948.dm6.bowtie2.sorted.bam	9	NA	rep1	Wieschaus ATAC-Seq
+WT_15042201_NC13_18_rep1	NA	ATAC-Seq	NC13	WT	SRR3727970	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727970.dm6.bowtie2.sorted.bam	18	NA	rep1	Wieschaus ATAC-Seq
+WT_15042307_NC13_09_rep1	NA	ATAC-Seq	NC13	WT	SRR3727961	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727961.dm6.bowtie2.sorted.bam	9	NA	rep1	Wieschaus ATAC-Seq
+WT_15042701_NC12_09_rep3	NA	ATAC-Seq	NC12	WT	SRR3727950	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727950.dm6.bowtie2.sorted.bam	9	NA	rep3	Wieschaus ATAC-Seq
+WT_15042805_NC13_09_rep3	NA	ATAC-Seq	NC13	WT	SRR3727963	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727963.dm6.bowtie2.sorted.bam	9	NA	rep3	Wieschaus ATAC-Seq
+WT_15121603_NC11_06_rep2	NA	ATAC-Seq	NC11	WT	SRR3727937	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727937.dm6.bowtie2.sorted.bam	6	NA	rep2	Wieschaus ATAC-Seq
+WT_15121504_NC11_06_rep1	NA	ATAC-Seq	NC11	WT	SRR3727936	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727936.dm6.bowtie2.sorted.bam	6	NA	rep1	Wieschaus ATAC-Seq
+WT_15042803_NC12_12_rep4	NA	ATAC-Seq	NC12	WT	SRR3727954	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727954.dm6.bowtie2.sorted.bam	12	NA	rep4	Wieschaus ATAC-Seq
+WT_15121804_NC11_09_rep3	NA	ATAC-Seq	NC11	WT	SRR3727941	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727941.dm6.bowtie2.sorted.bam	9	NA	rep3	Wieschaus ATAC-Seq
+WT_15042103_NC13_06_rep1	NA	ATAC-Seq	NC13	WT	SRR3727958	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727958.dm6.bowtie2.sorted.bam	6	NA	rep1	Wieschaus ATAC-Seq
+WT_15042308_NC13_09_rep2	NA	ATAC-Seq	NC13	WT	SRR3727962	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727962.dm6.bowtie2.sorted.bam	9	NA	rep2	Wieschaus ATAC-Seq
+WT_15042206_NC13_06_rep2	NA	ATAC-Seq	NC13	WT	SRR3727959	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727959.dm6.bowtie2.sorted.bam	6	NA	rep2	Wieschaus ATAC-Seq
+WT_15121503_NC11_09_rep1	NA	ATAC-Seq	NC11	WT	SRR3727939	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727939.dm6.bowtie2.sorted.bam	9	NA	rep1	Wieschaus ATAC-Seq
+WT_15042202_NC12_03_rep2	NA	ATAC-Seq	NC12	WT	SRR3727943	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727943.dm6.bowtie2.sorted.bam	3	NA	rep2	Wieschaus ATAC-Seq
+WT_15042105_NC13_15_rep1	NA	ATAC-Seq	NC13	WT	SRR3727967	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727967.dm6.bowtie2.sorted.bam	15	NA	rep1	Wieschaus ATAC-Seq
+WT_15042102_NC12_06_rep1	NA	ATAC-Seq	NC12	WT	SRR3727945	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727945.dm6.bowtie2.sorted.bam	6	NA	rep1	Wieschaus ATAC-Seq
+WT_15042401_NC12_06_rep2	NA	ATAC-Seq	NC12	WT	SRR3727946	./Wieschaus_ATAC_seq_mapped_dm6/bam_dm6/SRR3727946.dm6.bowtie2.sorted.bam	6	NA	rep2	Wieschaus ATAC-Seq
+Toll10B_3h_1	NA	ATAC-Seq	NA	Toll10B	P13169_1001_S53	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1001_S53.dmel.bowtie2.sorted.bam	3h	NA	1	Toll ATAC-Seq
+Toll10B_3h_2	NA	ATAC-Seq	NA	Toll10B	P13169_1002_S54	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1002_S54.dmel.bowtie2.sorted.bam	3h	NA	2	Toll ATAC-Seq
+Toll10B_3h_3	NA	ATAC-Seq	NA	Toll10B	P13169_1003_S55	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1003_S55.dmel.bowtie2.sorted.bam	3h	NA	3	Toll ATAC-Seq
+Toll10B_4h_1	NA	ATAC-Seq	NA	Toll10B	P13169_1004_S56	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1004_S56.dmel.bowtie2.sorted.bam	4h	NA	1	Toll ATAC-Seq
+Toll10B_4h_2	NA	ATAC-Seq	NA	Toll10B	P13169_1005_S57	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1005_S57.dmel.bowtie2.sorted.bam	4h	NA	2	Toll ATAC-Seq
+Toll10B_4h_3	NA	ATAC-Seq	NA	Toll10B	P13169_1006_S58	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1006_S58.dmel.bowtie2.sorted.bam	4h	NA	3	Toll ATAC-Seq
+Toll10B_5h_1	NA	ATAC-Seq	NA	Toll10B	P13169_1007_S59	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1007_S59.dmel.bowtie2.sorted.bam	5h	NA	1	Toll ATAC-Seq
+Toll10B_5h_2	NA	ATAC-Seq	NA	Toll10B	P13169_1008_S60	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1008_S60.dmel.bowtie2.sorted.bam	5h	NA	2	Toll ATAC-Seq
+Toll10B_5h_3	NA	ATAC-Seq	NA	Toll10B	P13169_1009_S61	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1009_S61.dmel.bowtie2.sorted.bam	5h	NA	3	Toll ATAC-Seq
+Toll9/10_3h_1	NA	ATAC-Seq	NA	Toll9/10	P13169_1010_S62	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1010_S62.dmel.bowtie2.sorted.bam	3h	NA	1	Toll ATAC-Seq
+Toll9/10_3h_2	NA	ATAC-Seq	NA	Toll9/10	P13169_1011_S63	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1011_S63.dmel.bowtie2.sorted.bam	3h	NA	2	Toll ATAC-Seq
+Toll9/10_3h_3	NA	ATAC-Seq	NA	Toll9/10	P13169_1012_S64	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1012_S64.dmel.bowtie2.sorted.bam	3h	NA	3	Toll ATAC-Seq
+Toll9/10_4h_1	NA	ATAC-Seq	NA	Toll9/10	P13169_1013_S65	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1013_S65.dmel.bowtie2.sorted.bam	4h	NA	1	Toll ATAC-Seq
+Toll9/10_4h_2	NA	ATAC-Seq	NA	Toll9/10	P13169_1014_S66	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1014_S66.dmel.bowtie2.sorted.bam	4h	NA	2	Toll ATAC-Seq
+Toll9/10_4h_3	NA	ATAC-Seq	NA	Toll9/10	P13169_1015_S67	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1015_S67.dmel.bowtie2.sorted.bam	4h	NA	3	Toll ATAC-Seq
+Toll9/10_5h_1	NA	ATAC-Seq	NA	Toll9/10	P13169_1016_S68	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1016_S68.dmel.bowtie2.sorted.bam	5h	NA	1	Toll ATAC-Seq
+Toll9/10_5h_2	NA	ATAC-Seq	NA	Toll9/10	P13169_1017_S69	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1017_S69.dmel.bowtie2.sorted.bam	5h	NA	2	Toll ATAC-Seq
+Toll9/10_5h_3	NA	ATAC-Seq	NA	Toll9/10	P13169_1018_S70	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1018_S70.dmel.bowtie2.sorted.bam	5h	NA	3	Toll ATAC-Seq
+gd7_3h_1	NA	ATAC-Seq	NA	gd7	P13169_1019_S71	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1019_S71.dmel.bowtie2.sorted.bam	3h	NA	1	Toll ATAC-Seq
+gd7_3h_2	NA	ATAC-Seq	NA	gd7	P13169_1020_S72	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1020_S72.dmel.bowtie2.sorted.bam	3h	NA	2	Toll ATAC-Seq
+gd7_3h_3	NA	ATAC-Seq	NA	gd7	P13169_1021_S73	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1021_S73.dmel.bowtie2.sorted.bam	3h	NA	3	Toll ATAC-Seq
+gd7_4h_1	NA	ATAC-Seq	NA	gd7	P13169_1022_S74	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1022_S74.dmel.bowtie2.sorted.bam	4h	NA	1	Toll ATAC-Seq
+gd7_4h_2	NA	ATAC-Seq	NA	gd7	P13169_1023_S75	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1023_S75.dmel.bowtie2.sorted.bam	4h	NA	2	Toll ATAC-Seq
+gd7_4h_3	NA	ATAC-Seq	NA	gd7	P13169_1024_S76	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1024_S76.dmel.bowtie2.sorted.bam	4h	NA	3	Toll ATAC-Seq
+gd7_5h_1	NA	ATAC-Seq	NA	gd7	P13169_1025_S77	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1025_S77.dmel.bowtie2.sorted.bam	5h	NA	1	Toll ATAC-Seq
+gd7_5h_2	NA	ATAC-Seq	NA	gd7	P13169_1026_S78	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1026_S78.dmel.bowtie2.sorted.bam	5h	NA	2	Toll ATAC-Seq
+gd7_5h_3	NA	ATAC-Seq	NA	gd7	P13169_1027_S79	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1027_S79.dmel.bowtie2.sorted.bam	5h	NA	3	Toll ATAC-Seq
+gd7_5h_1_Fixed	NA	ATAC-Seq	NA	gd7	P13169_1028_S80	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1028_S80.dmel.bowtie2.sorted.bam	5h	NA	1	Toll ATAC-Seq
+gd7_5h_2_Fixed	NA	ATAC-Seq	NA	gd7	P13169_1029_S81	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1029_S81.dmel.bowtie2.sorted.bam	5h	NA	2	Toll ATAC-Seq
+Toll9/10_Fixed_1_5h	NA	ATAC-Seq	NA	Toll9/10	P13169_1030_S82	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1030_S82.dmel.bowtie2.sorted.bam	Fixed	NA	1	Toll ATAC-Seq
+Toll9/10_Fixed_2_5h	NA	ATAC-Seq	NA	Toll9/10	P13169_1031_S83	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1031_S83.dmel.bowtie2.sorted.bam	Fixed	NA	2	Toll ATAC-Seq
+Naive_Nc9_1_Fixed	NA	ATAC-Seq	NA	Naive	P13169_1032_S84	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1032_S84.dmel.bowtie2.sorted.bam	Nc9	NA	1	Toll ATAC-Seq
+Naive_Nc9_2_Fixed	NA	ATAC-Seq	NA	Naive	P13169_1033_S85	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1033_S85.dmel.bowtie2.sorted.bam	Nc9	NA	2	Toll ATAC-Seq
+Naive_Nc9_3_Fixed	NA	ATAC-Seq	NA	Naive	P13169_1034_S86	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1034_S86.dmel.bowtie2.sorted.bam	Nc9	NA	3	Toll ATAC-Seq
+Naive_Nc10_1_Fixed	NA	ATAC-Seq	NA	Naive	P13169_1035_S87	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1035_S87.dmel.bowtie2.sorted.bam	Nc10	NA	1	Toll ATAC-Seq
+Naive_Nc10_2_Fixed	NA	ATAC-Seq	NA	Naive	P13169_1036_S88	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1036_S88.dmel.bowtie2.sorted.bam	Nc10	NA	2	Toll ATAC-Seq
+Naive_Nc10_3_Fixed	NA	ATAC-Seq	NA	Naive	P13169_1037_S89	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1037_S89.dmel.bowtie2.sorted.bam	Nc10	NA	3	Toll ATAC-Seq
+Naive_Nc11_1_Fixed	NA	ATAC-Seq	NA	Naive	P13169_1038_S90	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1038_S90.dmel.bowtie2.sorted.bam	Nc11	NA	1	Toll ATAC-Seq
+Naive_Nc11_2_Fixed	NA	ATAC-Seq	NA	Naive	P13169_1039_S91	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1039_S91.dmel.bowtie2.sorted.bam	Nc11	NA	2	Toll ATAC-Seq
+gd7_5h_1_spiked-in	NA	ATAC-Seq	NA	gd7	P13169_1040_S92	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1040_S92.dmel.bowtie2.sorted.bam	5h	NA	1	Toll ATAC-Seq
+gd7_5h_2_spiked-in	NA	ATAC-Seq	NA	gd7	P13169_1041_S93	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1041_S93.dmel.bowtie2.sorted.bam	5h	NA	2	Toll ATAC-Seq
+Toll9/10_5h_1_spiked-in	NA	ATAC-Seq	NA	Toll9/10	P13169_1042_S94	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1042_S94.dmel.bowtie2.sorted.bam	5h	NA	1	Toll ATAC-Seq
+Toll9/10_5h_2_spiked-in	NA	ATAC-Seq	NA	Toll9/10	P13169_1043_S95	./ATAC_seq_mapped_dm6/bam_dmel/P13169_1043_S95.dmel.bowtie2.sorted.bam	5h	NA	2	Toll ATAC-Seq
+Toll10b_K27ac_2_R1	K27ac	ChIP-seq	NA	Toll10b	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27ac_2_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	2	Toll ChIP-Seq
+Toll910_H3_2_R1	H3	ChIP-seq	NA	Toll910	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_H3_2_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	2	Toll ChIP-Seq
+Toll910_K27ac_2_R1	K27ac	ChIP-seq	NA	Toll910	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27ac_2_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	2	Toll ChIP-Seq
+gd7_K27me3_1_R1	K27me3	ChIP-seq	NA	gd7	SRR	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27me3_1_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	1	Toll ChIP-Seq
+Toll910_K27me3_1_R1	K27me3	ChIP-seq	NA	Toll910	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27me3_1_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	1	Toll ChIP-Seq
+Toll10b_K27me3_1_R1	K27me3	ChIP-seq	NA	Toll10b	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27me3_1_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	1	Toll ChIP-Seq
+Toll910_H3_1_R1	H3	ChIP-seq	NA	Toll910	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_H3_1_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	1	Toll ChIP-Seq
+Toll10b_K27ac_1_R1	K27ac	ChIP-seq	NA	Toll10b	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27ac_1_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	1	Toll ChIP-Seq
+Toll910_K27me3_2_R1	K27me3	ChIP-seq	NA	Toll910	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27me3_2_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	2	Toll ChIP-Seq
+Toll910_Input_2_R1	Input	ChIP-seq	NA	Toll910	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_Input_2_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	2	Toll ChIP-Seq
+gd7_K27ac_2_R1	K27ac	ChIP-seq	NA	gd7	SRR	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27ac_2_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	2	Toll ChIP-Seq
+gd7_K27me3_2_R1	K27me3	ChIP-seq	NA	gd7	SRR	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27me3_2_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	2	Toll ChIP-Seq
+Toll910_Input_1_R1	Input	ChIP-seq	NA	Toll910	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_Input_1_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	1	Toll ChIP-Seq
+gd7_K27ac_1_R1	K27ac	ChIP-seq	NA	gd7	SRR	./ChIP_seq_mapped_dm6/bam_dmel/gd7_K27ac_1_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	1	Toll ChIP-Seq
+Toll910_K27ac_1_R1	K27ac	ChIP-seq	NA	Toll910	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll910_K27ac_1_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	1	Toll ChIP-Seq
+Toll10b_K27me3_2_R1	K27me3	ChIP-seq	NA	Toll10b	SRR	./ChIP_seq_mapped_dm6/bam_dmel/Toll10b_K27me3_2_R1.dmel.bowtie2.sorted.bam	2_4_hrs	NA	2	Toll ChIP-Seq
+gd7_WCE_rep4	WCE	ChIP-seq	NA	gd7	SRR	./Zetlinger_ChIP-mapped/bam_dm6/gd7_WCE_rep4.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep4	Toll ChIP-Seq
+Tol10b_H3K4me1_rep2	H3K4me1	ChIP-seq	NA	Tol10b	SRR	./Zetlinger_ChIP-mapped/bam_dm6/Tol10b_H3K4me1_rep2.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep2	Toll ChIP-Seq
+gd7_zld_rep1	zld	ChIP-seq	NA	gd7	SRR	./Zetlinger_ChIP-mapped/bam_dm6/gd7_zld_rep1.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep1	Toll ChIP-Seq
+gd7_zld_rep2	zld	ChIP-seq	NA	gd7	SRR	./Zetlinger_ChIP-mapped/bam_dm6/gd7_zld_rep2.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep2	Toll ChIP-Seq
+Tol10b_H3K4me1_rep1	H3K4me1	ChIP-seq	NA	Tol10b	SRR	./Zetlinger_ChIP-mapped/bam_dm6/Tol10b_H3K4me1_rep1.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep1	Toll ChIP-Seq
+Toll10b_WCE_rep5	WCE	ChIP-seq	NA	Toll10b	SRR	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_WCE_rep5.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep5	Toll ChIP-Seq
+Toll10b_WCE_rep3	WCE	ChIP-seq	NA	Toll10b	SRR	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_WCE_rep3.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep3	Toll ChIP-Seq
+gd7_H3K4me1_rep1	H3K4me1	ChIP-seq	NA	gd7	SRR	./Zetlinger_ChIP-mapped/bam_dm6/gd7_H3K4me1_rep1.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep1	Toll ChIP-Seq
+gd7_WCE_rep2	WCE	ChIP-seq	NA	gd7	SRR	./Zetlinger_ChIP-mapped/bam_dm6/gd7_WCE_rep2.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep2	Toll ChIP-Seq
+Toll10b_zld_rep1	zld	ChIP-seq	NA	Toll10b	SRR	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_zld_rep1.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep1	Toll ChIP-Seq
+Tol10b_WCE_rep4	WCE	ChIP-seq	NA	Tol10b	SRR	./Zetlinger_ChIP-mapped/bam_dm6/Tol10b_WCE_rep4.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep4	Toll ChIP-Seq
+Toll10b_WCE_rep2	WCE	ChIP-seq	NA	Toll10b	SRR	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_WCE_rep2.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep2	Toll ChIP-Seq
+Toll10b_zld_rep2	zld	ChIP-seq	NA	Toll10b	SRR	./Zetlinger_ChIP-mapped/bam_dm6/Toll10b_zld_rep2.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep2	Toll ChIP-Seq
+gd7_WCE_rep1	WCE	ChIP-seq	NA	gd7	SRR	./Zetlinger_ChIP-mapped/bam_dm6/gd7_WCE_rep1.dm6.bowtie2.sorted.bam	2_4_hrs	NA	rep1	Toll ChIP-Seq
