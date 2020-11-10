@@ -1,0 +1,7 @@
+sampleInfo	sampleID	Genotype	Replicate	Input
+toll10B_R1_CBP_S11	Toll10b_R1_CBP	Toll10b	R1	CBP
+toll910_R1_CBP_S9	Toll9_R1_CBP	Toll9	R1	CBP
+gd7_R2_CBP_S8	Gd7_R2_CBP	Gd7	R2	CBP
+gd7_R1_CBP_S7	Gd7_R1_CBP	Gd7	R1	CBP
+toll910_R2_CBP_S10	Toll9_R2_CBP	Toll9	R2	CBP
+toll10B_R2_CBP_S12	Toll10b_R2_CBP	Toll10b	R2	CBP
