@@ -9,6 +9,7 @@ params:
     Rscriptsdir: ~/Applied_Bioinformatics_Group_4/script/original_method
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     workingdir: ~/Applied_Bioinformatics_Group_4/results/original_method
 <<<<<<< HEAD
     proSeqDir: /Applied_Bioinformatics_Group_4/results/original_method/PRO-seq
@@ -20,10 +21,14 @@ params:
 =======
     workingdir: ~/Applied_Bioinformatics_Group_4/results_Jenny
 >>>>>>> parent of fbec2ee... Changed directories to new organization of data. Also knitted into html doc
+=======
+    workingdir: ~/Applied_Bioinformatics_Group_4/results_Jenny
+>>>>>>> parent of fbec2ee... Changed directories to new organization of data. Also knitted into html doc
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 #install.packages("kableExtra")
@@ -36,6 +41,10 @@ if (!require("RColorBrewer")) {install.packages("RColorBrewer")}
 >>>>>>> parent of fbec2ee... Changed directories to new organization of data. Also knitted into html doc
 =======
 >>>>>>> parent of d160bd8... Changed scripts
+=======
+install.packages("kableExtra")
+if (!require("RColorBrewer")) {install.packages("RColorBrewer")}
+>>>>>>> parent of fbec2ee... Changed directories to new organization of data. Also knitted into html doc
 =======
 install.packages("kableExtra")
 if (!require("RColorBrewer")) {install.packages("RColorBrewer")}
