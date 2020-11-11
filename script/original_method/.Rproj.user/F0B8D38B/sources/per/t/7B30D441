@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1605092439720.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2482699795",
+    "id" : "7B30D441",
+    "lastKnownWriteTime" : 1605019418,
+    "last_content_update" : 1605019418,
+    "path" : "~/Applied_Bioinformatics_Group_4/data_johan/Rscripts/cleaned/ATAC-CBP_seq_analysis_FIRST.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "45,7",
+        "scrollLine" : "40"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

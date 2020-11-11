@@ -17,6 +17,7 @@ params:
 knitr::opts_chunk$set(echo = TRUE)
 #BiocManager::install("DESeq2")
 #install.packages("RColorBrewer")
+source(paste(params$workingDir, params$RscriptsDir,"ExpressionAnalysisFunctions.r", sep = "/"))
 library(DESeq2)
 library(dplyr)
 library(tidyr)
@@ -24,7 +25,7 @@ library(knitr)
 library(kableExtra)
 library(gplots)
 library("viridis")
-source(paste(params$workingDir, params$RscriptsDir,"ExpressionAnalysisFunctions.r", sep = "/"))
+
 ```
 
 # PROseq data analysis
@@ -124,35 +125,25 @@ sampleInfo.QC %>%
 
 
 ```{r differential gene expression analysis, include=FALSE}
-
-
 exp.data = countData.QC
 metaInfo = sampleInfo.QC
-
-
 metaInfo$mutant = as.factor(metaInfo$mutant)
 metaInfo$time = as.factor(metaInfo$time)
-
 dds <- DESeqDataSetFromMatrix(countData = exp.data,
                               colData = metaInfo,
                               design = ~time + mutant )
 
-
 #Remove rows with low counts and normalise samples for visualisation
 dds <- dds[ rowSums(counts(dds)) > 100, ]
-
 dim(dds)
 #Normalizing and change to 2 fold log changes.
 rld <- rlog(dds)
 
 normExpression = as.data.frame(assay(rld))
 head(normExpression)
-
 normExpression$geneID = rownames(normExpression)
 normExpressionDF  = normExpression %>% gather( key = sampleName, value = rlog, -geneID)
-
 normExpressionDF = inner_join(normExpressionDF, sampleInfo.QC)
-
 
 ggplot(normExpressionDF, aes(x = rlog, color = sampleName, linetype = time)) + geom_density()
 
@@ -161,20 +152,16 @@ geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
   dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) )
 geneInfo.QC2 = geneInfo %>% filter(overQC > 2)
 normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)
-
 ggplot(normExpressionDF.QC, aes(x = rlog, color = mutant, linetype = time)) + geom_density()
-
-
 normExpression.QC = normExpressionDF.QC %>%
   dplyr::select(geneID, sampleName, rlog) %>%
   spread(key = sampleName, value = rlog)
-
-
 rownames(normExpression.QC) = normExpression.QC$geneID
 normExpression.QC = normExpression.QC[, -1]
 ```
 
 ### Visualising the data
+
 ```{r heatmap of samples}
 
 plotSample2SampleDistance(normExpression.QC)
@@ -207,8 +194,6 @@ qplot(PC, Variance, data=e.var, geom = c("point")
 pctable = as.data.frame(mir.pca$x)[, 1:6]
 pctable$sampleName = rownames(pctable)
 pctable = inner_join(pctable, metaInfo)
-
-
 test  = plotPCAplot(PCAinfo = pctable, n.comp = 5,
                     varianceInfo = e.var,
                     colorComponent = "mutant",
@@ -216,11 +201,7 @@ test  = plotPCAplot(PCAinfo = pctable, n.comp = 5,
 )
 test
 #ggsave("PCA_analysis.pdf")
-
-
 loadings = mir.pca$rotation[,1:3]
-
-
 mean = pctable %>% dplyr::select(PC1,PC2,PC3,mutant) %>%
   dplyr::group_by(mutant) %>%
   dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2), PC3 = mean(PC3) )
@@ -229,9 +210,7 @@ meantime = pctable %>% dplyr::select(PC1,PC2,PC3,time) %>%
   dplyr::group_by(time) %>%
   dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2), PC3 = mean(PC3) )
 
-
 origo = data.frame(PC1=0, PC2 = 0, PC3 = 0)
-
 
 line.gd7 = rbind(mean[1,2:4],origo,-mean[1,2:4])
 line.gd7$factor = "Gd7"
@@ -242,16 +221,12 @@ line.toll9$factor = "Toll9"
 line.time = rbind(meantime[2,2:4],origo,meantime[1,2:4])
 line.time$factor = "Time"
 
-
 line = rbind(line.gd7,line.toll10b,line.toll9,line.time)
-
 
 pctable$factor  = pctable$mutant
 pctable$factor =  recode(pctable$factor, gd7 = "Gd7")
 pctable$factor =  recode(pctable$factor, toll9 = "Toll9")
 pctable$factor =  recode(pctable$factor, toll10b = "Toll10b")
-
-
 ```
 
 
