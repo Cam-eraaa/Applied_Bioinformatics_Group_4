@@ -1,0 +1,3 @@
+"0","# Logaritmize the counts"
+"0","geneExpression = log(rowSums(countData))"
+"0","hist(geneExpression)"

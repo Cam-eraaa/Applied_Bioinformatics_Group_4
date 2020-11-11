@@ -3,6 +3,7 @@
 "0","FCdata = read.table(file = featureCountFile, header = TRUE, "
 "0","                     sep = ""\t"", quote = """",  "
 "0","                     stringsAsFactors = FALSE)"
+"0",""
 "0","# Creating matrix with geneID(1) and gene length(2)"
 "0","geneInfo  = FCdata [,1:6]"
 "0","geneInfo  = geneInfo[,c(1,6)]"

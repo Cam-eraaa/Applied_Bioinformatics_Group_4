@@ -1,7 +1,0 @@
-"0",""
-"0","geneInfo$logExpression  =log(rowSums(countData))"
-"0",""
-"0","geneInfo.QC = geneInfo %>% filter(logExpression > 1) "
-"0","countData.QC =  countData[geneInfo.QC$Geneid,]"
-"0",""
-"0",""

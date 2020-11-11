@@ -1,0 +1,8 @@
+"0",""
+"0","knownGenes = read.table(file = paste(params$workingDir, params$informationDir,""FlyBase_IDs.txt"", sep = ""/""),"
+"0","                        sep = ""\t"", header = F, quote = """", stringsAsFactors = F)"
+"0","colnames(knownGenes) = c(""Submitted ID"", ""Current ID"",""Converted ID"",""Related record"")"
+"0",""
+"0",""
+"0","geneInfo.QC$knownGene = ""No"""
+"0","geneInfo.QC$knownGene[geneInfo.QC$Geneid %in% knownGenes$`Current ID`] = ""Yes"""

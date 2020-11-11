@@ -1,4 +1,0 @@
-"0",""
-"0","geneExpression = log(rowSums(countData))"
-"0",""
-"0","hist(geneExpression)"
