@@ -5,15 +5,15 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "2482699795",
+    "hash" : "0",
     "id" : "7B30D441",
     "lastKnownWriteTime" : 1605019418,
     "last_content_update" : 1605019418,
     "path" : "~/Applied_Bioinformatics_Group_4/data_johan/Rscripts/cleaned/ATAC-CBP_seq_analysis_FIRST.Rmd",
     "project_path" : null,
     "properties" : {
-        "cursorPosition" : "45,7",
-        "scrollLine" : "40"
+        "cursorPosition" : "67,72",
+        "scrollLine" : "57"
     },
     "read_only" : false,
     "read_only_alternatives" : [

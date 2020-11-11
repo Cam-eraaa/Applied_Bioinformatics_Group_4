@@ -14,7 +14,6 @@ params:
     count_ATAC: ATAC.CBP.peak.featureCount.count.tab.txt
     count_ATAC_QC: ATAC.CBP.peak.featureCount.count.QC.tab.txt
     normalisedATACpeakData: ATAC.CBP.peak.featureCount.rlog.tab.txt
-    gtffile: data_johan/annotations/Drosophila_melanogaster.BDGP6.28.99.PROseq.gtf
     Method: ATAC-Seq
 ---
 
@@ -280,7 +279,7 @@ peakInfo_QC = peakInfo %>%
   dplyr::rename(geneID = Geneid) %>% 
   inner_join( geneInfo.QC2)
 
-peakTableFile = paste(params$workingDir, params$dataDir,"ATAC.CBP.peaks.QC.tab.txt", sep = "/")
+peakTableFile = paste(params$workingDir, params$resultsDir,"ATAC.CBP.peaks.QC.tab.txt", sep = "/")
 
 
 write.table(x = peakInfo_QC, 
@@ -294,7 +293,7 @@ write.table(x = peakInfo_QC,
 
 
 
-count_ATAC_QC_File = paste(params$workingDir, params$dataDir,
+count_ATAC_QC_File = paste(params$workingDir, params$resultsDir,
                          paste(params$count_ATAC_QC, sep = "."), sep = "/")
 
 
@@ -317,7 +316,7 @@ write.table(x = countData.QC,
 
 
 ## Saving normalised count file
-NormalisedCountFile = paste(params$workingDir, params$dataDir,
+NormalisedCountFile = paste(params$workingDir, params$r,
                          paste(params$normalisedATACpeakData, sep = "."), sep = "/")
 
 normExpression.QC = normExpression[peakInfo_QC$geneID,
