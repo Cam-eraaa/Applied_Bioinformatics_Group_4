@@ -15,9 +15,15 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+# Install required packages
 #BiocManager::install("DESeq2")
 #install.packages("RColorBrewer")
+
+# Include the functions from the expression analysis script
 source(paste(params$workingDir, params$RscriptsDir,"ExpressionAnalysisFunctions.r", sep = "/"))
+
+# Load the installed packages
 library(DESeq2)
 library(dplyr)
 library(tidyr)
