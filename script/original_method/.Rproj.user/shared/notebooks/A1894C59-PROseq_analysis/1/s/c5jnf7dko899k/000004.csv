@@ -1,5 +1,0 @@
-"0",""
-"0","plotSample2SampleDistance(normExpression.QC)"
-"2","Error in h(simpleError(msg, call)) : 
-  error in evaluating the argument 'x' in selecting a method for function 'rev': could not find function ""brewer.pal""
-"

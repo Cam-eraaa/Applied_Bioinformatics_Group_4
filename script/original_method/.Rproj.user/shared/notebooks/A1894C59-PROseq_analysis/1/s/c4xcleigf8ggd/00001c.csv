@@ -1,8 +1,0 @@
-"0",""
-"0","normExpression$geneID = rownames(normExpression)"
-"0","normExpressionDF  = normExpression %>% gather( key = sampleName, value = rlog, -geneID)"
-"0",""
-"0","normExpressionDF = inner_join(normExpressionDF, sampleInfo.QC)"
-"2","Joining, by = ""sampleName""
-"
-"0","ggplot(normExpressionDF, aes(x = rlog, color = sampleName, linetype = time)) + geom_density()"
