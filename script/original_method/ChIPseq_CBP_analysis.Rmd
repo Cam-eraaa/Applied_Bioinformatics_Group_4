@@ -47,8 +47,7 @@ library(edgeR)
 ### Using feature count to get the difference between the samples
 ```{r Adding the first analysis of the data ,message=FALSE ,warning = FALSE}
 
-featureCountFile = paste(params$workingDir, params$dataDir,
-                         params$chipSeqData, sep = "/")
+featureCountFile = paste(params$workingDir, params$dataDir, params$chipSeqData, sep = "/")
 
 FCdata = read.table(file = featureCountFile, header = TRUE, sep = "\t", quote = "", stringsAsFactors = FALSE)
 
