@@ -86,7 +86,7 @@ Remove all genes that is not expressed in any sample and start adding known info
 # Logaritmize the counts
 geneExpression = log(rowSums(countData))
 hist(geneExpression)
-geneInfo$logExpression  =log(rowSums(countData))
+geneInfo$logExpression = log(rowSums(countData))
 
 # Filter out all genes with no expression(counts = 0 --> log(count)=1)
 geneInfo.QC = geneInfo %>% filter(logExpression > 1)
