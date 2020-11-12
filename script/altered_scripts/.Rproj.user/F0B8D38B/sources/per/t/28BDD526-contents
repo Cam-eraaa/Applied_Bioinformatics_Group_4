@@ -1,0 +1,611 @@
+---
+title: "Joint peak analysis analysis"
+author: "Johan"
+date: "10/25/2019"
+output: html_document
+
+params:
+  workingDir: /Users/johanreimegard/git/flyEmbryogenesis
+  proSeqDir: results/PROseq
+  proSeq.data: PROseq.data.tsv
+  proSeq.data.PPC: PROseq.data.PPC.tsv
+  ATACSeqDir: results/ATACseq
+  ATACSeq.data: ATACseq.data.raw.tsv
+  chipSeqDir: results/chipSeq
+  k27ac.data: K27ac.ChIPseq.peak.pattern.raw.tsv
+  CBP.data: ATAC-CBP_dm6.ChIPseq.peak.pattern.raw.tsv
+  RfunctionsDirectory: /Users/johanreimegard/GoogleDrive/git/RNAmappingPipeline/R
+  GD7enhancer: data/ChIPseq/h3k27ac_gd7_csaw_intersect.bed
+  Toll10benhancer: data/ChIPseq/h3k27ac_Toll10B_csaw_intersect.bed
+  Toll9enhancer: data/ChIPseq/h3k27ac_Tollrm910_csaw_intersect.bed
+  
+  
+---
+
+
+## Annotation
+
+```{r setup, include=FALSE}
+
+#source(paste(params$RfunctionsDirectory,"ExpressionAnalysisFunctions.R",sep = "/"))
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+library(gplots)
+
+#install.packages("kableExtra")
+library(kableExtra)
+library("viridis")     
+
+```
+
+
+### GTF file
+
+```{r  add  transcript to gene Information}
+
+# Load in the fastq file that is generated as data from running multiqc on all samples. 
+gtfFile = paste(params$workingDir, "annotations/Drosophila_melanogaster.BDGP6.28.99.gtf", sep = "/")
+gtfInfo = read.table(file = gtfFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
+
+
+gtfInfoGene = gtfInfo %>% dplyr::filter(V3 == "gene") 
+gtfInfoGene = gtfInfoGene[grep(pattern = "gene_biotype \"protein_coding\"",x = gtfInfoGene$V9 ),  ] 
+
+gtfInfoGene= gtfInfoGene %>% separate(col = V9,sep = ";",into =  c("geneID1", "geneName1"))
+gtfInfoGene= gtfInfoGene %>% separate(col = geneID1,sep = "\"",into =  c("irrelevant", "geneID"))
+gtfInfoGene= gtfInfoGene %>% separate(col = geneName1,sep = "\"",into =  c("irrelevant1", "geneName"))
+
+gtfInfoAnnotation = gtfInfoGene  %>% dplyr::select(V1,V4,V5,V7,geneID,geneName) 
+
+PROseqGenes = gtfInfoAnnotation %>% dplyr::rename("Chr"= V1, "GeneStart" = V4,"GeneStop" = V5,"geneDir" = V7)
+PROseqGenes$Chr = paste ("chr",PROseqGenes$Chr, sep ="")
+
+
+
+gtfInfomRNA = gtfInfo %>% dplyr::filter(V3 == "transcript") 
+gtfInfomRNA = gtfInfomRNA[grep(pattern = "gene_biotype \"protein_coding\"",x = gtfInfomRNA$V9 ),  ] 
+
+gtfInfomRNA_DF= gtfInfomRNA %>% separate(col = V9,sep = ";",into =  c("geneID1", "transcriptID1"))
+gtfInfomRNA_DF= gtfInfomRNA_DF %>% separate(col = geneID1,sep = "\"",into =  c("irrelevant", "geneID"))
+gtfInfomRNA_DF= gtfInfomRNA_DF %>% separate(col = transcriptID1,sep = "\"",into =  c("irrelevant1", "transcriptID"))
+
+gene2transcriptInfo  = gtfInfomRNA_DF %>% dplyr::select(geneID,transcriptID)
+
+
+
+```
+
+
+### Enhancers
+
+```{r  add  transcript to gene Information}
+
+# Load in the fastq file that is generated as data from running multiqc on all samples. 
+GD7enhancersFile = paste(params$workingDir, params$GD7enhancer, sep = "/")
+GD7enhancers = read.table(file = GD7enhancersFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
+GD7enhancers = GD7enhancers[,1:3]
+colnames(GD7enhancers) = c("Chr","Start","End")
+GD7enhancers$Genotype = "Gd7"
+
+Toll10benhancersFile = paste(params$workingDir, params$Toll10benhancer, sep = "/")
+Toll10benhancers = read.table(file = Toll10benhancersFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
+Toll10benhancers = Toll10benhancers[,1:3]
+colnames(Toll10benhancers) = c("Chr","Start","End")
+Toll10benhancers$Genotype = "Toll10b"
+
+
+Toll9enhancersFile = paste(params$workingDir, params$Toll9enhancer, sep = "/")
+Toll9enhancers = read.table(file = Toll9enhancersFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
+Toll9enhancers = Toll9enhancers[,1:3]
+colnames(Toll9enhancers) = c("Chr","Start","End")
+Toll9enhancers$Genotype = "Toll9"
+
+Enhancers = rbind(GD7enhancers,Toll10benhancers,Toll9enhancers)
+Enhancers$Strand = "."
+Enhancers$Chr = paste("chr",Enhancers$Chr, sep = "")
+
+
+
+
+EnhancersPeakData = makeGRangesFromDataFrame(Enhancers,
+                                      seqnames.field = "Chr", 
+                                      start.field = "Start", 
+                                      end.field = "End", 
+                                      strand.field = "Strand")
+EnhancersPeakData
+
+
+```
+
+
+
+## PRO seq
+
+
+### CDS values
+```{r PROseq  CDS info}
+
+
+
+PROseqInfo = read.table( file = paste( params$workingDir, params$proSeqDir, params$proSeq.data,
+                          sep = "/"),
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+PROseqInfo %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2,PC1,PC2,PC3) %>% distinct()  %>%  filter( factor != "Time") %>% ggplot(mapping = aes(x = PC2, y = PC3, color = factor, shape = direction )) + geom_point() 
+
+
+annotation2 =  PROseqInfo %>% filter(factor %in% c("Toll10b","Toll9","Gd7") & annotation2 == "DE") %>%
+  dplyr::select(geneID, annotation, distance, factor, direction ) %>%
+  distinct()
+
+
+PROseqData = PROseqInfo %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2, Gd7,Toll10b,Toll9) %>% distinct()
+
+PROseqData.PI = PROseqInfo %>% group_by(geneID) %>% summarise(PI = max(PI))
+colnames(PROseqData)[6] = paste("PROseq", colnames(PROseqData)[6], sep = "_")
+colnames(PROseqData)[7] = paste("PROseq", colnames(PROseqData)[7], sep = "_")
+colnames(PROseqData)[8] = paste("PROseq", colnames(PROseqData)[8], sep = "_")
+colnames(PROseqData)[9] = paste("PROseq", colnames(PROseqData)[9], sep = "_")
+
+
+
+PROseqData.DE  = PROseqData %>% filter(PROseq_annotation2 == "DE" & PROseq_factor != "Time") 
+
+PROseqData.DE = inner_join(PROseqData.DE, PROseqData.PI)
+PROseqData.DE = PROseqData.DE %>% mutate(Chr = paste("chr",Chr, sep = ""))
+
+rownames(PROseqData.DE) = PROseqData.DE$geneID
+
+PROseqPeak = makeGRangesFromDataFrame(PROseqData.DE,
+                                       seqnames.field = "Chr", 
+                                      start.field = "Start", 
+                                      end.field = "End", 
+                                      strand.field = "Strand")
+
+
+PROseqInfo %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2,PC1,PC2,PC3) %>% distinct()  %>%  filter( factor != "Time") %>% ggplot(mapping = aes(x = PC2, y = PC3, color = factor, shape = direction )) + geom_point() 
+
+# ChIPseq analysisdi
+```
+
+
+### PPC values
+
+```{r  PROseq  PPS info}
+
+
+
+PROseqInfo.PPC = read.table( file = paste( params$workingDir, params$proSeqDir, params$proSeq.data.PPC,
+                          sep = "/"),
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+
+PROseqData.DE.PPC = left_join(PROseqData.DE, PROseqInfo.PPC)
+
+
+# ChIPseq analysisdi
+```
+
+
+
+## ATAC seq
+
+```{r ATACseq annotation}
+
+
+
+ATACseqInfo = read.table( file = paste( params$workingDir, params$ATACSeqDir, params$ATACSeq.data,
+                          sep = "/"),
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+
+rownames(ATACseqInfo) = ATACseqInfo$Geneid
+ATACseqInfo = ATACseqInfo %>% dplyr::rename("ATAC_Start" = Start, "ATAC_End" = End ,
+                                    "ATAC_factor" = factor, "ATAC_direction" = direction,
+                                    )
+
+ATACpeakInfo = ATACseqInfo %>% dplyr::select(Geneid,Chr, ATAC_Start, ATAC_End,Strand)
+
+ATACPeakData = makeGRangesFromDataFrame(ATACpeakInfo,
+                                      seqnames.field = "Chr", 
+                                      start.field = "ATAC_Start", 
+                                      end.field = "ATAC_End", 
+                                      strand.field = "Strand")
+
+
+
+
+overlap = findOverlaps(EnhancersPeakData,ATACPeakData, maxgap = 0)
+overlap2 = data.frame(overlap)
+ATACseqInfo$Enhancer = "No"
+ATACseqInfo$Enhancer[overlap2$subjectHits] = "Yes"
+
+ATACseqInfoDF = ATACseqInfo %>% dplyr::select(-Time) %>%  gather(key = factor, value = ATACscore, Gd7, Toll10b, Toll9) 
+
+ATACseqInfoDFplot = ATACseqInfoDF %>%
+  filter(factor == ATAC_factor)%>% 
+  ggplot( aes(x = abs(ATACscore), color = Enhancer ) ) + stat_ecdf()+ ggtitle("ATACseq  on ATAC peaks")
+
+
+
+# ChIPseq analysisdi
+```
+
+## CHiPseq
+
+### K27ac seq
+
+
+
+```{r K27ac annotation}
+
+
+
+
+
+K27acInfo =  read.table( file = paste( params$workingDir, params$chipSeqDir,
+                                        params$k27ac.data,
+                          sep = "/"),
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+
+
+K27acInfo = K27acInfo %>% dplyr::rename("K27ac_Geneid" = Geneid, "K27ac_Start" = Start, "K27ac_End" = End ,
+                                    "K27ac_factor" = factor, "K27ac_direction" = direction)
+
+
+K27acPeakData = makeGRangesFromDataFrame(K27acInfo,
+                                      seqnames.field = "Chr", 
+                                      start.field = "K27ac_Start", 
+                                      end.field = "K27ac_End", 
+                                      strand.field = "Strand")
+
+
+overlap = findOverlaps(EnhancersPeakData,K27acPeakData, maxgap = 0)
+overlap2 = data.frame(overlap)
+K27acInfo$Enhancer = "No"
+K27acInfo$Enhancer[overlap2$subjectHits] = "Yes"
+
+K27acInfoDF <- K27acInfo%>% gather(key = factor, value = K27acScore, Gd7, Toll10b, Toll9)
+  
+K27acPlot =  K27acInfoDF %>%filter(factor == K27ac_factor) %>% 
+ ggplot( aes(x = abs(K27acScore), color = Enhancer ) ) +  stat_ecdf()+ ggtitle("K27ac ChIPseq on K27ac peaks")
+
+
+  
+
+
+```
+
+
+### CBP seq
+
+```{r CBP peak analysis }
+
+
+CBPInfo =  read.table( file = paste( params$workingDir, params$chipSeqDir,
+                                        params$CBP.data,
+                          sep = "/"),
+                         quote = "", sep = "\t", 
+                         header = TRUE, stringsAsFactors = F) 
+
+
+
+CBPInfo = CBPInfo %>% dplyr::rename("CBP_Start" = Start, "CBP_End" = End,
+                                    "CBP_factor" = factor, "CBP_direction" = direction)
+
+
+CBPPeakData = makeGRangesFromDataFrame(CBPInfo,
+                                      seqnames.field = "Chr", 
+                                      start.field = "CBP_Start", 
+                                      end.field = "CBP_End", 
+                                      strand.field = "Strand")
+
+
+overlap = findOverlaps(EnhancersPeakData,CBPPeakData, maxgap = 0)
+overlap2 = data.frame(overlap)
+CBPInfo$Enhancer = "No"
+CBPInfo$Enhancer[overlap2$subjectHits] = "Yes"
+
+
+CBPInfoDF = CBPInfo%>% gather(key = factor, value = CBP_score, Gd7, Toll10b, Toll9) 
+
+
+CBPplot = CBPInfoDF %>%
+  filter(factor == CBP_factor) %>% 
+ggplot( aes(x = abs(CBP_score), color = Enhancer ) ) + stat_ecdf()+ ggtitle("CBP ChIPseq on ATAC peaks")
+
+CBPplot
+
+
+
+
+```
+
+
+
+## Merge the  peaks
+
+
+
+###overlap Between the different peaks 
+```{r }
+ATACpeakRanges =   makeGRangesFromDataFrame(ATACpeakInfo ,
+                                      seqnames.field = "Chr", 
+                                      start.field = "ATAC_Start", 
+                                      end.field = "ATAC_End", 
+                                      strand.field = "Strand")
+K27acPeakRanges = K27acPeakData
+
+EnhancerPeakRanges = EnhancersPeakData
+
+
+overlap_ATAC_K27ac = data.frame(findOverlaps(ATACpeakRanges,K27acPeakRanges, maxgap = 500))
+ATAC_overlap_K27ac = ATACpeakRanges[unique(overlap_ATAC_K27ac$queryHits)]
+k27ac_overlap_ATAC = K27acPeakRanges[unique(overlap_ATAC_K27ac$subjectHits)]
+
+overlap_ATAC_Enhancer = data.frame(findOverlaps(ATACpeakRanges,EnhancerPeakRanges, maxgap = 0))
+ATAC_overlap_Enhancers = ATACpeakRanges[unique(overlap_ATAC_Enhancer$queryHits)]
+Enhancers_overlap_ATAC = EnhancerPeakRanges[unique(overlap_ATAC_Enhancer$subjectHits)]
+
+
+
+overlap_K27ac_Enhancer = data.frame(findOverlaps(K27acPeakRanges,EnhancerPeakRanges, maxgap = 500))
+K27ac_overlap_Enhancers = K27acPeakRanges[unique(overlap_K27ac_Enhancer$queryHits)]
+Enhancers_overlap_K27ac = EnhancerPeakRanges[unique(overlap_K27ac_Enhancer$subjectHits)]
+
+
+NrOfEnhancers = length(EnhancerPeakRanges)
+NrOfEnhancers_k27ac = length(Enhancers_overlap_K27ac)
+NrOfEnhancers_ATAC = length(Enhancers_overlap_ATAC)
+
+nrOfATAC = length(ATACpeakRanges)
+nrOfATAC_k27ac = length(ATAC_overlap_K27ac)
+nrOfATAC_Enhancers = length(ATAC_overlap_Enhancers)
+
+
+NrOfEnhancers
+NrOfEnhancers_k27ac
+NrOfEnhancers_ATAC
+
+nrOfATAC
+nrOfATAC_k27ac
+nrOfATAC_Enhancers
+
+```
+### Merge the ATAC and the CBP
+
+```{r add the peaks}
+
+
+ATAC = ATACseqInfoDF %>% dplyr::select(Geneid,factor, ATACscore)  
+CBP = CBPInfoDF %>% dplyr::select(Geneid,factor,CBP_score)
+
+ATAC_CBP = inner_join(ATAC, CBP) %>% group_by(Geneid,factor)%>% summarise(ATAC_CBP_score = abs(ATACscore + CBP_score),
+                                                                           ATACscore = ATACscore,
+                                                                           CBPscore = CBP_score)
+
+
+
+ATAC_CBP.max = ATAC_CBP %>% group_by(Geneid) %>% summarise(ATAC_CBP_score = max(abs(ATAC_CBP_score)))
+
+ATAC_CBP_peak = inner_join(ATAC_CBP,ATAC_CBP.max)
+ATAC_CBP_peak = inner_join(ATAC_CBP_peak,ATACpeakInfo)
+
+
+
+
+
+
+
+ATAC_CBP_PeakData = makeGRangesFromDataFrame(ATAC_CBP_peak,
+                                      seqnames.field = "Chr", 
+                                      start.field = "ATAC_Start", 
+                                      end.field = "ATAC_End", 
+                                      strand.field = "Strand")
+
+
+
+
+overlap = findOverlaps(EnhancersPeakData,ATAC_CBP_PeakData, maxgap = 0)
+overlap2 = data.frame(overlap)
+ATAC_CBP_peak$Enhancer = "No"
+ATAC_CBP_peak$Enhancer[overlap2$subjectHits] = "Yes"
+ATAC_CBP_peak %>% ggplot( aes(x = ATAC_CBP_score, color = Enhancer ) ) + stat_ecdf()+ ggtitle("CBP + ATAC on ATAC peaks")
+
+
+
+
+
+
+
+ATAC_CBP_peak_plot = ATAC_CBP_peak %>%
+  ggplot( mapping = aes(ATACScore,CBPScore, color = Enhancer))+ geom_point() + geom_smooth(method = "lm")
+
+
+
+ATAC_CBP_peak_Score = ATAC_CBP_peak %>% dplyr::select(Geneid,factor, ATAC_CBP_score)
+
+
+```
+
+### Merge the ATAC and the K27ac
+
+```{r adding one layer}
+ATACpeaks = makeGRangesFromDataFrame(ATAC_CBP_peak,
+                                      seqnames.field = "Chr", 
+                                      start.field = "ATAC_Start", 
+                                      end.field = "ATAC_End", 
+                                      strand.field = "Strand", keep.extra.columns = T)
+
+
+
+K27acpeaks = makeGRangesFromDataFrame(K27acInfoDF,
+                                      seqnames.field = "Chr", 
+                                      start.field = "K27ac_Start", 
+                                      end.field = "K27ac_End", 
+                                      strand.field = "Strand", keep.extra.columns = T)
+
+
+overlap = findOverlaps(ATACpeaks,K27acpeaks, maxgap = 500)
+overlap2 = data.frame(overlap)
+
+
+ATACpeaks$queryHits = 1:length(ATACpeaks)
+K27acpeaks$subjectHits= 1:length(K27acpeaks)
+
+test = left_join(data.frame(ATACpeaks), data.frame(overlap)) %>%
+  dplyr::select(Geneid,ATAC_CBP_score,ATACscore,CBPscore,subjectHits)
+
+
+
+test2 = inner_join(test, data.frame(K27acpeaks)) %>%
+  dplyr::select(Geneid,K27ac_Geneid,ATAC_CBP_score,ATACscore,CBPscore,K27acScore, Enhancer) %>%
+  mutate(Data = "ATAC,CBP,H3K27ac") %>%
+  mutate(Data = replace(Data, is.na(K27acScore),"ATAC,CBP")) %>%
+  mutate(K27acScore = replace(K27acScore, is.na(K27acScore),0))
+
+
+                 
+
+unique(test2$K27ac_Geneid)
+unique(test2$Geneid)
+   
+#write.table(x = ATAC_K27ac_peaksInfo, file = ATAC_K27ac_peaksInfo_file,
+#                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+
+test2 %>%
+  ggplot(mapping = aes(x = ATAC_CBP_score, y = K27acScore, color = Enhancer)) +
+  geom_point() + geom_smooth(method = "lm")+ facet_grid(.~Enhancer)
+
+
+test2$distance = (test2$K27acScore^2 + test2$ATACscore^2 +test2$CBPscore^2 )^0.5
+
+test2 %>%
+  group_by(Geneid, Enhancer,Data ) %>%
+  summarize(distance = max(distance)) %>%
+  ggplot(mapping =  aes(distance, color = Enhancer, linetype = Data )) + geom_density()
+
+
+test2 %>%
+  group_by(Geneid, Enhancer,Data ) %>%
+  summarize(distance = max(distance)) %>%
+  ggplot(mapping =  aes(distance, color = Enhancer, linetype = Data )) + stat_ecdf()
+
+ATAC_CBP_peak %>% ggplot( aes(x = ATAC_CBP_score, color = Enhancer ) ) + stat_ecdf()+ ggtitle("CBP + ATAC on ATAC peaks")
+
+
+
+
+```
+
+
+```{r merge CBP ATAC and k27ac }
+ATAC_CBP_peak_Score = ATAC_CBP_peak_Score %>% dplyr::select(-factor)
+ATAC_K27ac_CBP_peaks = left_join(ATAC_K27ac_peaks, ATAC_CBP_peak_Score)
+
+ATAC_K27ac_CBP_peaks$distance = (ATAC_K27ac_CBP_peaks$K27acScore^2 + ATAC_K27ac_CBP_peaks$ATAC_CBP_score^2)^0.5
+
+ATAC_K27ac_CBP_peaks %>%
+  ggplot(mapping = aes(x = ATAC_CBP_score, y = K27acScore, color = Enhancer)) +
+  geom_point() + geom_smooth(method = "lm")+ facet_grid(.~Enhancer)
+
+
+ ATAC_K27ac_CBP_peaks %>%
+  group_by(Geneid,queryHits,subjectHits, Enhancer ) %>%
+  summarize(distance = max(distance)) %>%
+  ggplot(mapping =  aes(distance, color = Enhancer)) + stat_ecdf()
+ 
+ 
+ 
+```
+
+
+
+## Merge with PROseq
+```{r }
+
+
+
+
+test = data.frame(findOverlaps(ATACPeakData,PROseqPeak,  ignore.strand=TRUE,  maxgap = 100000))
+colnames(test) = c("ATACid","PROid")
+
+PROid = data.frame(geneID = names(PROseqPeak), PROid = 1:length(names(PROseqPeak)))
+ATACid = data.frame(Geneid = names(ATACPeakData), ATACid = 1:length(names(ATACPeakData)))
+
+ATAC_PRO_correlation = inner_join(PROid,test)
+ATAC_PRO_correlation = inner_join(ATAC_PRO_correlation,ATACid) %>% dplyr::select(-PROid, -ATACid)
+
+
+
+ATAC_K27ac_CBP_peaks = inner_join(ATAC_K27ac_peaks, ATAC_PRO_correlation)
+
+file = paste(params$workingDir,"results/enhancer.data.tsv" ,sep = "/")
+
+write.table(x = ATAC_K27ac_CBP_peaks, file = paste(params$workingDir,"results/combined.peaks.location.tsv" ,sep = "/"),quote = F, sep = "\t", col.names = T,row.names = F) 
+
+ATAC_K27ac_CBP_peaks$PROseqEnhancer = "No"
+ATAC_K27ac_CBP_peaks$PROseqEnhancer[ATAC_K27ac_CBP_peaks$EnhancerDistance <= 30000] = "30 kb"
+ATAC_K27ac_CBP_peaks$PROseqEnhancer[ATAC_K27ac_CBP_peaks$EnhancerDistance <= 0] = "Overlapping"
+ATAC_K27ac_CBP_peaks %>% ggplot( aes(x = distance, color = PROseqEnhancer, linetype = Enhancer ) ) + 
+  stat_ecdf()+ 
+  ggtitle("CBP + ATAC + K27ac on ATAC peaks") + 
+  geom_vline(xintercept = 2.5) + geom_abline(slope = 0 ,intercept = 0.9)
+
+ggsave(paste(params$workingDir,"results/combined.peaks.validation.pdf" ,sep = "/"))
+
+
+ATAC_K27ac_CBP_peaks.DE =  ATAC_K27ac_CBP_peaks %>% filter(ATAC_K27ac_CBP_peaks$EnhancerDistance < 30000 & distance > 1.5)
+
+
+ATAC_K27ac_CBP_peaks.DE 
+
+
+
+
+usedRegionsAndGenes = ATAC_K27ac_CBP_peaks.DE %>% dplyr::select(Geneid,K27ac_Geneid, geneID,EnhancerDistance)
+write.table(x = usedRegionsAndGenes, file = paste(params$workingDir,"results/combined.peaks.location.tsv" ,sep = "/"),quote = F, sep = "\t", col.names = T,row.names = F) 
+```
+
+
+
+
+
+
+
+
+
+```{r }
+
+ATACseqInfoDFplot
+CBPplot
+K27acPlot
+
+
+ATAC_CBP_peak %>%
+  ggplot( mapping = aes(ATACScore,CBPScore, color = Enhancer))+ geom_point() + geom_smooth(method = "lm")
+
+ATAC_K27ac_CBP_peaks %>%
+  ggplot(mapping = aes(x = ATAC_CBP_score, y = K27acScore, color = Enhancer)) +
+  geom_point() + geom_smooth(method = "lm")+ facet_grid(.~Enhancer)
+
+
+
+"Overlapping"
+ATAC_K27ac_CBP_peaks %>% ggplot( aes(x = distance, color = PROseqEnhancer, linetype = Enhancer ) ) + 
+  stat_ecdf()+ 
+  ggtitle("CBP + ATAC + K27ac on ATAC peaks") + 
+  geom_vline(xintercept = 2.5) + geom_abline(slope = 0 ,intercept = 0.9)
+
+
+
+
+```
+
