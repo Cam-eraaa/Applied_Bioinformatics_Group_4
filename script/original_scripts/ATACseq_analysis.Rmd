@@ -9,7 +9,7 @@ params:
     dataDir: data_johan/data/ATACseq
     RscriptsDir: script/original_scripts
     proSeqDir: results/original_method/PRO-seq
-    #resultsDir: results/original_method/ATACseq
+    resultsDir: results/original_method/ATACseq
     sampleInfo: data_johan/information/cleaned/ChIP_ATAC_sampleInfo.tab.txt
     count_ATAC: ATAC.CBP.peak.featureCount.count.tab.txt
     count_ATAC_QC: ATAC.CBP.peak.featureCount.count.QC.tab.txt
@@ -251,80 +251,78 @@ ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom
 
 ```
 
-<!-- ### Print ATAC data to file  -->
+### Print ATAC data to file
 
-<!-- ```{r save the files ,message=FALSE ,warning = FALSE} -->
-
-
-
-<!-- ## Saving sampleInfo File -->
-
-<!-- sampleInfoFile = paste(params$workingDir, params$dataDir,"ATAC.sampleInfo.QC.tab.txt", sep = "/") -->
-
-<!-- write.table(x = sampleInfo_Mutants,  -->
-<!--             file = sampleInfoFile, -->
-<!--             quote = F, -->
-<!--             sep =  "\t", -->
-<!--             row.names = F, -->
-<!--             col.names = T -->
-<!--             ) -->
+```{r save the files ,message=FALSE ,warning = FALSE}
 
 
 
+## Saving sampleInfo File
 
+sampleInfoFile = paste(params$workingDir, params$resultsDir,"ATAC.sampleInfo.QC.tab.txt", sep = "/")
 
-<!-- ## Saving peakInfo File -->
-
-<!-- peakInfo_QC = peakInfo %>%  -->
-<!--   dplyr::rename(geneID = Geneid) %>%  -->
-<!--   inner_join( geneInfo.QC2) -->
-
-<!-- peakTableFile = paste(params$workingDir, params$resultsDir,"ATAC.CBP.peaks.QC.tab.txt", sep = "/") -->
-
-
-<!-- write.table(x = peakInfo_QC,  -->
-<!--             file = peakTableFile, -->
-<!--             quote = F, -->
-<!--             sep =  "\t", -->
-<!--             row.names = F, -->
-<!--             col.names = T -->
-<!-- ) -->
+write.table(x = sampleInfo_Mutants,
+            file = sampleInfoFile,
+            quote = F,
+            sep =  "\t",
+            row.names = F,
+            col.names = T
+            )
 
 
 
 
-<!-- count_ATAC_QC_File = paste(params$workingDir, params$resultsDir, -->
-<!--                          paste(params$count_ATAC_QC, sep = "."), sep = "/") -->
+
+## Saving peakInfo File
+
+peakInfo_QC = peakInfo %>%
+  dplyr::rename(geneID = Geneid) %>%
+  inner_join( geneInfo.QC2)
+
+peakTableFile = paste(params$workingDir, params$resultsDir,"ATAC.CBP.peaks.QC.tab.txt", sep = "/")
+
+
+write.table(x = peakInfo_QC,
+            file = peakTableFile,
+            quote = F,
+            sep =  "\t",
+            row.names = F,
+            col.names = T
+)
 
 
 
-<!-- countData.QC = countData_mutants[peakInfo_QC$geneID, -->
-<!--                                  sampleInfo_Mutants$SampleInfo -->
-<!--                                  ] -->
+
+count_ATAC_QC_File = paste(params$workingDir, params$resultsDir,
+                         paste(params$count_ATAC_QC, sep = "."), sep = "/")
 
 
 
-<!-- write.table(x = countData.QC,  -->
-<!--             file = count_ATAC_QC_File, -->
-<!--             quote = F, -->
-<!--             sep =  "\t", -->
-<!--             row.names = T, -->
-<!--             col.names = T -->
-<!--             ) -->
+countData.QC = countData_mutants[peakInfo_QC$geneID,
+                                 sampleInfo_Mutants$SampleInfo
+                                 ]
+
+
+
+write.table(x = countData.QC,
+            file = count_ATAC_QC_File,
+            quote = F,
+            sep =  "\t",
+            row.names = T,
+            col.names = T
+            )
 
 
 
 
-<!-- ## Saving normalised count file -->
-<!-- NormalisedCountFile = paste(params$workingDir, params$r, -->
-<!--                          paste(params$normalisedATACpeakData, sep = "."), sep = "/") -->
+## Saving normalised count file
+NormalisedCountFile = paste(params$workingDir, params$resultsDir,
+                         paste(params$normalisedATACpeakData, sep = "."), sep = "/")
 
-<!-- normExpression.QC = normExpression[peakInfo_QC$geneID, -->
-<!--                                  sampleInfo_Mutants$SampleInfo -->
-<!--                                  ] -->
+normExpression.QC = normExpression[peakInfo_QC$geneID, sampleInfo_Mutants$SampleInfo]
 
-<!-- write.table(x = normExpression.QC, file = NormalisedCountFile, -->
-<!--                   quote = F, sep = "\t", col.names = T, row.names = T)  -->
+write.table(x = normExpression.QC, file = NormalisedCountFile,
+                  quote = F, sep = "\t", col.names = T, row.names = T)
 
-<!-- ``` -->
+```
 

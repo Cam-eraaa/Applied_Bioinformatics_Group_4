@@ -10,7 +10,7 @@ params:
     RscriptsDir: script/original_scripts
     proSeqDir: results/original_method/PRO-seq
     informationDir: data_johan/information/cleaned
-    #resultsDir: results/original_method/PROseq
+    resultsDir: results/original_method/PROseq
 ---
 
 ```{r setup, include=FALSE}
@@ -257,52 +257,56 @@ ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom
 
 
 
-<!-- ### Print PROseq data to file -->
+### Print PROseq data to file
 
-<!-- ```{r save the files} -->
-<!-- sampleInfoFile = paste(params$workingDir, params$resultsDir,"sampleInfo.QC.tab.txt", sep = "/") -->
-<!-- write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F,col.names = T) -->
+```{r save the files}
+sampleInfoFile = paste(params$workingDir, params$resultsDir,"sampleInfo.QC.tab.txt", sep = "/")
+write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F,col.names = T)
 
-<!-- geneTableFile = paste(params$workingDir, params$resultsDir,"gene.QC.tab.txt", sep = "/") -->
-<!-- write.table(x = geneInfo.QC, file = geneTableFile, quote = F, sep =  "\t", row.names = F, col.names = T) -->
+geneTableFile = paste(params$workingDir, params$resultsDir,"gene.QC.tab.txt", sep = "/")
+write.table(x = geneInfo.QC, file = geneTableFile, quote = F, sep =  "\t", row.names = F, col.names = T)
 
-<!-- countTableFile = paste(params$workingDir, params$resultsDir,"counts.QC.tab.txt", sep = "/") -->
-<!-- write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T) -->
+countTableFile = paste(params$workingDir, params$resultsDir,"counts.QC.tab.txt", sep = "/")
+write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
 
-<!-- rlogTableFile = paste(params$workingDir, params$resultsDir,"rlog.QC.tab.txt", sep = "/") -->
-<!-- write.table(x = normExpression.QC, file = rlogTableFile, quote = F, sep =  "\t", row.names = T, col.names = T) -->
+rlogTableFile = paste(params$workingDir, params$resultsDir,"rlog.QC.tab.txt", sep = "/")
+write.table(x = normExpression.QC, file = rlogTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
 
-<!-- ``` -->
-
-<!-- ```{r collecting the data for proseq.data.print} -->
-<!-- # The kmeans analysis requires the columns: (PROseqdata) geneID,factor, direction, annotation,annotation2, Time, Gd7,Toll10b,Toll9 and (annotation2) geneID, annotation, distance, factor, direction" from the PROseq.data.tsv file -->
-<!-- # The PROseq.data.tsv file has the headers: geneID	factor	direction	annotation	PC1	PC2	PC3	distance	Gd7	Time	Toll10b	Toll9	annotation2	sampleName	rlog	mutant	time	replicate	bamFile	transcriptID	ppcCount	gbcCount	Chr	Start	End	Strand	Length	PI	GBClog	PPClog -->
-<!-- # pctable contains: PC1-6, samplename, mutant, time, replicate, bamfile, factor -->
+```
 
 
 
-<!-- ``` -->
-
-<!-- ```{r visualise all individual genes} -->
-
-<!-- PROseq.data.print  = PROseq.data -->
-
-<!-- PROseq.data.print =  PROseq.data.print %>% dplyr::select(-Mutant) -->
+<!-- Below the mysterious variable PROseq.data appears and I try to identify where it comes from but didn't succeed -->
+```{r collecting the data for proseq.data.print}
+# The kmeans analysis requires the columns: (PROseqdata) geneID,factor, direction, annotation,annotation2, Time, Gd7,Toll10b,Toll9 and (annotation2) geneID, annotation, distance, factor, direction" from the PROseq.data.tsv file
+# The PROseq.data.tsv file has the headers: geneID	factor	direction	annotation	PC1	PC2	PC3	distance	Gd7	Time	Toll10b	Toll9	annotation2	sampleName	rlog	mutant	time	replicate	bamFile	transcriptID	ppcCount	gbcCount	Chr	Start	End	Strand	Length	PI	GBClog	PPClog
+# pctable contains: PC1-6, samplename, mutant, time, replicate, bamfile, factor
 
 
-<!-- fileNamePROseq = paste( params$workingDir, params$proSeqDir,   -->
-<!--                         params$proSeq.data, -->
-<!--                              sep = "/") -->
-<!-- write.table(x = PROseq.data.print, file = fileNamePROseq, -->
-<!--                   quote = F, sep = "\t", col.names = T, row.names = F)  -->
 
-<!-- PROseq.data.selected  = PROseq.data %>%filter (annotation2 == "DE") %>%dplyr::select(geneID,transcriptID, factor,direction) %>% distinct() -->
+```
 
 
-<!-- write.table(x = PROseq.data.selected,  -->
-<!--             file = paste( params$workingDir, params$proSeqDir,  -->
-<!--                           "selectedGenes.tsv" ,sep = "/"), -->
-<!--             quote = F, sep = "\t", col.names = TRUE, row.names = F)   -->
+
+<!--  ```{r visualise all individual genes} -->
+
+<!--  PROseq.data.print  = PROseq.data -->
+
+<!--  PROseq.data.print =  PROseq.data.print %>% dplyr::select(-Mutant) -->
+
+
+<!--  fileNamePROseq = paste( params$workingDir, params$proSeqDir, -->
+<!--                          params$proSeq.data, -->
+<!--                               sep = "/") -->
+<!--  write.table(x = PROseq.data.print, file = fileNamePROseq, -->
+<!--                    quote = F, sep = "\t", col.names = T, row.names = F) -->
+
+<!--  PROseq.data.selected  = PROseq.data %>%filter (annotation2 == "DE") %>%dplyr::select(geneID,transcriptID, factor,direction) %>% distinct() -->
+
+
+<!--  write.table(x = PROseq.data.selected, -->
+<!--              file = paste( params$workingDir, params$proSeqDir, "selectedGenes.tsv" ,sep = "/"), -->
+<!--             quote = F, sep = "\t", col.names = TRUE, row.names = F) -->
 
 
 
