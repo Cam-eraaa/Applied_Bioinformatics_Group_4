@@ -7,7 +7,7 @@ output: html_document
 params:
     workingDir: /Users/jj/Applied_Bioinformatics_Group_4
     annotationDir: data_johan/annotations
-    proSeqDir: data_johan/results/original_method/PRO-seq
+    proSeqDir: data_johan/results/PROseq
     proSeq.data: PROseq.data.tsv
     proSeq.data.PPC: PROseq.data.PPC.tsv
     ATACSeqDir: data_johan/results/ATACseq
@@ -22,7 +22,7 @@ params:
     Method: ATAC-Seq
     Antibody: K27ac
     resultDir: data_johan/results/multi
-    bestTargets: data_johan/information/TopTargets.txt
+    bestTargets: data_johan/information/all/TopTargets.txt
 ---
 
 ```{r setup, include=FALSE}
@@ -272,7 +272,7 @@ colnames(CBPLocation)[2] = "Chr"
 
 
 
-usedRegionsAndGenes = read.table(file = paste(params$workingDir,"results/combined.peaks.location.tsv" ,sep = "/"),header = T, quote = "", sep = "\t",stringsAsFactors = F)
+usedRegionsAndGenes = read.table(file = paste(params$workingDir, "data_johan/results/combined.peaks.location.tsv" ,sep = "/"),header = T, quote = "", sep = "\t",stringsAsFactors = F)
 colnames(usedRegionsAndGenes)[1] = "ATACseq_Geneid"
 AllData = inner_join(ATAC_CHiP, usedRegionsAndGenes)
 AllData = inner_join(AllData, K27acInfo) 
@@ -284,24 +284,12 @@ AllData = AllData %>% mutate(Enhancer_Gd7 =  ATACseq_Gd7 +CBP_Gd7 + K27ac_Gd7)
 AllData = AllData %>% mutate(Enhancer_Toll10b =  ATACseq_Toll10b +CBP_Toll10b + K27ac_Toll10b)
 AllData = AllData %>% mutate(Enhancer_Toll9 =  ATACseq_Toll9 + CBP_Toll9 + K27ac_Toll9)
 
-
-
-
-
-
-
-
-
-
-
 ```
 
 # Merge all the data.
 
 ## Fix the names into readable genes
 ```{r  annotate the loadings scores  }
-
-
 
 universe <- bitr(unique(AllData$geneID), fromType = "ENSEMBL",
                  toType = c("SYMBOL"),
@@ -587,8 +575,6 @@ write.table(x = AllData,
 
 
 ```
-
-
 
 
 

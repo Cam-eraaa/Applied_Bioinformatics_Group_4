@@ -5,7 +5,7 @@ date: "11/11/2020"
 output: html_document
 
 params:
-  workingDir: /Users/jj/Applied_Bioinformatics_Group_4
+  workingDir: ~/Applied_Bioinformatics_Group_4
   dataDir: data_johan/data/ChIPseq/H3K27ac
   sampleInfo: data_johan/information/cleaned/ChIP_ATAC_sampleInfo.tab.txt
   chipSeqData: K27ac.featureCount.count.tab.txt
