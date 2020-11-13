@@ -1,0 +1,7 @@
+sampleID	Genotype	Replicate
+Toll10b_2	Toll10b	2
+Toll9_2	Toll9	2
+Toll10b_1	Toll10b	1
+Gd7_2	Gd7	2
+Gd7_1	Gd7	1
+Toll9_1	Toll9	1

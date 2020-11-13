@@ -10,7 +10,7 @@ params:
   sampleInfo: data_johan/information/cleaned/ChIP_ATAC_sampleInfo.tab.txt
   chipSeqData: K27ac.featureCount.count.tab.txt
   RscriptsDir: script/original_scripts
-  #resultsDir: results/original_method/ChIPseq
+  resultsDir: results/original_method/ChIPseq
   Antibody: K27ac
 ---
 
@@ -187,31 +187,31 @@ test
 ```
 
 
-<!-- ### Print ChIPseq data to file  -->
+### Print ChIPseq data to file
 
-<!-- ```{r save the files} -->
-<!-- sampleInfoFile = paste(params$workingDir, params$resultsDir, params$Antibody, "H3K27ac.sampleInfo.QC.tab.txt", sep = "/") -->
+```{r save the files}
+sampleInfoFile = paste(params$workingDir, params$resultsDir, params$Antibody, "H3K27ac.sampleInfo.QC.tab.txt", sep = "/")
 
-<!-- sampleInfo.QC = sampleInfo %>%  -->
-<!--   dplyr::select( sampleID, Genotype, Replicate) -->
+sampleInfo.QC = sampleInfo %>%
+  dplyr::select( sampleID, Genotype, Replicate)
 
-<!-- write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F,  col.names = T) -->
+write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F,  col.names = T)
 
-<!-- peakTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "H3K27ac.peak.QC.tab.txt", sep = "/") -->
-<!-- peakInfo.QC = inner_join(peakInfoLocation,peakInfo.QC) -->
-<!-- write.table(x = peakInfo.QC, file = peakTableFile, quote = F, sep =  "\t", row.names = F, col.names = T) -->
+peakTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "H3K27ac.peak.QC.tab.txt", sep = "/")
+peakInfo.QC = inner_join(peakInfoLocation,peakInfo.QC)
+write.table(x = peakInfo.QC, file = peakTableFile, quote = F, sep =  "\t", row.names = F, col.names = T)
 
-<!-- countData.QC = countData[peakInfo.QC$geneID,sampleInfo.QC$sampleID] -->
-<!-- countTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "H3K27ac.counts.QC.tab.txt", sep = "/") -->
-<!-- write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T) -->
+countData.QC = countData[peakInfo.QC$geneID,sampleInfo.QC$sampleID]
+countTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "H3K27ac.counts.QC.tab.txt", sep = "/")
+write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
 
-<!-- rlogTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "H3K27ac.rlog.QC.tab.txt", sep = "/") -->
+rlogTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "H3K27ac.rlog.QC.tab.txt", sep = "/")
 
 
-<!-- rlogExpression.QC = normExpression[peakInfo.QC$geneID,sampleInfo.QC$sampleID] -->
-<!-- write.table(x = rlogExpression.QC, file = rlogTableFile, quote = F, sep =  "\t", row.names = T, col.names = T) -->
+rlogExpression.QC = normExpression[peakInfo.QC$geneID,sampleInfo.QC$sampleID]
+write.table(x = rlogExpression.QC, file = rlogTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
 
-<!-- ``` -->
+```
 
 
 
