@@ -19,9 +19,6 @@ params:
     dataDir: data_johan/data/ATACseq
     sampleInfo: data_johan/information/ChIP_ATAC_sampleInfo.tab.txt
     count_ATAC: ATAC.peak.featureCount.count.tab.txt 
-    Method: ATAC-Seq
-    Antibody: K27ac
-    resultDir: data_johan/results/multi
     bestTargets: data_johan/information/all/TopTargets.txt
 ---
 
@@ -49,25 +46,32 @@ library(tsne)
 
 ```{r  add  transcript to gene Information}
 
-# Load in the fastq file that is generated as data from running multiqc on all samples. 
+# Loading the gtf file to extract annotation. 
 gtfFile = paste(params$workingDir, "Drosophila_melanogaster.BDGP6.28.101.gtf", sep = "/")
 gtfInfo = read.table(file = gtfFile, header = F, sep = "\t", quote = "", stringsAsFactors = F)
-gtfInfoGene = gtfInfo %>% dplyr::filter(V3 == "gene") 
+# Chosing only the annotation for genes
+gtfInfoGene = gtfInfo %>% dplyr::filter(V3 == "gene")
+# Extract only gene name and geneID
 gtfInfoGene = gtfInfoGene[grep(pattern = "gene_biotype \"protein_coding\"",x = gtfInfoGene$V9 ),  ] 
-gtfInfoGene= gtfInfoGene %>% separate(col = V9,sep = ";",into =  c("geneID1", "geneName1"))
-gtfInfoGene= gtfInfoGene %>% separate(col = geneID1,sep = "\"",into =  c("irrelevant", "geneID"))
-gtfInfoGene= gtfInfoGene %>% separate(col = geneName1,sep = "\"",into =  c("irrelevant1", "geneName"))
-gtfInfoAnnotation = gtfInfoGene  %>% dplyr::select(V1,V4,V5,V7,geneID,geneName) 
+gtfInfoGene= gtfInfoGene %>% separate(col = V9,sep = ";",into =  c("geneID1", "geneName1", "gene_source", "gene_biotype", "empty"))
+gtfInfoGene= gtfInfoGene %>% separate(col = geneID1,sep = "\"",into =  c("irrelevant", "geneID", "empty"))
+gtfInfoGene= gtfInfoGene %>% separate(col = geneName1,sep = "\"",into =  c("irrelevant1", "geneName", "empty"))
+#gtfInfoGene = gtfInfoGene$geneID
 
+###### Contiune to fix the data frame gtfInfoGene
+gtfInfoAnnotation = gtfInfoGene  %>% select(V1,V4,V5,V7,geneID,geneName)
+
+# Summerize the information in a table with Chr, start, stop, direction, 
 PROseqGenes = gtfInfoAnnotation %>% dplyr::rename("Chr"= V1, "GeneStart" = V4,"GeneStop" = V5,"geneDir" = V7)
 PROseqGenes$Chr = paste ("chr",PROseqGenes$Chr, sep ="")
 
-gtfInfomRNA = gtfInfo %>% dplyr::filter(V3 == "transcript") 
+#Extract RNA information
+gtfInfomRNA = gtfInfo %>% dplyr::filter(V3 == "transcript")
+#Extract geneID and transcriptID
 gtfInfomRNA = gtfInfomRNA[grep(pattern = "gene_biotype \"protein_coding\"",x = gtfInfomRNA$V9 ),  ] 
 gtfInfomRNA_DF= gtfInfomRNA %>% separate(col = V9,sep = ";",into =  c("geneID1", "transcriptID1"))
 gtfInfomRNA_DF= gtfInfomRNA_DF %>% separate(col = geneID1,sep = "\"",into =  c("irrelevant", "geneID"))
 gtfInfomRNA_DF= gtfInfomRNA_DF %>% separate(col = transcriptID1,sep = "\"",into =  c("irrelevant1", "transcriptID"))
-
 gene2transcriptInfo  = gtfInfomRNA_DF %>% dplyr::select(geneID,transcriptID)
 
 ```
@@ -310,87 +314,6 @@ AllData.saved = AllData
 ```
 
 
-
-<!-- ## Generate a heatmap  and divide into clusters -->
-<!-- ```{r make a heatmap of all the data} -->
-<!-- ColSideAnn =data.frame(hclust  = paste(AllData$factor, -->
-<!--                                       AllData$direction, -->
-<!--                                       sep = "_"), -->
-<!--                        stringsAsFactors=TRUE) -->
-
-
-<!-- row.names(ColSideAnn)<-AllData$SYMBOL_unique -->
-
-
-<!-- PRO_ATAC_CHiP_data3 = t(as.data.frame(AllData2 )) -->
-<!-- colnames(PRO_ATAC_CHiP_data3) = paste(AllData$SYMBOL_unique) -->
-
-<!-- heatmapFile = paste(params$workingDir, params$resultDir, "Multi_heatMap.pdf", sep = "/") -->
-<!-- pdf(file =  heatmapFile, width = 20, height = 15) -->
-<!-- result<-heatmap3(PRO_ATAC_CHiP_data3, -->
-<!--                  ColSideCut=0.9,ColSideAnn=ColSideAnn, -->
-<!--                  ColSideFun=function(x) showAnn(x), -->
-<!--                  col=colorRampPalette(c("green","black", "red"))(1024), -->
-<!--                  keep.dendro = TRUE,  -->
-<!--                  RowAxisColors=1,cexCol = 0.6, -->
-<!--                  legendfun=function() showLegend( -->
-<!--                    legend=c("Low","High"),col=c("chartreuse4","firebrick")), -->
-<!--                  verbose=TRUE) -->
-<!-- dev.off() -->
-<!-- #annotations distribution in different clusters and the result of statistic tests -->
-<!-- mycl <- cut(x = result$Colv, h = 0.9 ) -->
-<!-- AllData$hclust = 0 -->
-<!-- i = 1 -->
-<!-- for(i in 1:length(mycl$lower)){ -->
-<!--   genesInCluster = labels(mycl$lower[[i]]) -->
-<!--   AllData$hclust[AllData$SYMBOL_unique %in% genesInCluster ] = i -->
-<!--   AllData_class = AllData %>% filter(hclust == i) -->
-<!--   ColSideAnn2 =data.frame(factor  = paste(AllData_class$factor, -->
-<!--                                           AllData_class$direction, -->
-<!--                                           sep = "_"), -->
-<!--                           stringsAsFactors=TRUE) -->
-<!--   heatmapFile = paste(params$workingDir, params$resultDir,  -->
-<!--                       paste("Multi_heatMap_cluster",i,"pdf", sep = "."),  -->
-<!--                       sep = "/") -->
-
-<!--   PRO_ATAC_CHiP_data_class2 = t(AllData_class %>% dplyr::select( -->
-<!--     PROseq_Time,PROseq_Gd7,PROseq_Toll10b,PROseq_Toll9, -->
-<!--     PPC_Time,PPC_Gd7,PPC_Toll10b,PPC_Toll9, -->
-<!--     ATACseq_Time,ATACseq_Gd7,ATACseq_Toll10b,ATACseq_Toll9, -->
-<!--     CBP_Gd7,CBP_Toll10b,CBP_Toll9, -->
-<!--     K27ac_Gd7,K27ac_Toll10b,K27ac_Toll9) ) -->
-
-<!--   colnames(PRO_ATAC_CHiP_data_class2) = AllData_class$SYMBOL_unique -->
-<!--   if(ncol(PRO_ATAC_CHiP_data_class2) >2){ -->
-
-<!--     pdf(file = paste(heatmapFile)) -->
-<!--     tryCatch({ -->
-<!--     result<-heatmap3(PRO_ATAC_CHiP_data_class2, -->
-<!--                      ColSideAnn=ColSideAnn2, -->
-<!--                      ColSideFun=function(x) showAnn(x), -->
-<!--                      col=colorRampPalette(c("green","black", "red"))(1024), -->
-<!--                      RowAxisColors=1, -->
-<!--                      legendfun=function() showLegend( -->
-<!--                        legend=c("Low","High"),col=c("chartreuse4","firebrick")), -->
-<!--                      verbose=TRUE) -->
-<!--     }, error=function(cond) { -->
-<!--             message(paste("URL does not seem to exist:", url)) -->
-<!--             message("Here's the original error message:") -->
-<!--             message(cond) -->
-<!--             # Choose a return value in case of error -->
-<!--             return(NA) -->
-<!--         }) -->
-<!--     dev.off() -->
-
-<!--   } -->
-<!-- } -->
-
-<!-- i -->
-
-
-<!-- ``` -->
-
-
 ## Check with PCA 
 
 ```{r PCA}
@@ -432,96 +355,8 @@ ggplot(data = AllData, mapping = aes(x = PC3, y = PC4 ,color = K27ac_factor , sh
 
 ggplot(data = AllData, mapping = aes(x = PC3, y = PC4 ,color = factor , shape = direction, label = SYMBOL))+ geom_point()
 
-
 ```
 
-
-
-
-
-## Check with tSNE 
-
-
-```{ not right now}
-
-set.seed(111)
-
-PRO_ATAC_CHiP_data2 = as.data.frame( AllData%>% dplyr::select(
-                             PROseq_Time,PROseq_Gd7,PROseq_Toll10b,PROseq_Toll9,
-                             PPC_Time,PPC_Gd7,PPC_Toll10b,PPC_Toll9,
-                             ATACseq_Time,ATACseq_Gd7,ATACseq_Toll10b,ATACseq_Toll9,
-                             CBP_Gd7,CBP_Toll10b,CBP_Toll9,
-                             K27ac_Gd7,K27ac_Toll10b,K27ac_Toll9))
-rownames(PRO_ATAC_CHiP_data2) = make.names(AllData$SYMBOL, unique=TRUE)
-tSNEout  = data.frame(tsne(PRO_ATAC_CHiP_data2))
-tSNEout$SYMBOL_unique =AllData$SYMBOL_unique
-colnames(tSNEout) = c("tsne1", "tsne2", "SYMBOL_unique")
-AllData = inner_join(AllData, tSNEout)
-
-ggplot(data = AllData, mapping = aes(x = tsne1, y = tsne2 ,color = factor , shape = direction, label = SYMBOL ))+ geom_point()
-
-
-```
-
-## Check with UMAP 
-
-```{r UMAP}
-
-set.seed(111)
-
-PRO_ATAC_CHiP_data2 = as.data.frame( AllData%>% dplyr::select(
-                             PROseq_Time,PROseq_Gd7,PROseq_Toll10b,PROseq_Toll9,
-                             PPC_Time,PPC_Gd7,PPC_Toll10b,PPC_Toll9,
-                             ATACseq_Time,ATACseq_Gd7,ATACseq_Toll10b,ATACseq_Toll9,
-                             CBP_Gd7,CBP_Toll10b,CBP_Toll9,
-                             K27ac_Gd7,K27ac_Toll10b,K27ac_Toll9))
-PRO_ATAC_CHiP_data2 = as.data.frame( AllData%>% dplyr::select(
-                             PROseq_Gd7,PROseq_Toll10b,PROseq_Toll9,
-                             Enhancer_Gd7,Enhancer_Toll10b,Enhancer_Toll9))
-
-
-rownames(PRO_ATAC_CHiP_data2) = AllData$SYMBOL_unique
-
-kmeans(PRO_ATAC_CHiP_data2, 50, nstart = 100,iter.max = 100) # 5 cluster solution
-
-
-multidata.umap = umap(PRO_ATAC_CHiP_data2)
-multidata.umap  = data.frame(multidata.umap$layout)
-multidata.umap$SYMBOL_unique = rownames(multidata.umap)
-colnames(multidata.umap) = c("umap1","umap2","SYMBOL_unique")
-
-
-AllData = AllData  %>% inner_join(multidata.umap)
-
-
-ggplot(data = AllData, mapping = aes(x = umap1, y = umap2 , color = factor(factor) , shape = direction))+ geom_point()
-
-colnames(PROseqData.best) = c("geneID","SYMBOL")
-
-PRO_ATAC_CHiP_data.best = inner_join(PROseqData.best,AllData) %>% dplyr::select(SYMBOL,factor,direction,umap1,umap2) %>% 
-  group_by(SYMBOL,factor,direction) %>%
-  summarise(umap1 = mean(umap1), umap2 = mean(umap2))
-
-
-
-
-UMAPfile = paste(params$workingDir,"results/combined.UMAP.pdf" ,sep = "/")
-ggplot(data = AllData, mapping = aes(x = umap1, y = umap2 , color = factor(ATACseq_factor) , shape = ATACseq_direction))+ geom_point() +
-  geom_text_repel(data =PRO_ATAC_CHiP_data.best , mapping = aes(x = umap1, y = umap2 , shape = direction, label = SYMBOL) ,color = "black") 
-
-
-set.seed(113)
-
-fit <- kmeans(AllData[,c("umap1", "umap2")], 7) # 5 cluster solution
-AllData <- data.frame(AllData, kmeans_UMAP=fit$cluster)
-
-ggplot(data = AllData, mapping = aes(x = umap1, y = umap2 , color = factor(kmeans_UMAP) ))+ geom_point() +
-  scale_color_brewer(palette="Dark2")+
-  geom_text_repel(data =PRO_ATAC_CHiP_data.best , mapping = aes(x = umap1, y = umap2 , label = SYMBOL),color = "black") 
-
-
-
-```
 
 # Save the data
 
