@@ -1,9 +1,0 @@
-"0",""
-"0","geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%"
-"0","  dplyr::group_by (geneID) %>%"
-"0","  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) )"
-"2","`summarise()` ungrouping output (override with `.groups` argument)
-"
-"0","geneInfo.QC2 = geneInfo %>% filter(overQC > 2)"
-"0","normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)"
-"0","ggplot(normExpressionDF.QC, aes(x = rlog, color = mutant, linetype = time)) + geom_density()"
