@@ -20,6 +20,9 @@ knitr::opts_chunk$set(echo = TRUE)
 #install.packages("kableExtra")
 #install.packages("tidyverse")
 #install.packages("RColorBrewer")
+#install.packages("BiocManager")
+#install.packages("pheatmap")
+#install.packages("GGally")
 #BiocManager::install("DESeq2")
 #BiocManager::install("edgeR")
 
@@ -36,7 +39,7 @@ library("viridis")
 library(RColorBrewer)
 library(DESeq2)
 library(edgeR)
-
+library("pheatmap")
 ```
 
 ## Reads mapping for ChIPseq done on CBP
@@ -46,34 +49,37 @@ library(edgeR)
 
 ### Using feature count to get the difference between the samples
 ```{r Adding the first analysis of the data ,message=FALSE ,warning = FALSE}
-
+#Load in the path to the CBP featureCount file
 featureCountFile = paste(params$workingDir, params$dataDir, params$chipSeqData, sep = "/")
 
+#Load the featurecount file into a table
 FCdata = read.table(file = featureCountFile, header = TRUE, sep = "\t", quote = "", stringsAsFactors = FALSE)
 
+#Select the geneID, chromosome, start, end, strand and length. 
 peakInfo  = FCdata [,1:6]
+
+#Select the rest of the columns from the featureCount file, the counts. 
 countData = FCdata[,-1:-6]
 rownames(countData) = peakInfo$Geneid
 ```
 
 
 ```{r sample info ,message=FALSE ,warning = FALSE}
+#Rename the labels for the labels in countData so that they just have the mutant name and replicate and input/CBP
 samples = colnames(countData)
-
 samples = gsub(pattern = "..CBP_ChIP_seq_mapped.CBP_toll_dm6only.bam_dm6.", replacement = "", x = samples)
 samples = gsub(pattern = ".dm6.bowtie2.sorted.bam", replacement = "", x = samples)
-
 colnames(countData) = samples
 
+#Create a table with more information about the samples and create good names
 sampleInfo = data.frame(sampleName = colnames(countData), sampleInfo = samples, stringsAsFactors = F)
-
 sampleInfo= sampleInfo %>% separate(sampleInfo, c("Genotype", "Replicate", "Input", "sample"), sep = "_", remove = F)
 sampleInfo$Genotype = recode(sampleInfo$Genotype, toll910 = "Toll9")
 sampleInfo$Genotype = recode(sampleInfo$Genotype, gd7 = "Gd7")
 sampleInfo$Genotype = recode(sampleInfo$Genotype, toll10B = "Toll10b")
 sampleInfo$sampleID = paste(sampleInfo$Genotype, sampleInfo$Replicate, sampleInfo$Input , sep = "_")
 
-
+#Make sure that CountData only contains the samples that has names in sampleName and change the name in countData
 countData = countData[,sampleInfo$sampleName]
 colnames(countData) = sampleInfo$sampleID
 ```
@@ -82,35 +88,41 @@ colnames(countData) = sampleInfo$sampleID
 
 
 ```{r differential gene expression analysis ,message=FALSE ,warning = FALSE}
+#Expression data is now the count data and meta info is the info about the samples. 
 exp.data = countData
 metaInfo = sampleInfo
 
+#Change the rownames to the names that inform on the mutant, replicate and CPB/input
 rownames(metaInfo) = sampleInfo$sampleID
 
-
+#Convert some of the columns to factors
 metaInfo$Genotype = as.factor(metaInfo$Genotype)
 metaInfo$sampleID = as.factor(metaInfo$sampleID)
 metaInfo$Input = as.factor(metaInfo$Input)
 
-
+#Create a DESeq dataset
 dds <- DESeqDataSetFromMatrix(countData = exp.data,
                                colData = metaInfo, ~1)
-
 
 #Remove rows with low counts and normalise samples for visualisation
 dds <- dds[ rowSums(counts(dds)) > 100, ]
 
+#Look at the dimension of the data set. 
 dim(dds)
-#Normalizing and change to 2 fold log changes. 
-test2 =   rpkm(countData, gene.length = peakInfo$Length)
+
+#Calculate the reads per kilobase million from the count data. 
+test2 = rpkm(countData, gene.length = peakInfo$Length)
+
+#Use a function from ExpressionAnalysisFucntions.r that plots a heat map. 
 plotSample2SampleDistance(test2)
 
+#Tranform the count data in the DESeq data frame to the log2 scale which minimizes differences between samples for rows with small counts, and which normalizes with respect to library size
 rld <- rlog(dds)
 
-
-
+#Put this normalized data into a data frame
 normExpression = as.data.frame(assay(rld))
 
+#Create a normal expression data frame
 normExpression$geneID = rownames(normExpression)
 normExpressionDF  = normExpression %>% gather( key = sampleID, value = rlog, -geneID)
 normExpressionDF = inner_join(normExpressionDF, metaInfo)
