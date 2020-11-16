@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1605539213203.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2098065073",
+    "id" : "4FE66E42",
+    "lastKnownWriteTime" : 1605546727,
+    "last_content_update" : 1605546727024,
+    "path" : "~/Applied_Bioinformatics_Group_4/script/original_scripts/ATACseq_analysis.Rmd",
+    "project_path" : "ATACseq_analysis.Rmd",
+    "properties" : {
+        "cursorPosition" : "389,0",
+        "last_setup_crc32" : "37B278EDf0f23369",
+        "scrollLine" : "379"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

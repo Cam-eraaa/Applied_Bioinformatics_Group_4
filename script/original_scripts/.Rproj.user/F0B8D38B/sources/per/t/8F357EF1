@@ -1,0 +1,27 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1605537503391.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1246584491",
+    "id" : "8F357EF1",
+    "lastKnownWriteTime" : 1605542382,
+    "last_content_update" : 1605542382119,
+    "path" : "~/Applied_Bioinformatics_Group_4/script/original_scripts/combining_all_data.Rmd",
+    "project_path" : "combining_all_data.Rmd",
+    "properties" : {
+        "cursorPosition" : "367,0",
+        "last_setup_crc32" : "37B278EDcb65e3c8",
+        "scrollLine" : "117",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

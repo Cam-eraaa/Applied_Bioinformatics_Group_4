@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1605546486909.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "DD454EE3",
+    "lastKnownWriteTime" : 8030879312480528756,
+    "last_content_update" : 1605546486909,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "CC73F350",
+        "caption" : "loadingsDF.all",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=loadingsDF.all&cache_key=CC73F350",
+        "displayedObservations" : 9013,
+        "environment" : "",
+        "expression" : "loadingsDF.all",
+        "object" : "loadingsDF.all",
+        "preview" : 0,
+        "totalObservations" : 9013,
+        "variables" : 8
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
