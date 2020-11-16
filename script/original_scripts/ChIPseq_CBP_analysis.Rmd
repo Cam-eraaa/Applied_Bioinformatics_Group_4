@@ -104,8 +104,8 @@ metaInfo$Input = as.factor(metaInfo$Input)
 dds <- DESeqDataSetFromMatrix(countData = exp.data,
                                colData = metaInfo, ~1)
 
-#Remove rows with low counts and normalise samples for visualisation
-dds <- dds[ rowSums(counts(dds)) > 100, ]
+#Remove rows with low counts and normalize samples for visualization
+dds <- dds[ rowSums(counts(dds)) > 100, ] #This was 100
 
 #Look at the dimension of the data set. 
 dim(dds)
@@ -116,13 +116,13 @@ test2 = rpkm(countData, gene.length = peakInfo$Length)
 #Use a function from ExpressionAnalysisFucntions.r that plots a heat map. 
 plotSample2SampleDistance(test2)
 
-#Tranform the count data in the DESeq data frame to the log2 scale which minimizes differences between samples for rows with small counts, and which normalizes with respect to library size
+#Transform the count data in the DESeq data frame to the log2 scale which minimizes differences between samples for rows with small counts, and which normalizes with respect to library size
 rld <- rlog(dds)
 
 #Put this normalized data into a data frame
 normExpression = as.data.frame(assay(rld))
 
-#Create a normal expression data frame
+#Create a normalized expression data frame
 normExpression$geneID = rownames(normExpression)
 normExpressionDF  = normExpression %>% gather( key = sampleID, value = rlog, -geneID)
 normExpressionDF = inner_join(normExpressionDF, metaInfo)
@@ -130,19 +130,22 @@ head(normExpressionDF)
 
 #normExpressionDF = inner_join(normExpressionDF, sampleInfo)
 
-
+#Plot the CP and input samples as one line each
 ggplot(normExpressionDF, aes(x = rlog, color = Input)) + geom_density()
 
 peakInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>% 
   dplyr::group_by (geneID) %>%
-  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
+  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 10)) ) 
 
+#Filter out so that peakInfo.QC only has overQC values above 2. 
 peakInfo.QC = peakInfo %>% filter(overQC > 2)
+#Filter so that normExpressionDF.QC only contains elements with a geneID that also is in peakInfo.QC
 normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% peakInfo.QC$geneID)
 
+#Plot the filtered normExpressionDF, but coloring sampleName now
 ggplot(normExpressionDF.QC, aes(x = rlog, color = sampleName)) + geom_density()
 
-
+#Filter to only contain CBP and not Input. 
 normExpressionDF.QC.CBP = normExpressionDF.QC %>% filter(Input == params$Antibody)
 normExpression.QC = normExpressionDF.QC.CBP %>%
   dplyr::select(geneID, sampleName, rlog) %>% 
@@ -159,15 +162,22 @@ normExpression.QC = normExpression.QC[, -1]
 
 ```{R  check the normalised data  ,message=FALSE ,warning = FALSE}
 
-
+#Plot a new heat map with only CBP 
 plotSample2SampleDistance(normExpression.QC)
 
+#Do a PCA analysis
 mir.pca <- prcomp(t(normExpression.QC), center = TRUE, scale = FALSE) 
+#Calculate evar from the PCA output
 e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
+#Make e.var to a data frame
 e.var = as.data.frame( e.var )
-e.var$PC = as.factor(1:nrow(e.var)) 
+#Add column named PC 
+e.var$PC = as.factor(1:nrow(e.var))
+#Add column with the varience
 e.var$Variance = e.var$e.var*100
+#Add column with CumulativeVariance
 e.var$CumulativeVariance = cumsum(e.var$Variance)
+#Plot each PC component and it varience. 
 qplot(PC, Variance, data=e.var, geom = c("point")
       , ylim = c(0,max(e.var$Variance)+5) 
       ,ylab = "Variance (%)")
@@ -175,12 +185,14 @@ qplot(PC, Variance, data=e.var, geom = c("point")
 
 
 
-
+#Make the first 5 PCA output to a data frame. 
 pctable = as.data.frame(mir.pca$x)[, 1:5]
+#Add column with sample name
 pctable$sampleName = rownames(pctable)
+#Add the metainfo
 pctable = inner_join(pctable, metaInfo)
 
-
+#Plot using a function in ExpressionAnalysisFucntions
 test  = plotPCAplot(PCAinfo = pctable, n.comp = 4,
             varianceInfo = e.var, 
             colorComponent = "Genotype",pchComponent = "Replicate"
