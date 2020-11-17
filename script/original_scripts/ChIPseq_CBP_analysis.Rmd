@@ -130,7 +130,7 @@ head(normExpressionDF)
 
 #normExpressionDF = inner_join(normExpressionDF, sampleInfo)
 
-#Plot the CP and input samples as one line each
+#Plot the CBP and input samples as one line each
 ggplot(normExpressionDF, aes(x = rlog, color = Input)) + geom_density()
 
 peakInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>% 
@@ -177,7 +177,7 @@ e.var$PC = as.factor(1:nrow(e.var))
 e.var$Variance = e.var$e.var*100
 #Add column with CumulativeVariance
 e.var$CumulativeVariance = cumsum(e.var$Variance)
-#Plot each PC component and it varience. 
+#Plot each PC component and its varience. 
 qplot(PC, Variance, data=e.var, geom = c("point")
       , ylim = c(0,max(e.var$Variance)+5) 
       ,ylab = "Variance (%)")
