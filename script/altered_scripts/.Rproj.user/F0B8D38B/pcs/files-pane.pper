@@ -1,9 +1,9 @@
 {
-    "path" : "~/Applied_Bioinformatics_Group_4/script/altered_scripts",
-    "sortOrder" : [
+    "path": "~/Applied_Bioinformatics_Group_4/script/altered_scripts",
+    "sortOrder": [
         {
-            "ascending" : true,
-            "columnIndex" : 2
+            "columnIndex": 2,
+            "ascending": true
         }
     ]
 }
