@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1605600299261.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "78F569B9",
+    "lastKnownWriteTime" : 0,
+    "last_content_update" : 1605600299261,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "5BE7CAF3",
+        "caption" : "sampleInfoCountTable",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=sampleInfoCountTable&cache_key=5BE7CAF3",
+        "displayedObservations" : 83,
+        "environment" : "",
+        "expression" : "sampleInfoCountTable",
+        "object" : "sampleInfoCountTable",
+        "preview" : 0,
+        "totalObservations" : 83,
+        "variables" : 1
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

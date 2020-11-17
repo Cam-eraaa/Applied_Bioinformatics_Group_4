@@ -1,0 +1,340 @@
+---
+title: "PROseq data analysis"
+author: "Jenny Jakobsson"
+date: "11/9/2020"
+output: html_document
+
+params:
+    workingDir: ~/Applied_Bioinformatics_Group_4
+    dataDir: data_johan/data/PROseq
+    RscriptsDir: script/original_scripts
+    proSeqDir: results/original_method/PRO-seq
+    informationDir: data_johan/information/cleaned
+    resultsDir: results/original_method/PROseq
+---
+
+```{r setup, include=FALSE}
+# The command below is needed to be able to knit a file
+knitr::opts_chunk$set(echo = TRUE)
+
+# Install required packages
+#BiocManager::install("DESeq2")
+#install.packages("RColorBrewer")
+#BiocManager::install("clusterProfiler")
+#BiocManager::install("org.Dm.eg.db")
+#install.packages("tidyverse")
+
+# Include the functions from the expression analysis script
+source(paste(params$workingDir, params$RscriptsDir,"ExpressionAnalysisFunctions.r", sep = "/"))
+
+# Load the installed packages
+library(clusterProfiler)
+library(org.Dm.eg.db)
+library(DESeq2)
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+library(gplots)
+library("viridis")
+
+```
+
+Analysis of the differential expression between the samples. The evaluation is done by the output from PROseq which is read counts per gene
+
+## Loading data
+We load the count table for the coding DNA sequences, CDS. This is the reads from PROseq, file name = counts.CDS.txt. The countdata is converted into a dataframe with the columns 
+
+```{r loading the data, include=FALSE}
+# Loading the count tsv file that contains the read count for each gene
+featureCountFile = paste(params$workingDir, params$dataDir, "counts.CDS.txt", sep = "/")
+FCdata = read.table(
+  file = featureCountFile,
+  header = TRUE,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = FALSE
+)
+
+# Creating matrix with geneID(1) and gene length(2)
+geneInfo  = FCdata [, 1:6]
+geneInfo  = geneInfo[, c(1, 6)]
+
+# Creating matrix for the countdata, geneID and count for each sample
+countData = FCdata[,-1:-6]
+rownames(countData) = geneInfo$Geneid
+```
+
+## Create sample information
+
+Extracting the information from the sample name so it is more easily accessible in a data frame. The sample information is samplename, mutant, time, replicate and bamfile name.
+
+```{r Create meta data table for samples , include=FALSE}
+#Extract the information about the samples from the sampleName.
+#Save sampleName, mutant, time, replicate and name of the bam file.
+sampleInfo = data.frame(bamFile =  colnames(countData))
+sampleInfo = sampleInfo %>% separate(
+  col = bamFile,
+  sep = "\\.",
+  into =  c("dir", "mutant", "sampleInfo"),
+  remove = FALSE
+)
+sampleInfo = sampleInfo %>% separate(
+  col = sampleInfo,
+  sep = "_",
+  into =  c("irrelevant", "time", "replicate")
+)
+sampleInfo = sampleInfo %>% separate(col = mutant,
+                                     sep = "_",
+                                     into =  c("mutant"))
+sampleInfo = sampleInfo %>% dplyr::select(bamFile, mutant, time, replicate)
+sampleInfo = sampleInfo %>% unite("sampleName", mutant:time:replicate, remove = FALSE)
+sampleInfo = sampleInfo %>% dplyr::select(bamFile, sampleName, mutant, time, replicate)
+
+# Create a table and set rownames as samplename and rows as samplename, mutant, time, replicate and bamfile name.
+rownames(sampleInfo) = sampleInfo$bamFile
+sampleInfo = sampleInfo[colnames(countData),]
+colnames(countData) = sampleInfo$sampleName
+rownames(sampleInfo) = sampleInfo$sampleName
+sampleInfo = sampleInfo %>% dplyr::select(sampleName, mutant, time, replicate, bamFile)
+```
+
+## Create gene info
+
+Remove all genes that is not expressed in any sample and start adding known information about the genes. This is done by only keeing the logarithmized values with a value larger than 1.
+
+```{r remove genes with no expression, include=FALSE}
+# Logaritmize the counts
+geneExpression = log(rowSums(countData))
+geneInfo$logExpression = log(rowSums(countData))
+
+# Filter out all genes with no expression(counts = 0 --> log(count)=1)
+geneInfo.QC = geneInfo %>% filter(logExpression > 1)
+
+# Save only the count data with genes with expression
+countData.QC =  countData[geneInfo.QC$Geneid, ]
+```
+
+## Add information about genes involved in the differentiation of the tissues.
+
+A file with gene information has been downloaded from the FlyBase database. The gene IDs are compared to the geneIDs in the expression data.
+
+```{r script to check the known genes , include=FALSE}
+knownGenes = read.table(
+  file = paste(
+    params$workingDir,
+    params$informationDir,
+    "FlyBase_IDs.txt",
+    sep = "/"
+  ),
+  sep = "\t",
+  header = F,
+  quote = "",
+  stringsAsFactors = F
+)
+# Add name for the columns since the header was removed in the previous command
+colnames(knownGenes) = c("Submitted ID", "Current ID", "Converted ID", "Related record")
+
+# Set default value for the known gene as no
+geneInfo.QC$knownGene = "No"
+# Change value to yes if the geneID exist in the FlyBase database
+geneInfo.QC$knownGene[geneInfo.QC$Geneid %in% knownGenes$`Current ID`] = "Yes"
+```
+
+### Identifying that two samples have wrong lables and needs to be switched.
+
+So it turns out that there was a label switch in the samples.. After going back to the lab-book we could identify the switch and therefore we make the change. Still we keep the information which bamfile belongs to which sample.
+
+```{r change the two files that differ, include=FALSE}
+# Change filenames
+test = sampleInfo["toll10b_5h_rep1", ]
+sampleInfo["toll10b_5h_rep1", ] = sampleInfo["gd7_5h_rep1", ]
+sampleInfo["gd7_5h_rep1", ] = test
+colnames(countData) = sampleInfo$sampleName
+sampleInfo.QC  = sampleInfo
+sampleInfo.QC$sampleName = rownames(sampleInfo)
+sampleInfo.QC %>% select(sampleName, bamFile) %>% separate(
+  col = sampleName,
+  sep = "_",
+  into =  c("mutant", "time", "replicate"),
+  remove = FALSE
+)
+
+sampleInfo.QC %>%
+  kable() %>%
+  kable_styling()
+```
+
+## Differential expression analysis
+
+The data is analyzed with deseq2 to normalize the counts and do a differential expression analysis. The differential expression is investigated thorugh the log2 fold change. Genes with counts less then 100 were filtered out.
+
+```{r differential gene expression analysis, include=FALSE}
+#Save the corrected count data and sample info
+exp.data = countData.QC
+metaInfo = sampleInfo.QC
+metaInfo$mutant = as.factor(metaInfo$mutant)
+metaInfo$time = as.factor(metaInfo$time)
+dds <- DESeqDataSetFromMatrix(countData = exp.data,
+                              colData = metaInfo,
+                              design = ~ time + mutant)
+
+#Remove rows with low counts and normalise samples for visualisation
+dds <- dds[rowSums(counts(dds)) > 100, ]
+dim(dds)
+#Normalizing and change to 2 fold log changes.
+rld <- rlog(dds)
+```
+
+### Merging information and investigating log fold change distribution
+
+Here the expression data was merged with annotation data. The expression density, i.e. how many counts at what log fold change value, was than plotted. This was done by the geom_density() function which is basically a histogram for continous data.
+
+```{r merging information and plotting log fold change, include=FALSE}
+# Merging the information of the log fold changes and the meta data
+normExpression = as.data.frame(assay(rld))
+normExpression$geneID = rownames(normExpression)
+normExpressionDF  = normExpression %>% gather(key = sampleName, value = rlog,-geneID)
+normExpressionDF = inner_join(normExpressionDF, sampleInfo.QC, by = "sampleName")
+
+# Plotting the density(how many genes) of the rlog values.
+ggplot(normExpressionDF,
+       aes(
+         x = rlog,
+         color = sampleName,
+         linetype = time
+       )) + geom_density()
+```
+
+### Density filtering
+
+From the graph below we can see that a lot of the log2 fold change data is above the value 5. This was chosen as a threshold. The genes with at least 2 counts above the threshold was selected, the rest was filtered out.
+
+```{r filters out genes dependent on log fold change}
+
+# Summerizes statistical information in geneInfo.
+geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
+  dplyr::group_by (geneID) %>%
+  dplyr::summarize (
+    min = min(rlog),
+    max = max(rlog),
+    mean = mean(rlog),
+    sd = sd(rlog),
+    #Creates a column which tells you how many counts(reads) are above 5 per geneID.
+    overQC = length(which(rlog > 5))
+  )
+
+# Requires the gene has at least 2 counts that have a log fold change over 5
+geneInfo.QC2 = geneInfo %>% filter(overQC > 2)
+normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)
+ggplot(normExpressionDF.QC, aes(
+  x = rlog,
+  color = mutant,
+  linetype = time
+)) + geom_density()
+normExpression.QC = normExpressionDF.QC %>%
+  dplyr::select(geneID, sampleName, rlog) %>%
+  spread(key = sampleName, value = rlog)
+rownames(normExpression.QC) = normExpression.QC$geneID
+normExpression.QC = normExpression.QC[,-1]
+```
+
+### Visualising the data
+
+```{r heatmap of samples}
+# This is a function defined in ExpressionAnalysisFunctions.r
+plotSample2SampleDistance(normExpression.QC)
+#'  __Figure 1 Plotting sample to sample distance__ .
+
+```
+
+### PCA analysis with normalised counts
+
+```{r PCA analysis}
+mir.pca <- prcomp(t(normExpression.QC), center = TRUE, scale = FALSE)
+e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
+e.var = as.data.frame( e.var )
+e.var$PC = as.factor(1:nrow(e.var))
+e.var$Variance = e.var$e.var*100
+e.var$CumulativeVariance = cumsum(e.var$Variance)
+qplot(PC, Variance, data=e.var, geom = c("point")
+      , ylim = c(0,max(e.var$Variance)+5)
+      ,ylab = "Variance (%)")
+
+#'  __Figure 2 Plotting PCA variance__.
+#'  Displays how much each of the PC contributes to the overall expression.
+#'  This suggest that the two first PC explains most of the variation.
+
+pctable = as.data.frame(mir.pca$x)[, 1:6]
+pctable$sampleName = rownames(pctable)
+pctable = inner_join(pctable, metaInfo)
+pca  = plotPCAplot(PCAinfo = pctable, n.comp = 5,
+                    varianceInfo = e.var,
+                    colorComponent = "mutant",
+                    pchComponent = "time"
+)
+pca
+
+loadings = mir.pca$rotation[,1:3]
+mean = pctable %>% dplyr::select(PC1,PC2,PC3,mutant) %>%
+  dplyr::group_by(mutant) %>%
+  dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2), PC3 = mean(PC3) )
+
+meantime = pctable %>% dplyr::select(PC1,PC2,PC3,time) %>%
+  dplyr::group_by(time) %>%
+  dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2), PC3 = mean(PC3) )
+
+origo = data.frame(PC1=0, PC2 = 0, PC3 = 0)
+
+line.gd7 = rbind(mean[1,2:4],origo,-mean[1,2:4])
+line.gd7$factor = "Gd7"
+line.toll10b = rbind(mean[2,2:4],origo,-mean[2,2:4])
+line.toll10b$factor = "Toll10b"
+line.toll9 = rbind(mean[3,2:4],origo,-mean[3,2:4])
+line.toll9$factor = "Toll9"
+line.time = rbind(meantime[2,2:4],origo,meantime[1,2:4])
+line.time$factor = "Time"
+
+line = rbind(line.gd7,line.toll10b,line.toll9,line.time)
+
+pctable$factor  = pctable$mutant
+pctable$factor =  recode(pctable$factor, gd7 = "Gd7")
+pctable$factor =  recode(pctable$factor, toll9 = "Toll9")
+pctable$factor =  recode(pctable$factor, toll10b = "Toll10b")
+```
+
+
+```{r Plot the axis }
+
+qplot(PC, Variance, data=e.var, geom = c("point")
+      , ylim = c(0,max(e.var$Variance)+5)
+      ,ylab = "Variance (%)")
+
+test
+
+ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC2,y = PC3, color = factor, shape = time))+
+  scale_color_viridis(discrete = TRUE, option = "D")
+
+ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC2, color = factor, shape = time))+
+  scale_color_viridis(discrete = TRUE, option = "D")
+```
+
+
+
+### Print PROseq data to file
+Saving the sampleInfo, geneInfo, Countdata and logarithmized countdata into files
+
+```{r save the files}
+
+sampleInfoFile = paste(params$workingDir, params$resultsDir,"sampleInfo.QC.tab.txt", sep = "/")
+write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F,col.names = T)
+geneTableFile = paste(params$workingDir, params$resultsDir,"gene.QC.tab.txt", sep = "/")
+write.table(x = geneInfo.QC, file = geneTableFile, quote = F, sep =  "\t", row.names = F, col.names = T)
+countTableFile = paste(params$workingDir, params$resultsDir,"counts.QC.tab.txt", sep = "/")
+write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
+rlogTableFile = paste(params$workingDir, params$resultsDir,"rlog.QC.tab.txt", sep = "/")
+write.table(x = normExpression.QC, file = rlogTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
+```
+
+
+

@@ -46,6 +46,7 @@ library(ggrepel)
 library(tsne)
 ```
 
+
 ```{r  add  transcript to gene Information}
 
 # Loading the gtf file to extract annotation. 
