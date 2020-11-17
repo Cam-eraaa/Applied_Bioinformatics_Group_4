@@ -1,0 +1,6 @@
+"0",""
+"0","source(paste(params$RfunctionsDirectory,""ExpressionAnalysisFunctions.R"",sep = ""/""))"
+"2","cannot open file '/Users/johanreimegard/GoogleDrive/git/RNAmappingPipeline/R/ExpressionAnalysisFunctions.R': No such file or directory"
+"2","Error in file(filename, ""r"", encoding = encoding) : 
+  cannot open the connection
+"
