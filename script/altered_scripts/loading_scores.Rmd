@@ -7,24 +7,51 @@ params:
     workingDir: ~/Applied_Bioinformatics_Group_4
     dataDir: data_johan/data/ATACseq
     RscriptsDir: script/original_scripts
-    proSeqDir: results/original_method/PRO-seq
     resultsDir: results/original_method/ATACseq
-    ATACSeq.data: ATACseq.data.tsv
-    ATACSeq.data.raw: ATACseq.data.raw.tsv
-    sampleInfo: data_johan/information/cleaned/ChIP_ATAC_sampleInfo.tab.txt
-    count_ATAC: ATAC.CBP.peak.featureCount.count.tab.txt
-    count_ATAC_QC: ATAC.CBP.peak.featureCount.count.QC.tab.txt
     normalisedATACpeakData: ATAC.CBP.peak.featureCount.rlog.tab.txt
-    Method: ATAC-Seq
+    ATACSampleInfo: ATAC.sampleInfo.QC.tab.txt
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+# Load the functions script (for plotting)
+source(
+  paste(
+    params$workingDir,
+    params$RscriptsDir,
+    "ExpressionAnalysisFunctions.r",
+    sep = "/"
+  )
+)
+library(tidyverse)
+library(gplots)
+library(kableExtra)
+library(DESeq2)
+library("viridis")
 ```
 
 ```{r load the data}
-normexpression_file = paste(params$workingDir, params$resultsDir, paste(params$normalisedATACpeakData, sep = "."))
-normexpression = read.table()
+# Load the sample info
+sampleInfoFile = paste(params$workingDir, params$resultsDir, params$ATACSampleInfo,
+                       sep = "/")
+sampleInfo = read.table(sampleInfoFile,
+  header = TRUE,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = FALSE
+)
+# Load the rlog values
+normexpression_file = paste(params$workingDir,
+                            params$resultsDir,
+                            params$normalisedATACpeakData,
+                            sep = "/")
+normExpression.QC = read.table(
+  normexpression_file,
+  header = TRUE,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = FALSE
+)
 
 ```
 
@@ -69,7 +96,7 @@ qplot(PC, Variance, data=e.var, geom = c("point")
 
 
 pctable = as.data.frame(mir.pca$x)[, 1:5]
-pctable = cbind(pctable, sampleInfo_Mutants)
+pctable = cbind(pctable, sampleInfo)
 
 
 test  = plotPCAplot(PCAinfo = pctable, n.comp = 4,
@@ -153,21 +180,15 @@ loadingsDF = gather(loadings1, key = PC, value = Loading, -Geneid )
 
 ggplot(loadingsDF, mapping = aes(x = Loading, color = PC )) + geom_density() 
 
-
-
-
 loadingsDF.all = loadingsDF %>%  spread(key = PC, value = Loading)
-
-
-
 
 tmp = loadingsDF.all
 tmp$distance =  ((tmp$PC1^2 + tmp$PC2^2 + tmp$PC3^2)^0.5)
 loadingsDF.all = tmp
 
 
-loadingsDF.all.factorDistance =loadingsDF.all %>% gather(key = factor, value = distance2Factor,Time,Gd7,Toll10b,Toll9 )
-
+#loadingsDF.all.factorDistance =loadingsDF.all %>% gather(key = factor, value = distance2Factor,Time,Gd7,Toll10b,Toll9 )
+loadingsDF.all.factorDistance =loadingsDF.all %>% gather(key = factor, value = distance2Factor,Gd7,Toll10b,Toll9 )
 
 loadingsDF.all.factorDistance$distanceFactor = sqrt(loadingsDF.all.factorDistance$distance^2 -
                                                    loadingsDF.all.factorDistance$distance2Factor^2)

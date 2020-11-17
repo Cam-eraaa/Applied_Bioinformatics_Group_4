@@ -6,5 +6,8 @@
 "0",""
 "0","# Include the functions from the expression analysis script"
 "0","source(paste(params$workingDir, params$RscriptsDir,""ExpressionAnalysisFunctions.r"", sep = ""/""))"
-"2","Error in (function (srcref)  : unimplemented type (29) in 'eval'
-"
+"0","library(tidyverse)"
+"0","library(gplots)"
+"0","library(kableExtra)"
+"0","library(DESeq2)"
+"0","library(""viridis"")"

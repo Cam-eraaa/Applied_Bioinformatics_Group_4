@@ -1,0 +1,284 @@
+---
+title: "Creating loading scores for the seq data"
+author: "Jenny Jakobsson"
+date: "11/12/2020"
+output: html_document
+params:
+    workingDir: ~/Applied_Bioinformatics_Group_4
+    dataDir: data_johan/data/ATACseq
+    RscriptsDir: script/original_scripts
+    resultsDir: results/original_method/ATACseq
+    normalisedATACpeakData: ATAC.CBP.peak.featureCount.rlog.tab.txt
+    ATACSampleInfo: ATAC.sampleInfo.QC.tab.txt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load the functions script (for plotting)
+source(
+  paste(
+    params$workingDir,
+    params$RscriptsDir,
+    "ExpressionAnalysisFunctions.r",
+    sep = "/"
+  )
+)
+library(tidyverse)
+library(gplots)
+library(kableExtra)
+library(DESeq2)
+library("viridis")
+```
+
+```{r load the data}
+# Load the sample info
+sampleInfoFile = paste(params$workingDir, params$resultsDir, params$ATACSampleInfo,
+                       sep = "/")
+sampleInfo = read.table(sampleInfoFile,
+  header = TRUE,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = FALSE
+)
+# Load the rlog values
+normexpression_file = paste(params$workingDir,
+                            params$resultsDir,
+                            params$normalisedATACpeakData,
+                            sep = "/")
+normExpression.QC = read.table(
+  normexpression_file,
+  header = TRUE,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = FALSE
+)
+
+```
+
+## Creating loading scores for the ATACseq data
+
+```{r PCA on the sampleData ,message=FALSE ,warning = FALSE}
+
+plotSample2SampleDistance(normExpression.QC)
+
+
+
+#'  __Figure 1 Plotting sample to sample distance__ . 
+#'  0 means that they are identical and 1 means that they are totally different.  
+#'  The darker the blue the more similair. Also dendogram shows how similair they are. 
+#' 
+#' Samples do not cluster according to pre an post op. Most likely more due to difference in mapping (technical problem)
+#' 
+#' #### PCA analysis
+#' Running PCA on the samples and plotting the different variables to see which of the parameterrs that fit the different components the best.
+#' 
+#' First checking how much the different PC contribute. 
+
+
+mir.pca <- prcomp(t(normExpression.QC), center = TRUE, scale = FALSE) 
+e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
+e.var = as.data.frame( e.var )
+e.var$PC = as.factor(1:nrow(e.var)) 
+e.var$Variance = e.var$e.var*100
+e.var$CumulativeVariance = cumsum(e.var$Variance)
+qplot(PC, Variance, data=e.var, geom = c("point")
+      , ylim = c(0,max(e.var$Variance)+5) 
+      ,ylab = "Variance (%)")
+
+#'  __Figure 2 Plotting PCA variance__.  
+#'  Displays how much each of the PC contributes to the overall expression.    
+#'  This suggest that the two first PC explains most of the variation.
+#'
+#+ save2, include=FALSE
+#ggsave(paste(params$workingDirectory,params$resultsDirectory, "PCAvariance.png", sep = "/"))
+#'
+#'
+
+
+pctable = as.data.frame(mir.pca$x)[, 1:5]
+pctable = cbind(pctable, sampleInfo)
+
+
+test  = plotPCAplot(PCAinfo = pctable, n.comp = 4,
+            varianceInfo = e.var, 
+            colorComponent = "Genotype",pchComponent = "Time"
+              
+)
+
+test
+
+mean = pctable %>% dplyr::select(PC1,PC2,PC3,Genotype) %>%
+  dplyr::group_by(Genotype) %>%
+  dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2), PC3 = mean(PC3) )
+
+
+# Changes here to include PC1
+origo = data.frame(PC1=0,PC2=0, PC3 = 0)
+line.gd7 = rbind(mean[1,2:4],origo,-mean[1,2:4])
+line.gd7$factor = "Gd7"
+line.toll10b = rbind(mean[2,2:4],origo,-mean[2,2:4])
+line.toll10b$factor = "Toll10b"
+line.toll9 = rbind(mean[3,2:4],origo,-mean[3,2:4])
+line.toll9$factor = "Toll9"
+
+line = rbind(line.gd7,line.toll10b,line.toll9)
+
+ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC2,y = PC3, color = Genotype, shape = Time))
+
+```
+
+
+###  Gene scores
+
+```{r convert loadings to the factor Scores}
+loadings =mir.pca$rotation[,1:3]
+
+loadings1 = as.data.frame(t((t(loadings)-colMeans(loadings))/colSds(loadings)))
+loadings1$Geneid = rownames(loadings)
+
+#loadings1 = as.data.frame(loadings)
+
+distance3d <- function(a,b){
+  v1 = a - b
+  
+  distance = ((v1[[1]]^2 + v1[[2]]^2 + v1[[3]]^2)^0.5)
+  return(distance)
+}
+
+
+dist3d <- function(point,b,c) {
+  v1 <- b - c
+  v2 <- point - b      
+  v3 <- cross3d_prod(v1,v2)
+  area <- sqrt(sum(v3*v3))/2
+  d <- 2*area/sqrt(sum(v1*v1))
+  return(d)
+}
+
+cross3d_prod <- function(v1,v2){
+  v3 <- vector()
+  v3[1] <- v1[2]*v2[3]-v1[3]*v2[2]
+  v3[2] <- v1[3]*v2[1]-v1[1]*v2[3]
+  v3[3] <- v1[1]*v2[2]-v1[2]*v2[1]
+  return(v3)
+}
+
+for(j in unique(line$factor)){
+  loadings1[[j]]=0
+  for(i in 1:nrow(loadings1)){
+  line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1,PC2,PC3)
+  loadings1[i,j] = dist3d(b =as.numeric(line1[1,]),
+                            c = as.numeric(line1[3,]),
+                            point = as.numeric(loadings1[i,1:3]))
+
+  }
+
+}
+
+  
+loadingsDF = gather(loadings1, key = PC, value = Loading, -Geneid )
+
+ggplot(loadingsDF, mapping = aes(x = Loading, color = PC )) + geom_density() 
+
+loadingsDF.all = loadingsDF %>%  spread(key = PC, value = Loading)
+
+tmp = loadingsDF.all
+tmp$distance =  ((tmp$PC1^2 + tmp$PC2^2 + tmp$PC3^2)^0.5)
+loadingsDF.all = tmp
+
+
+#loadingsDF.all.factorDistance =loadingsDF.all %>% gather(key = factor, value = distance2Factor,Time,Gd7,Toll10b,Toll9 )
+loadingsDF.all.factorDistance =loadingsDF.all %>% gather(key = factor, value = distance2Factor,Gd7,Toll10b,Toll9 )
+
+loadingsDF.all.factorDistance$distanceFactor = sqrt(loadingsDF.all.factorDistance$distance^2 -
+                                                   loadingsDF.all.factorDistance$distance2Factor^2)
+
+loadingsDF.all.factorDistance$distanceFactor[is.na(loadingsDF.all.factorDistance$distanceFactor)] = 0
+
+
+loadingsDF.all.factorDistance$direction = "Down"
+line$Dir = rep(c("Up","origo","Down"), 4)
+
+
+for(i in 1:nrow(loadingsDF.all.factorDistance)){
+  factor2 = loadingsDF.all.factorDistance[i,]$factor
+  UpPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Up") %>% dplyr::select(PC1,PC2,PC3)
+  DownPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Down") %>% dplyr::select(PC1,PC2,PC3)
+  point = loadingsDF.all.factorDistance[i,c("PC1","PC2","PC3")]
+  up = distance3d(as.numeric( UpPoint),as.numeric(point))
+  down = distance3d(as.numeric(DownPoint),as.numeric(point))
+  
+  if(up < down){
+    loadingsDF.all.factorDistance[i,"direction"] = "Up"
+  }else{
+    loadingsDF.all.factorDistance[i,"distanceFactor"] = 
+      -loadingsDF.all.factorDistance[i,"distanceFactor"]
+  }
+}
+
+
+
+
+loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select( Geneid,PC1, PC2,PC3, distance, factor,distanceFactor) %>% spread( key = factor, value = distanceFactor)
+
+
+loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(Geneid) %>% summarise(max = max(abs(distanceFactor)))
+ 
+
+
+loadingsDF.all.factorDistance$max=abs(loadingsDF.all.factorDistance$distanceFactor) 
+
+
+
+loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,loadingsDF.all.factorDistance.max) %>%
+  dplyr::select(Geneid, factor, direction)
+
+loadingsDF.all.factorDistance.max.peakInfo = inner_join (peakInfo,loadingsDF.all.factorDistance.max )
+
+loadingsDF.all.factorDistance.max.peakInfo = inner_join(
+  loadingsDF.all.factorDistance.max.peakInfo,
+  loadingsDF.all.factorDistance2
+)
+
+
+loadingsDF.all.factorDistance.max.peakInfo2 = 
+  loadingsDF.all.factorDistance.max.peakInfo %>%
+  dplyr::select(-PC1, -PC2,-PC3,-distance)
+
+
+fileNameATACseq = paste( params$workingDir, params$resultsDir,  
+                        params$ATACSeq.data.raw,
+                             sep = "/")
+write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameATACseq,
+                  quote = F, sep = "\t", col.names = T, row.names = F) 
+
+
+
+
+loadingsDF.all.filtered = loadingsDF.all.factorDistance.max.peakInfo %>% filter(distance >2)  %>% dplyr::select(Geneid, factor, direction)
+
+loadingsDF.all.filtered2  = inner_join(loadingsDF.all.filtered, loadingsDF.all.factorDistance2)
+
+
+
+
+loadingsDF.all.filtered = loadingsDF.all.filtered2 
+dim(loadingsDF.all.filtered)
+
+loadingsDF.all.filtered.peakInfo = inner_join (peakInfo,loadingsDF.all.filtered )
+
+
+     
+
+
+PROseq.data.selected  = PROseq.data %>%filter (annotation2 == "DE") %>%dplyr::select(geneID,transcriptID, factor,direction) %>% distinct()
+
+
+
+write.table(x = loadingsDF.all.filtered.peakInfo, 
+            file = paste( params$workingDir, params$resultsDir, 
+                          "selectedGenes.tsv" ,sep = "/"),
+            quote = F, sep = "\t", col.names = TRUE, row.names = F)  
+
+
+```
