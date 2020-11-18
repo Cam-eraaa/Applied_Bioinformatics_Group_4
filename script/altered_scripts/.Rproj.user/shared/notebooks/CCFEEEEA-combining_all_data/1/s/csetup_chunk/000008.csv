@@ -8,7 +8,60 @@
 "0","#install.packages(""umap"")"
 "0","library(umap)"
 "0","library(clusterProfiler)"
+"2","
+"
+"2","Registered S3 method overwritten by 'data.table':
+  method           from
+  print.data.table     
+"
+"2","clusterProfiler v3.18.0  For help: https://guangchuangyu.github.io/software/clusterProfiler
+
+If you use clusterProfiler in published research, please cite:
+Guangchuang Yu, Li-Gen Wang, Yanyan Han, Qing-Yu He. clusterProfiler: an R package for comparing biological themes among gene clusters. OMICS: A Journal of Integrative Biology. 2012, 16(5):284-287.
+"
+"2","
+Attaching package: ‘clusterProfiler’
+
+"
+"2","The following object is masked from ‘package:IRanges’:
+
+    slice
+
+"
+"2","The following object is masked from ‘package:S4Vectors’:
+
+    rename
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    simplify
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    filter
+
+"
 "0","library(org.Dm.eg.db)"
+"2","Loading required package: AnnotationDbi
+"
+"2","
+Attaching package: ‘AnnotationDbi’
+
+"
+"2","The following object is masked from ‘package:clusterProfiler’:
+
+    select
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    select
+
+"
+"2","
+"
 "0","library(tidyverse)"
 "0","library(gplots)"
 "0","library(knitr)"

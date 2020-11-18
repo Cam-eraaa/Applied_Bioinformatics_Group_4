@@ -10,8 +10,6 @@ params:
     RscriptsDir: script/original_scripts
     proSeqDir: results/original_method/PRO-seq
     resultsDir: results/original_method/ATACseq
-    ATACSeq.data: ATACseq.data.tsv
-    ATACSeq.data.raw: ATACseq.data.raw.tsv
     sampleInfo: data_johan/information/cleaned/ChIP_ATAC_sampleInfo.tab.txt
     count_ATAC: ATAC.CBP.peak.featureCount.count.tab.txt
     count_ATAC_QC: ATAC.CBP.peak.featureCount.count.QC.tab.txt
