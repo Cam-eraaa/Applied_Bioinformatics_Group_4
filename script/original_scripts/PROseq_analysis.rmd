@@ -11,6 +11,7 @@ params:
     proSeqDir: results/original_method/PRO-seq
     informationDir: data_johan/information/cleaned
     resultsDir: results/original_method/PROseq
+    PROseq.data: PROseq.data.tsv
 ---
 
 ```{r setup, include=FALSE}
@@ -31,7 +32,8 @@ source(paste(params$workingDir, params$RscriptsDir,"ExpressionAnalysisFunctions.
 library(clusterProfiler)
 library(org.Dm.eg.db)
 library(DESeq2)
-library(dplyr)
+library("tidyverse")
+#library(dplyr)
 library(tidyr)
 library(knitr)
 library(kableExtra)
@@ -295,7 +297,7 @@ line.toll9$factor = "Toll9"
 line.time = rbind(meantime[2,2:4],origo,meantime[1,2:4])
 line.time$factor = "Time"
 
-line = rbind(line.gd7,line.toll10b,line.toll9,line.time)
+line = rbind(line.gd7,line.toll10b,line.toll9)
 
 pctable$factor  = pctable$mutant
 pctable$factor =  recode(pctable$factor, gd7 = "Gd7")
@@ -325,7 +327,6 @@ ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom
 Saving the sampleInfo, geneInfo, Countdata and logarithmized countdata into files
 
 ```{r save the files}
-
 sampleInfoFile = paste(params$workingDir, params$resultsDir,"sampleInfo.QC.tab.txt", sep = "/")
 write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F,col.names = T)
 geneTableFile = paste(params$workingDir, params$resultsDir,"gene.QC.tab.txt", sep = "/")
@@ -337,4 +338,122 @@ write.table(x = normExpression.QC, file = rlogTableFile, quote = F, sep =  "\t",
 ```
 
 
+###  Gene scores
 
+```{r convert loadings to the factor Scores}
+# Saves the loading scores for PC1-PC3
+line = rbind(line.gd7, line.toll10b, line.toll9, line.time)
+loadings = mir.pca$rotation[, 1:3]
+
+# Converts the loading values by subtracting the column(PC) mean and dividing by the column(PC) standard deviation. The columns needs to be transposed to rows to calculate and are then transposed back to columns
+loadings_norm = as.data.frame(t((t(loadings) - colMeans(loadings)) / colSds(loadings)))
+loadings_norm$geneID = rownames(loadings)
+
+loadings_new = loadings_norm
+for (j in unique(line$factor)) {
+  loadings_new[[j]] = 0
+  for (i in 1:nrow(loadings_norm)) {
+    line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1, PC2, PC3)
+    loadings_new[i, j] = dist3d(
+      b = as.numeric(line1[1,]),
+      c = as.numeric(line1[3,]),
+      point = as.numeric(loadings_new[i, 1:3])
+    )
+  }
+}
+
+  
+loadingsDF = gather(loadings_new, key = PC, value = Loading, -geneID )
+
+ggplot(loadingsDF, mapping = aes(x = Loading, color = PC )) + geom_density() 
+
+# Recreates the same data from as loadings_new but in another column order
+loadingsDF.all = loadingsDF %>%  spread(key = PC, value = Loading)
+
+tmp = loadingsDF.all
+tmp$distance =  ((tmp$PC1^2 + tmp$PC2^2 + tmp$PC3^2)^0.5)
+loadingsDF.all = tmp
+
+
+loadingsDF.all.factorDistance =loadingsDF.all %>% gather(key = factor, value = distance2Factor,Time,Gd7,Toll10b,Toll9 )
+
+loadingsDF.all.factorDistance$distanceFactor = sqrt(loadingsDF.all.factorDistance$distance^2 -
+                                                   loadingsDF.all.factorDistance$distance2Factor^2)
+
+loadingsDF.all.factorDistance$distanceFactor[is.na(loadingsDF.all.factorDistance$distanceFactor)] = 0
+
+
+loadingsDF.all.factorDistance$direction = "Down"
+line$Dir = rep(c("Up","origo","Down"), 4)
+
+
+for(i in 1:nrow(loadingsDF.all.factorDistance)){
+  factor2 = loadingsDF.all.factorDistance[i,]$factor
+  UpPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Up") %>% dplyr::select(PC1,PC2,PC3)
+  DownPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Down") %>% dplyr::select(PC1,PC2,PC3)
+  point = loadingsDF.all.factorDistance[i,c("PC1","PC2","PC3")]
+  up = distance3d(as.numeric( UpPoint),as.numeric(point))
+  down = distance3d(as.numeric(DownPoint),as.numeric(point))
+  
+  if(up < down){
+    loadingsDF.all.factorDistance[i,"direction"] = "Up"
+  }else{
+    loadingsDF.all.factorDistance[i,"distanceFactor"] = 
+      -loadingsDF.all.factorDistance[i,"distanceFactor"]
+  }
+}
+
+loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select( geneID,PC1, PC2,PC3, distance, factor,distanceFactor) %>% spread( key = factor, value = distanceFactor)
+
+
+loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(geneID) %>% summarise(max = max(abs(distanceFactor)))
+ 
+
+
+loadingsDF.all.factorDistance$max=abs(loadingsDF.all.factorDistance$distanceFactor) 
+
+
+
+loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,loadingsDF.all.factorDistance.max) %>%
+  dplyr::select(geneID, factor, direction)
+
+loadingsDF.all.factorDistance.max.peakInfo = inner_join (normExpressionDF.QC,loadingsDF.all.factorDistance.max )
+
+loadingsDF.all.factorDistance.max.peakInfo = inner_join(
+  loadingsDF.all.factorDistance.max.peakInfo,
+  loadingsDF.all.factorDistance2
+)
+
+
+loadingsDF.all.factorDistance.max.peakInfo2 = 
+  loadingsDF.all.factorDistance.max.peakInfo %>%
+  dplyr::select(-PC1, -PC2,-PC3,-distance)
+
+fileNamePROseq = paste( params$workingDir, params$resultsDir,  
+                        params$PROseq.data,
+                             sep = "/")
+write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNamePROseq,
+                  quote = F, sep = "\t", col.names = T, row.names = F)
+
+# # Parameter changeable??? Goes 9000 to 2000 genes
+# loadingsDF.all.filtered = loadingsDF.all.factorDistance.max.peakInfo %>% filter(distance >2)  %>% dplyr::select(geneID, factor, direction)
+# 
+# loadingsDF.all.filtered2  = inner_join(loadingsDF.all.filtered, loadingsDF.all.factorDistance2)
+# 
+# 
+# loadingsDF.all.filtered = loadingsDF.all.filtered2 
+# dim(loadingsDF.all.filtered)
+# 
+# loadingsDF.all.filtered.peakInfo = inner_join (peakInfo,loadingsDF.all.filtered )
+# 
+# PROseq.data.selected  = PROseq.data %>%filter (annotation2 == "DE") %>%dplyr::select(geneID,transcriptID, factor,direction) %>% distinct()
+# 
+# 
+# 
+# write.table(x = loadingsDF.all.filtered.peakInfo,
+#             file = paste( params$workingDir, params$resultsDir,
+#                           "selectedGenes.tsv" ,sep = "/"),
+#             quote = F, sep = "\t", col.names = TRUE, row.names = F)
+
+
+```
