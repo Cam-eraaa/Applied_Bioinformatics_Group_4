@@ -182,6 +182,82 @@ normExpression.QC = normExpression.QC[, -1]
 
 ```
 
+### Print ATAC data to file
+
+```{r save the files ,message=FALSE ,warning = FALSE}
+## Saving sampleInfo File
+
+#Load ATAC.sampleInfo.QC.tab.txt into a table named sampleInfo_Mutants
+sampleInfoFile = paste(params$workingDir,
+                       params$ATACresultsDir,
+                       "ATAC.sampleInfo.QC.tab.txt",
+                       sep = "/")
+write.table(
+  x = sampleInfo_Mutants,
+  file = sampleInfoFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+
+## Saving peakInfo File
+#Create the table peakInfo_QC and save in the file ATAC.CBP.peaks.QC.tab.txt
+peakInfo_QC = peakInfo %>%
+  dplyr::rename(geneID = Geneid) %>%
+  inner_join(geneInfo.QC2)
+
+peakTableFile = paste(params$workingDir,
+                      params$ATACresultsDir,
+                      "ATAC.CBP.peaks.QC.tab.txt",
+                      sep = "/")
+write.table(
+  x = peakInfo_QC,
+  file = peakTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+
+#Create the table countData.QC and save in the file ATAC.CBP.peak.featureCount.count.QC.tab.txt
+count_ATAC_QC_File = paste(params$workingDir,
+                           params$ATACresultsDir,
+                           paste(params$count_ATAC_QC, sep = "."),
+                           sep = "/")
+countData.QC = countData_mutants[peakInfo_QC$geneID,
+                                 sampleInfo_Mutants$SampleInfo]
+write.table(
+  x = countData.QC,
+  file = count_ATAC_QC_File,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
+
+
+## Saving normalised count file
+#Create the table normExpression.QC and save in the file ATAC.CBP.peak.featureCount.rlog.tab.txt
+NormalisedCountFile = paste(
+  params$workingDir,
+  params$ATACresultsDir,
+  paste(params$normalisedATACpeakData, sep = "."),
+  sep = "/"
+)
+normExpression.QC = normExpression[peakInfo_QC$geneID, sampleInfo_Mutants$SampleInfo]
+
+write.table(
+  x = normExpression.QC,
+  file = NormalisedCountFile,
+  quote = F,
+  sep = "\t",
+  col.names = T,
+  row.names = T
+)
+
+```
+
 ```{r heatmap and PCA ,message=FALSE ,warning = FALSE}
 
 plotSample2SampleDistance(normExpression.QC)
@@ -370,81 +446,5 @@ write.table(x = loadingsDF.all.filtered.peakInfo,
             file = paste( params$workingDir, params$ATACresultsDir, 
                           "selectedGenes.tsv" ,sep = "/"),
             quote = F, sep = "\t", col.names = TRUE, row.names = F)  
-```
-
-### Print ATAC data to file
-
-```{r save the files ,message=FALSE ,warning = FALSE}
-## Saving sampleInfo File
-
-#Load ATAC.sampleInfo.QC.tab.txt into a table named sampleInfo_Mutants
-sampleInfoFile = paste(params$workingDir,
-                       params$ATACresultsDir,
-                       "ATAC.sampleInfo.QC.tab.txt",
-                       sep = "/")
-write.table(
-  x = sampleInfo_Mutants,
-  file = sampleInfoFile,
-  quote = F,
-  sep =  "\t",
-  row.names = F,
-  col.names = T
-)
-
-## Saving peakInfo File
-#Create the table peakInfo_QC and save in the file ATAC.CBP.peaks.QC.tab.txt
-peakInfo_QC = peakInfo %>%
-  dplyr::rename(geneID = Geneid) %>%
-  inner_join(geneInfo.QC2)
-
-peakTableFile = paste(params$workingDir,
-                      params$ATACresultsDir,
-                      "ATAC.CBP.peaks.QC.tab.txt",
-                      sep = "/")
-write.table(
-  x = peakInfo_QC,
-  file = peakTableFile,
-  quote = F,
-  sep =  "\t",
-  row.names = F,
-  col.names = T
-)
-
-#Create the table countData.QC and save in the file ATAC.CBP.peak.featureCount.count.QC.tab.txt
-count_ATAC_QC_File = paste(params$workingDir,
-                           params$ATACresultsDir,
-                           paste(params$count_ATAC_QC, sep = "."),
-                           sep = "/")
-countData.QC = countData_mutants[peakInfo_QC$geneID,
-                                 sampleInfo_Mutants$SampleInfo]
-write.table(
-  x = countData.QC,
-  file = count_ATAC_QC_File,
-  quote = F,
-  sep =  "\t",
-  row.names = T,
-  col.names = T
-)
-
-
-## Saving normalised count file
-#Create the table normExpression.QC and save in the file ATAC.CBP.peak.featureCount.rlog.tab.txt
-NormalisedCountFile = paste(
-  params$workingDir,
-  params$ATACresultsDir,
-  paste(params$normalisedATACpeakData, sep = "."),
-  sep = "/"
-)
-normExpression.QC = normExpression[peakInfo_QC$geneID, sampleInfo_Mutants$SampleInfo]
-
-write.table(
-  x = normExpression.QC,
-  file = NormalisedCountFile,
-  quote = F,
-  sep = "\t",
-  col.names = T,
-  row.names = T
-)
-
 ```
 
