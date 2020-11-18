@@ -180,7 +180,7 @@ loadingsDF = gather(loadings_new, key = PC, value = Loading, -Geneid )
 
 ggplot(loadingsDF, mapping = aes(x = Loading, color = PC )) + geom_density() 
 
-# Recreates the same data fram as loadings_new but in another column order
+# Recreates the same data from as loadings_new but in another column order
 loadingsDF.all = loadingsDF %>%  spread(key = PC, value = Loading)
 
 tmp = loadingsDF.all
