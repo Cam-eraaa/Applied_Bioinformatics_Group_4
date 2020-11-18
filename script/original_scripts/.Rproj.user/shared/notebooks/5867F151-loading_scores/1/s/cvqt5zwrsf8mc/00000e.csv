@@ -1,0 +1,2 @@
+"0",""
+"0","ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC2, color = Genotype, shape = Time))"
