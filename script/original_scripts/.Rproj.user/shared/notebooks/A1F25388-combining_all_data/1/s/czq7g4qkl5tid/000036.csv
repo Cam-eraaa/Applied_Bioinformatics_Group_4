@@ -1,8 +1,0 @@
-"0",""
-"0",""
-"0","pctable = as.data.frame(mir.pca$x)[, 1:4]"
-"0","pctable$SYMBOL_unique = rownames(pctable)"
-"0","AllData = inner_join(AllData, pctable)"
-"2","Joining, by = ""SYMBOL_unique""
-"
-"0","ggplot(data = AllData, mapping = aes(x = PC1, y = PC2 ,color = K27ac_factor , shape = K27ac_direction, label = SYMBOL))+ geom_point()"

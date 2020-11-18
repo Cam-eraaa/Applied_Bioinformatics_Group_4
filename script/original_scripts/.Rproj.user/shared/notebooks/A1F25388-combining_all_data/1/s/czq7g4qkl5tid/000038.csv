@@ -1,2 +1,0 @@
-"0",""
-"0","ggplot(data = AllData, mapping = aes(x = PC1, y = PC2 ,color = factor , shape = direction, label = SYMBOL))+ geom_point()"

@@ -1,0 +1,24 @@
+{
+    "id": "EADDA21B",
+    "path": "~/Applied_Bioinformatics_Group_4/script/original_scripts/ExpressionAnalysisFunctions.r",
+    "project_path": "ExpressionAnalysisFunctions.r",
+    "type": "r_source",
+    "hash": "120240790",
+    "contents": "",
+    "dirty": false,
+    "created": 1605693050161.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "cursorPosition": "20,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1605693086,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1605693086291,
+    "read_only": false,
+    "read_only_alternatives": []
+}

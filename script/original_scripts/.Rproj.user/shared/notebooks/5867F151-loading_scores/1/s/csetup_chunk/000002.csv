@@ -1,0 +1,76 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0","# Load the functions script (for plotting)"
+"0","source("
+"0","  paste("
+"0","    params$workingDir,"
+"0","    params$RscriptsDir,"
+"0","    ""ExpressionAnalysisFunctions.r"","
+"0","    sep = ""/"""
+"0","  )"
+"0",")"
+"2","Registered S3 method overwritten by 'GGally':
+  method from   
+  +.gg   ggplot2
+"
+"0","# Load the required packages"
+"0","library(tidyverse)"
+"2","Registered S3 methods overwritten by 'dbplyr':
+  method         from
+  print.tbl_lazy     
+  print.tbl_sql      
+"
+"2","[37m── [1mAttaching packages[22m ───────────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──[39m
+"
+"2","[37m[32m✓[37m [34mtibble [37m 3.0.4     [32m✓[37m [34mdplyr  [37m 1.0.2
+[32m✓[37m [34mtidyr  [37m 1.1.2     [32m✓[37m [34mstringr[37m 1.4.0
+[32m✓[37m [34mreadr  [37m 1.4.0     [32m✓[37m [34mforcats[37m 0.5.0
+[32m✓[37m [34mpurrr  [37m 0.3.4     [39m
+"
+"2","[37m── [1mConflicts[22m ──────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+[31mx[37m [34mdplyr[37m::[32mcollapse()[37m   masks [34mIRanges[37m::collapse()
+[31mx[37m [34mdplyr[37m::[32mcombine()[37m    masks [34mgridExtra[37m::combine(), [34mBiobase[37m::combine(), [34mBiocGenerics[37m::combine()
+[31mx[37m [34mdplyr[37m::[32mcount()[37m      masks [34mmatrixStats[37m::count()
+[31mx[37m [34mdplyr[37m::[32mdesc()[37m       masks [34mIRanges[37m::desc()
+[31mx[37m [34mtidyr[37m::[32mexpand()[37m     masks [34mS4Vectors[37m::expand()
+[31mx[37m [34mdplyr[37m::[32mfilter()[37m     masks [34mstats[37m::filter()
+[31mx[37m [34mdplyr[37m::[32mfirst()[37m      masks [34mS4Vectors[37m::first()
+[31mx[37m [34mdplyr[37m::[32mlag()[37m        masks [34mstats[37m::lag()
+[31mx[37m [34mggplot2[37m::[32mPosition()[37m masks [34mBiocGenerics[37m::Position(), [34mbase[37m::Position()
+[31mx[37m [34mpurrr[37m::[32mreduce()[37m     masks [34mGenomicRanges[37m::reduce(), [34mIRanges[37m::reduce()
+[31mx[37m [34mdplyr[37m::[32mrename()[37m     masks [34mS4Vectors[37m::rename()
+[31mx[37m [34mdplyr[37m::[32mslice()[37m      masks [34mIRanges[37m::slice()[39m
+"
+"0","library(gplots)"
+"2","
+Attaching package: ‘gplots’
+
+"
+"2","The following object is masked from ‘package:IRanges’:
+
+    space
+
+"
+"2","The following object is masked from ‘package:S4Vectors’:
+
+    space
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    lowess
+
+"
+"0","library(kableExtra)"
+"2","
+Attaching package: ‘kableExtra’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    group_rows
+
+"
+"0","library(DESeq2)"
+"0","library(""viridis"")"
+"2","Loading required package: viridisLite
+"

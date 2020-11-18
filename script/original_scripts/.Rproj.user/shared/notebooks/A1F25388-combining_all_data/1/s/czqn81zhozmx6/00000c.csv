@@ -1,6 +1,0 @@
-"0",""
-"0","# Load in the fastq file that is generated as data from running multiqc on all samples. "
-"0","gtfFile = paste(params$workingDir, ""Drosophila_melanogaster.BDGP6.28.101.gtf"", sep = ""/"")"
-"0","gtfInfo = read.table(file = gtfFile, header = F, sep = ""\t"", quote = """", stringsAsFactors = F)"
-"2","Error in (function (srcref)  : unimplemented type (29) in 'eval'
-"
