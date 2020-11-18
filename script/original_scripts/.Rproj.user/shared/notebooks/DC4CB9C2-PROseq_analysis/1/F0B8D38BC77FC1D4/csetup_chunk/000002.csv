@@ -1,5 +1,0 @@
-"0","# Include the functions from the expression analysis script
-source(paste(params$workingDir, params$RscriptsDir,""ExpressionAnalysisFunctions.r"", sep = ""/""))
-"
-"2","Error in (function (srcref)  : unimplemented type (29) in 'eval'
-"

@@ -1,4 +1,0 @@
-"0",""
-"0","qplot(PC, Variance, data=e.var, geom = c(""point"")"
-"0","      , ylim = c(0,max(e.var$Variance)+5)"
-"0","      ,ylab = ""Variance (%)"")"

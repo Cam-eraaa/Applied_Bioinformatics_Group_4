@@ -1,8 +1,0 @@
-"0",""
-"0","featureCountFile = paste(params$workingDir, params$dataDir, params$chipSeqData, sep = ""/"")"
-"0",""
-"0","FCdata = read.table(file = featureCountFile, header = TRUE, sep = ""\t"", quote = """", stringsAsFactors = FALSE)"
-"0",""
-"0","peakInfo  = FCdata [,1:6]"
-"0","countData = FCdata[,-1:-6]"
-"0","rownames(countData) = peakInfo$Geneid"
