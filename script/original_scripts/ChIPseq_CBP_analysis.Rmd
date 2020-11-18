@@ -11,8 +11,8 @@ params:
   chipSeqData: CBP/CBP-CBP_dm6.featureCount.count.tab.txt
   resultsDir: results/original_method/ChIPseq
   Antibody: CBP
-  ATACresultsDir: results/original_method/ChIPseq/CBP
-  ATACSeq.data.raw: ChIPseq.CBP.data.tsv
+  ChIPresultsDir: results/original_method/ChIPseq/CBP
+  ChIPSeq.data: ChIPseq.CBP.data.tsv
 ---
 
 ```{r setup, include=FALSE}
@@ -277,7 +277,7 @@ for(j in unique(line$factor)){
   line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1,PC2,PC3)
   loadings_new[i,j] = dist3d(b =as.numeric(line1[1,]),
                             c = as.numeric(line1[3,]),
-                            point = as.numeric(loadings_norm[i,1:3]))
+                            point = as.numeric(loadings_new[i,1:3]))
 
   }
 
@@ -355,8 +355,8 @@ loadingsDF.all.factorDistance.max.peakInfo2 =
   dplyr::select(-PC1,-PC2,-PC3,-distance)
 
 
-fileNameATACseq = paste( params$workingDir, params$ATACresultsDir,  
-                        params$ATACSeq.data.raw,
+fileNameATACseq = paste( params$workingDir, params$ChIPresultsDir,  
+                        params$ChIPSeq.data,
                              sep = "/")
 write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameATACseq,
                   quote = F, sep = "\t", col.names = T, row.names = F) 

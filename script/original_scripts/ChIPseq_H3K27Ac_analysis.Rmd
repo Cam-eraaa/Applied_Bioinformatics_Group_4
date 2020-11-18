@@ -12,8 +12,8 @@ params:
   RscriptsDir: script/original_scripts
   resultsDir: results/original_method/ChIPseq
   Antibody: K27ac
-  ATACresultsDir: results/original_method/ChIPseq/K27ac
-  ATACSeq.data.raw: ChIPseq.H3K27Ac.data.tsv
+  ChIPresultsDir: results/original_method/ChIPseq/K27ac
+  ChIPSeq.data: ChIPseq.H3K27Ac.data.tsv
 ---
                              
 ```{r setup, include=FALSE}
@@ -274,7 +274,7 @@ for(j in unique(line$factor)){
   line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1,PC2,PC3)
   loadings_new[i,j] = dist3d(b =as.numeric(line1[1,]),
                             c = as.numeric(line1[3,]),
-                            point = as.numeric(loadings_norm[i,1:3]))
+                            point = as.numeric(loadings_new[i,1:3]))
 
   }
 
@@ -327,9 +327,7 @@ loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select
 loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(Geneid) %>% summarise(max = max(abs(distanceFactor)))
  
 
-
 loadingsDF.all.factorDistance$max=abs(loadingsDF.all.factorDistance$distanceFactor) 
-
 
 
 loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,loadingsDF.all.factorDistance.max) %>%
@@ -352,8 +350,8 @@ loadingsDF.all.factorDistance.max.peakInfo2 =
   dplyr::select(-PC1,-PC2,-PC3,-distance)
 
 
-fileNameATACseq = paste(params$workingDir, params$ATACresultsDir,  
-                        params$ATACSeq.data.raw,
+fileNameATACseq = paste(params$workingDir, params$ChIPresultsDir,  
+                        params$ChIPSeq.data,
                              sep = "/")
 write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameATACseq,
                   quote = F, sep = "\t", col.names = T, row.names = F) 

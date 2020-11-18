@@ -12,9 +12,9 @@ params:
     proSeq.data.PPC: PROseq.data.PPC.tsv
     ATACSeqDir: data_johan/results/ATACseq
     ATACSeq.data: ATACseq.data.raw.tsv
-    chipSeqDir: data_johan/results/chipSeq
-    k27ac.data: K27ac.ChIPseq.peak.pattern.raw.tsv
-    CBP.data: ATAC-CBP_dm6.ChIPseq.peak.pattern.raw.tsv
+    chipSeqDir: results/original_method/ChIPseq
+    k27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
+    CBP.data: CBP/ChIPseq.CBP.data.tsv
     RscriptsDir: script/original_scripts
     dataDir: data_johan/data/ATACseq
     sampleInfo: data_johan/information/ChIP_ATAC_sampleInfo.tab.txt
@@ -80,7 +80,7 @@ gtfInfoGene = gtfInfoGene %>% separate(
 #gtfInfoGene = gtfInfoGene$geneID
 
 ###### Contiune to fix the data frame gtfInfoGene
-gtfInfoAnnotation = gtfInfoGene  %>% select(V1, V4, V5, V7, geneID, geneName)
+gtfInfoAnnotation = gtfInfoGene %>% dplyr::select(V1, V4, V5, V7, geneID, geneName)
 
 # Summerize the information in a table with Chr, start, stop, direction,
 PROseqGenes = gtfInfoAnnotation %>% dplyr::rename(
@@ -250,9 +250,9 @@ K27acInfo =  read.table(
 )
 
 
-K27acLocation = K27acInfo %>% dplyr::select(Geneid, Chr, Start, End,  Strand)
+K27acLocation = K27acInfo %>% dplyr::select(geneID, Chr, Start, End,  Strand)
 
-K27acInfo = K27acInfo %>% dplyr::select(Geneid, factor, direction, Gd7,  Toll10b, Toll9,)
+K27acInfo = K27acInfo %>% dplyr::select(geneID, factor, direction, Gd7,  Toll10b, Toll9,)
 colnames(K27acInfo) = paste("K27ac", colnames(K27acInfo), sep = "_")
 
 colnames(K27acLocation) = paste("K27ac", colnames(K27acLocation), sep = "_")
