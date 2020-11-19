@@ -12,15 +12,16 @@ params:
     proSeq.data.PPC: PROseq.data.PPC.tsv
     ATACSeqDir: data_johan/results/ATACseq
     ATACSeq.data: ATACseq.data.raw.tsv
-    chipSeqDir: results/original_method/ChIPseq
-    k27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
-    CBP.data: CBP/ChIPseq.CBP.data.tsv
+    chipSeqDir: data_johan/results/chipSeq
+    k27ac.data: K27ac.ChIPseq.peak.pattern.tsv
+    CBP.data: ATAC-CBP_dm6.ChIPseq.peak.pattern.tsv
     RscriptsDir: script/original_scripts
     dataDir: data_johan/data/ATACseq
     sampleInfo: data_johan/information/ChIP_ATAC_sampleInfo.tab.txt
     bestTargets_write: results/original_method/TopTargets.txt
     bestTargets: data_johan/information/all/TopTargets.txt
     results_file: results/original_method/combined.AllData.withMetaData.txt
+
 ---
 
 ```{r setup, include=FALSE}
@@ -166,14 +167,14 @@ topTarget = inner_join(topTarget, gtfInfoAnnotation)
 
 topTargetsFileName_new = paste(params$workingDir, params$bestTargets_write, sep = "/")
 PROseqData.topTargets =  inner_join(PROseqData, topTarget) %>% dplyr::select(geneName, factor, direction, annotation, Factor, Direction)
-write.table(
-  x = PROseqData.topTargets,
-  file = topTargetsFileName_new,
-  sep = "\t",
-  quote = F,
-  row.names = F,
-  col.names =  T
-)
+# write.table(
+#   x = PROseqData.topTargets,
+#   file = topTargetsFileName_new,
+#   sep = "\t",
+#   quote = F,
+#   row.names = F,
+#   col.names =  T
+# )
 
 
 PROseqInfo %>% dplyr::select(geneID,
@@ -231,7 +232,9 @@ ATACseqInfo = read.table(
 )
 
 ATACseqInfo = ATACseqInfo %>% dplyr::select(Geneid, factor, direction, Time, Gd7,  Toll10b, Toll9,)
+ATACseqInfo = ATACseqInfo %>% dplyr::rename(geneID = Geneid)
 colnames(ATACseqInfo) = paste("ATACseq", colnames(ATACseqInfo), sep = "_")
+
 ```
 
 ## K27ac seq
@@ -249,7 +252,7 @@ K27acInfo =  read.table(
   stringsAsFactors = F
 )
 
-
+K27acInfo = K27acInfo %>% dplyr::rename(geneID = Geneid)
 K27acLocation = K27acInfo %>% dplyr::select(geneID, Chr, Start, End,  Strand)
 
 K27acInfo = K27acInfo %>% dplyr::select(geneID, factor, direction, Gd7,  Toll10b, Toll9,)
@@ -273,7 +276,7 @@ CBPInfo =  read.table(
   header = TRUE,
   stringsAsFactors = F
 )
-
+CBPInfo = CBPInfo %>% dplyr::rename(geneID = Geneid)
 CBPLocation = CBPInfo %>% dplyr::select(geneID, Chr, Start, End,  Strand)
 CBPInfo = CBPInfo %>% dplyr::select(geneID, factor, direction, Gd7,  Toll10b, Toll9, )
 colnames(CBPInfo)[2:ncol(CBPInfo)] = paste("CBP", colnames(CBPInfo)[2:ncol(CBPInfo)], sep = "_")
@@ -297,7 +300,8 @@ usedRegionsAndGenes = read.table(
   sep = "\t",
   stringsAsFactors = F
 )
-colnames(usedRegionsAndGenes)[1] = "ATACseq_Geneid"
+colnames(usedRegionsAndGenes)[1] = "ATACseq_geneID"
+colnames(usedRegionsAndGenes)[2] = "K27ac_geneID"
 AllData = inner_join(ATAC_CHiP, usedRegionsAndGenes)
 AllData = inner_join(AllData, K27acInfo)
 AllData = AllData %>% distinct()
@@ -369,12 +373,12 @@ AllData = AllData %>% dplyr::select(
   direction,
   PPC_factor,
   PPC_direction,
-  ATACseq_Geneid,
+  ATACseq_geneID,
   ATACseq_factor,
   ATACseq_direction,
   CBP_factor,
   CBP_direction,
-  K27ac_Geneid,
+  K27ac_geneID,
   K27ac_factor,
   K27ac_direction,
   PROseq_Time,
@@ -561,14 +565,14 @@ ggplot(
 # Save the data
 
 ```{r save the data}
-write.table(
-  x = AllData,
-  file = paste(params$workingDir, params$results_file , sep = "/"),
-  quote = F,
-  sep = "\t",
-  row.names = F,
-  col.names = T
-)
+# write.table(
+#   x = AllData,
+#   file = paste(params$workingDir, params$results_file , sep = "/"),
+#   quote = F,
+#   sep = "\t",
+#   row.names = F,
+#   col.names = T
+# )
 ```
 
 
