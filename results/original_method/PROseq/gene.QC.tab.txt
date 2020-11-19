@@ -1,4 +1,4 @@
-Geneid	Length	logExpression	knownGene
+geneID	Length	logExpression	knownGene
 FBgn0267431	6246	5.30826769740121	No
 FBgn0267430	6481	5.47227067367148	No
 FBgn0086917	1659	4.4188406077966	No

@@ -61,10 +61,11 @@ FCdata = read.table(
 # Creating matrix with geneID(1) and gene length(2)
 geneInfo  = FCdata [, 1:6]
 geneInfo  = geneInfo[, c(1, 6)]
+geneInfo = geneInfo %>% rename(geneID = Geneid)
 
 # Creating matrix for the countdata, geneID and count for each sample
 countData = FCdata[,-1:-6]
-rownames(countData) = geneInfo$Geneid
+rownames(countData) = geneInfo$geneID
 ```
 
 ## Create sample information
@@ -114,7 +115,7 @@ geneInfo$logExpression = log(rowSums(countData))
 geneInfo.QC = geneInfo %>% filter(logExpression > 1)
 
 # Save only the count data with genes with expression
-countData.QC =  countData[geneInfo.QC$Geneid, ]
+countData.QC =  countData[geneInfo.QC$geneID, ]
 ```
 
 ## Add information about genes involved in the differentiation of the tissues.
@@ -140,10 +141,10 @@ colnames(knownGenes) = c("Submitted ID", "Current ID", "Converted ID", "Related 
 # Set default value for the known gene as no
 geneInfo.QC$knownGene = "No"
 # Change value to yes if the geneID exist in the FlyBase database
-geneInfo.QC$knownGene[geneInfo.QC$Geneid %in% knownGenes$`Current ID`] = "Yes"
+geneInfo.QC$knownGene[geneInfo.QC$geneID %in% knownGenes$`Current ID`] = "Yes"
 ```
 
-### Identifying that two samples have wrong lables and needs to be switched.
+### Identifying that two samples that have wrong lables and needs to be switched.
 
 So it turns out that there was a label switch in the samples.. After going back to the lab-book we could identify the switch and therefore we make the change. Still we keep the information which bamfile belongs to which sample.
 
@@ -169,7 +170,7 @@ sampleInfo.QC %>%
 
 ## Differential expression analysis
 
-The data is analyzed with deseq2 to normalize the counts and do a differential expression analysis. The differential expression is investigated thorugh the log2 fold change. Genes with counts less then 100 were filtered out.
+The data is analyzed with deseq2 to normalize the counts and do a differential expression analysis. The differential expression is investigated through the log2 fold change. Genes with total counts less then 100 were filtered out.
 
 ```{r differential gene expression analysis, include=FALSE}
 #Save the corrected count data and sample info
@@ -183,7 +184,7 @@ dds <- DESeqDataSetFromMatrix(countData = exp.data,
 
 #Remove rows with low counts and normalise samples for visualisation
 dds <- dds[rowSums(counts(dds)) > 100, ]
-dim(dds)
+
 #Normalizing and change to 2 fold log changes.
 rld <- rlog(dds)
 ```
@@ -214,7 +215,7 @@ From the graph below we can see that a lot of the log2 fold change data is above
 
 ```{r filters out genes dependent on log fold change}
 
-# Summerizes statistical information in geneInfo.
+# Summarizes statistical information in geneInfo.
 geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
   dplyr::group_by (geneID) %>%
   dplyr::summarize (
@@ -259,13 +260,6 @@ e.var = as.data.frame( e.var )
 e.var$PC = as.factor(1:nrow(e.var))
 e.var$Variance = e.var$e.var*100
 e.var$CumulativeVariance = cumsum(e.var$Variance)
-qplot(PC, Variance, data=e.var, geom = c("point")
-      , ylim = c(0,max(e.var$Variance)+5)
-      ,ylab = "Variance (%)")
-
-#'  __Figure 2 Plotting PCA variance__.
-#'  Displays how much each of the PC contributes to the overall expression.
-#'  This suggest that the two first PC explains most of the variation.
 
 pctable = as.data.frame(mir.pca$x)[, 1:6]
 pctable$sampleName = rownames(pctable)
@@ -277,7 +271,6 @@ pca  = plotPCAplot(PCAinfo = pctable, n.comp = 5,
 )
 pca
 
-loadings = mir.pca$rotation[,1:3]
 mean = pctable %>% dplyr::select(PC1,PC2,PC3,mutant) %>%
   dplyr::group_by(mutant) %>%
   dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2), PC3 = mean(PC3) )
@@ -306,13 +299,14 @@ pctable$factor =  recode(pctable$factor, toll10b = "Toll10b")
 ```
 
 
-```{r Plot the axis }
+```{r Plot the variance and principal components }
 
 qplot(PC, Variance, data=e.var, geom = c("point")
       , ylim = c(0,max(e.var$Variance)+5)
       ,ylab = "Variance (%)")
-
-test
+#'  __Figure 2 Plotting PCA variance__.
+#'  Displays how much each of the PC contributes to the overall expression.
+#'  This suggest that the two first PC explains most of the variation.
 
 ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC2,y = PC3, color = factor, shape = time))+
   scale_color_viridis(discrete = TRUE, option = "D")
