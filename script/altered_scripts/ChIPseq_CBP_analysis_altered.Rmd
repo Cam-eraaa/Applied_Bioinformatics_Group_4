@@ -135,12 +135,12 @@ head(normExpressionDF)
 #Plot the CBP and input samples as one line each
 ggplot(normExpressionDF, aes(x = rlog, color = Input)) + geom_density()
 
-peakInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>% 
+peakInfo1 = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>% 
   dplyr::group_by (geneID) %>%
   dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
 
 #Filter out so that peakInfo.QC only has overQC values above 2. 
-peakInfo.QC = peakInfo %>% filter(overQC > 2)
+peakInfo.QC = peakInfo1 %>% filter(overQC > 2)
 #Filter so that normExpressionDF.QC only contains elements with a geneID that also is in peakInfo.QC
 normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% peakInfo.QC$geneID)
 
@@ -322,6 +322,8 @@ loadingsDF.all.factorDistance$max=abs(loadingsDF.all.factorDistance$distanceFact
 
 loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,loadingsDF.all.factorDistance.max) %>%
   dplyr::select(geneID, factor, direction)
+
+peakInfo = peakInfo %>% rename(geneID = Geneid)
 
 loadingsDF.all.factorDistance.max.peakInfo = inner_join (peakInfo,loadingsDF.all.factorDistance.max)
 
