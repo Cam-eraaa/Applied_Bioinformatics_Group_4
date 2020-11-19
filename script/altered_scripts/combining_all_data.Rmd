@@ -7,12 +7,12 @@ output: html_document
 params:
     workingDir: ~/Applied_Bioinformatics_Group_4
     annotationDir: data_johan/annotations
-    proSeqDir: data_johan/results/PROseq
+    proSeqDir: data_johan/results/all/PROseq
     proSeq.data: PROseq.data.tsv
     proSeq.data.PPC: PROseq.data.PPC.tsv
-    ATACSeqDir: data_johan/results/ATACseq
+    ATACSeqDir: data_johan/results/all/ATACseq
     ATACSeq.data: ATACseq.data.raw.tsv
-    chipSeqDir: data_johan/results/chipSeq
+    chipSeqDir: data_johan/results/all/chipSeq
     k27ac.data: K27ac.ChIPseq.peak.pattern.tsv
     CBP.data: ATAC-CBP_dm6.ChIPseq.peak.pattern.tsv
     RscriptsDir: script/original_scripts
@@ -292,7 +292,7 @@ colnames(CBPLocation)[2] = "Chr"
 usedRegionsAndGenes = read.table(
   file = paste(
     params$workingDir,
-    "data_johan/results/combined.peaks.location.tsv" ,
+    "data_johan/results/all/combined.peaks.location.tsv" ,
     sep = "/"
   ),
   header = T,
