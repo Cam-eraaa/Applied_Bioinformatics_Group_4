@@ -274,8 +274,8 @@ CBPInfo =  read.table(
   stringsAsFactors = F
 )
 
-CBPLocation = CBPInfo %>% dplyr::select(Geneid, Chr, Start, End,  Strand)
-CBPInfo = CBPInfo %>% dplyr::select(Geneid, factor, direction, Gd7,  Toll10b, Toll9, )
+CBPLocation = CBPInfo %>% dplyr::select(geneID, Chr, Start, End,  Strand)
+CBPInfo = CBPInfo %>% dplyr::select(geneID, factor, direction, Gd7,  Toll10b, Toll9, )
 colnames(CBPInfo)[2:ncol(CBPInfo)] = paste("CBP", colnames(CBPInfo)[2:ncol(CBPInfo)], sep = "_")
 colnames(CBPInfo)[1] = paste("ATACseq", colnames(CBPInfo)[1], sep = "_")
 
