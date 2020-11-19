@@ -3,10 +3,43 @@ title: "Identifying the enhancer gene pairs"
 author: "Jenny Jakobsson"
 date: "11/19/2020"
 output: html_document
+
+params:
+  workingDir: ~/Applied_Bioinformatics_Group_4/
+  CBPseqDir: results/CBP/ChIPseq_CBP.data.tsv
+  ATACseq.data: results/ATACseq/ATACseq.data.tsv
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+#install.packages("tidyverse")
+library(tidyverse)
+
 ```
+# Combining the scores to predict enhancer gene pairs
+
+## Load the required files
+```{r Loading the required files}
+# Load the ATAC seq loading scores
+ATACseq.data = read.table(
+  file = paste(params$workingDir, params$ATACseq.data, sep = ""),
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+
+
+
+```
+
+
+
+
+
+
+
+
+
 
 
