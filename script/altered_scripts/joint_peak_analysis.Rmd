@@ -6,14 +6,24 @@ output: html_document
 
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
-  CBPseqDir: results/CBP/ChIPseq_CBP.data.tsv
-  ATACseq.data: results/ATACseq/ATACseq.data.tsv
+  inSitu.data: data_johan/results/cleaned/inSitu/inSitu.Stark.dm6.tsv
+  PROseqDir: results/original_method/PROseq/
+  PROseq.data: PROseq.data.tsv
+  ChIPseqDir: results/original_method/ChIPseq/
+  CBP.data: CBP/ChIPseq.CBP.data.tsv
+  K27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
+  ATACseq.data: results/original_method/ATACseq/ATACseq.data.tsv
+  GD7enhancer: data_johan/results/cleaned/enhancers/h3k27ac_gd7_csaw_intersect.bed
+  Toll10Benhancer: data_johan/results/cleaned/enhancers/h3k27ac_Toll10B_csaw_intersect.bed
+  Toll9enhancer: data_johan/results/cleaned/enhancers/h3k27ac_Tollrm910_csaw_intersect.bed
+  
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 #install.packages("tidyverse")
 library(tidyverse)
+library(GenomicRanges)
 
 ```
 # Combining the scores to predict enhancer gene pairs
@@ -28,7 +38,223 @@ ATACseq.data = read.table(
   header = TRUE,
   stringsAsFactors = F
 )
+# Rename the columns
+ATACseqInfo = ATACseq.data %>%  dplyr::select(Geneid, Gd7, Toll10B, Toll9, Time) %>%
+  dplyr::rename(
+    geneID = Geneid,
+    "ATAC_Gd7" = Gd7,
+    "ATAC_Toll10b" = Toll10B,
+    "ATAC_Toll9" = Toll9,
+    "ATAC_Time" = Time
+  )
 
+
+#Load the ChIPseq data for CBP
+CBPInfo =  read.table(
+  file = paste(params$workingDir, params$ChIPseqDir,
+               params$CBP.data,
+               sep = ""),
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+# Rename the mutant headers
+CBPInfo = CBPInfo %>%
+  dplyr::select(geneID, Gd7, Toll10b, Toll9) %>%
+  dplyr::rename("CBP_Gd7" = Gd7,
+                "CBP_Toll10b" = Toll10b,
+                "CBP_Toll9" = Toll9)
+
+# Load the ChIPseq data for H3K27ac
+K27acInfo =  read.table(
+  file = paste(params$workingDir, params$ChIPseqDir, params$K27ac.data, sep = "/"),
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+# Rename the columns
+K27acInfo = K27acInfo %>% dplyr::rename(
+  "K27ac_geneID" = geneID,
+  "K27ac_Start" = Start,
+  "K27ac_End" = End ,
+  "K27ac_factor" = factor,
+  "K27ac_direction" = direction
+)
+
+# Load the PROseq data
+PROseq_file = paste(params$workingDir, params$PROseqDir, params$PROseq.data, sep = "")
+
+PROseq.data = read.table(
+  file = PROseq_file ,
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+# Rename headers. GeneID doesn't need to be renamed. It will be the general column for geneID
+PROseqInfo = PROseq.data %>%  dplyr::select(geneID, Gd7, Toll10b, Toll9, Time) %>% dplyr::rename(
+  "PRO_Gd7" = Gd7,
+  "PRO_Toll10b" = Toll10b,
+  "PRO_Toll9" = Toll9,
+  "PRO_Time" = Time
+)
+
+# Load in the inSitu data
+inSituFile = paste(params$workingDir, params$inSitu.data, sep = "")
+inSitu.Data = read.table(
+  file = inSituFile,
+  header = T,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = F
+)
+
+# Need to transform the columns to match our data
+inSitu.Data = inSitu.Data %>% dplyr::select(seqnames, start, end, stg4_6) %>% separate_rows(stg4_6, sep = "\\|") %>%
+  separate(stg4_6, into = c("Location", "score"), sep = ";")
+inSitu.Data = inSitu.Data %>% replace_na(list(score = 0, Location = "None"))
+inSitu.Data$insituID = paste("region", 1:nrow(inSitu.Data))
+
+# Rename the columns
+inSituInfo = inSitu.Data %>% dplyr::select(insituID , Location, score) %>% dplyr::rename(inSituLocation = Location, inSituScore = score)
+
+# Load the enhancer data for all mutants to compare the data to
+GD7enhancersFile = paste(params$workingDir, params$GD7enhancer, sep = "")
+GD7enhancers = read.table(
+  file = GD7enhancersFile,
+  header = F,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = F
+)
+GD7enhancers = GD7enhancers[, 1:3]
+
+Toll10BenhancersFile = paste(params$workingDir, params$Toll10Benhancer, sep = "/")
+Toll10Benhancers = read.table(
+  file = Toll10BenhancersFile,
+  header = F,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = F
+)
+Toll10Benhancers = Toll10Benhancers[, 1:3]
+
+Toll9enhancersFile = paste(params$workingDir, params$Toll9enhancer, sep = "/")
+Toll9enhancers = read.table(
+  file = Toll9enhancersFile,
+  header = F,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = F
+)
+Toll9enhancers = Toll9enhancers[, 1:3]
+
+# Rename columns
+colnames(GD7enhancers) = c("Chr", "Start", "End")
+GD7enhancers$Genotype = "Gd7"
+colnames(Toll10Benhancers) = c("Chr", "Start", "End")
+Toll10Benhancers$Genotype = "Toll10b"
+colnames(Toll9enhancers) = c("Chr", "Start", "End")
+Toll9enhancers$Genotype = "Toll9"
+
+# Combine all enhancer data into one dataframe
+Enhancers = rbind(GD7enhancers,Toll10Benhancers,Toll9enhancers)
+Enhancers$Strand = "."
+Enhancers$Chr = paste("chr",Enhancers$Chr, sep = "")
+Enhancers$enhancerID = paste("region",1:nrow(Enhancers))
+rownames(Enhancers) = Enhancers$enhancerID
+```
+
+```{r convert into genomic ranges}
+# Convert dataframe to a genomic range
+K27ac_peakData = makeGRangesFromDataFrame(
+  K27acInfo,
+  seqnames.field = "Chr",
+  start.field = "K27ac_Start",
+  end.field = "K27ac_End",
+  strand.field = "Strand"
+)
+
+inSitu_peakData = makeGRangesFromDataFrame(inSitu.Data,
+                                      seqnames.field = c("Chr","seqnames"), 
+                                      start.field = c("Start","start"), 
+                                      end.field = c("End","end"), 
+                                      strand.field = "Strand", 
+                                      keep.extra.columns = TRUE)
+names(inSitu_peakData) = inSitu.Data$insituID
+
+
+ATACPeakData = makeGRangesFromDataFrame(ATACseqInfo,
+                                      seqnames.field = "Chr", 
+                                      start.field = "ATAC_Start", 
+                                      end.field = "ATAC_End", 
+                                      strand.field = "Strand")
+names(CBPPeakData) = ATACseqInfo$Geneid
+
+
+
+
+
+EnhancersInfo = Enhancers %>% 
+  dplyr::select(Genotype,enhancerID) %>%  
+  dplyr::rename(enhancerGenotype = Genotype)
+ 
+
+EnhancersPeakData = makeGRangesFromDataFrame(Enhancers,
+                                      seqnames.field = "Chr", 
+                                      start.field = "Start", 
+                                      end.field = "End", 
+                                      strand.field = "Strand", 
+                                      keep.extra.columns = TRUE)
+names(EnhancersPeakData) = EnhancersPeakData$enhancerID
+
+```
+
+```{r join the data}
+CBPpeak.ATAC.PRO  = inner_join(ATACseqInfo, PROseqInfo)
+CBPpeak.ATAC.PRO.CBP  = inner_join(CBPpeak.ATAC.PRO, CBPInfo)
+
+
+```
+
+
+```{r find the overlap and adding annotation}
+overlap_ATAC_K27ac = data.frame(findOverlaps(CBPPeakData,K27acPeakData, maxgap = 0))
+length(unique(overlap_ATAC_K27ac$subjectHits))
+overlap_ATAC_K27ac$K27ac_Geneid = names(K27acPeakData)[overlap_ATAC_K27ac$subjectHits]
+overlap_ATAC_K27ac$Geneid = names(CBPPeakData)[overlap_ATAC_K27ac$queryHits]
+overlap_ATAC_K27ac = overlap_ATAC_K27ac %>% dplyr::select(K27ac_Geneid,Geneid )
+
+
+CBPpeak.ATAC.PRO.CBP  = inner_join(CBPpeak.ATAC.PRO.CBP,  overlap_ATAC_K27ac)
+CBPpeak.ATAC.PRO.CBP.K27ac =  inner_join(CBPpeak.ATAC.PRO.CBP,  K27acInfo)
+
+
+overlap_CBP_enhancers = data.frame(findOverlaps(CBPPeakData,EnhancersPeakData, maxgap = 0))
+length(unique(overlap_CBP_enhancers$subjectHits))
+
+overlap_CBP_enhancers$enhancerID = EnhancersPeakData$enhancerID[overlap_CBP_enhancers$subjectHits]
+overlap_CBP_enhancers$Geneid = names(CBPPeakData)[overlap_CBP_enhancers$queryHits]
+overlap_CBP_enhancers = overlap_CBP_enhancers %>% dplyr::select(enhancerID,Geneid )
+
+
+CBPpeak.ATAC.PRO.CBP.K27ac.enhancer = left_join(CBPpeak.ATAC.PRO.CBP.K27ac, overlap_CBP_enhancers)
+
+CBPpeak.ATAC.PRO.CBP.K27ac.enhancer = left_join(CBPpeak.ATAC.PRO.CBP.K27ac.enhancer, EnhancersInfo)
+
+
+
+overlap_CBP_inSitu = data.frame(findOverlaps(CBPPeakData,inSituData, maxgap = 0))
+overlap_CBP_inSitu$insituID = inSituData$insituID[overlap_CBP_inSitu$subjectHits]
+overlap_CBP_inSitu$Geneid = names(CBPPeakData)[overlap_CBP_inSitu$queryHits]
+overlap_CBP_inSitu = overlap_CBP_inSitu %>% dplyr::select(insituID,Geneid )
+
+
+CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu = left_join(CBPpeak.ATAC.PRO.CBP.K27ac.enhancer, overlap_CBP_inSitu)
+
+CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu = left_join(CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu, inSituInfo)
 
 
 
