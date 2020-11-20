@@ -12,6 +12,7 @@ params:
     informationDir: data_johan/information/cleaned
     resultsDir: results/altered_method/PROseq
     PROseq.data: altered.PROseq.data.tsv
+    PROseq.data.raw: altered.Proseq.data.raw.tsv
 ---
 
 ```{r setup, include=FALSE}
@@ -428,6 +429,13 @@ fileNamePROseq = paste( params$workingDir, params$resultsDir,
                              sep = "/")
 write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNamePROseq,
                   quote = F, sep = "\t", col.names = T, row.names = F)
+
+fileNamePROseq.raw = paste( params$workingDir, params$resultsDir,  
+                        params$PROseq.data.raw,
+                             sep = "/")
+write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNamePROseq.raw,
+                  quote = F, sep = "\t", col.names = T, row.names = F)
+
 
 # # Parameter changeable??? Goes 9000 to 2000 genes
 # loadingsDF.all.filtered = loadingsDF.all.factorDistance.max.peakInfo %>% filter(distance >2)  %>% dplyr::select(geneID, factor, direction)
