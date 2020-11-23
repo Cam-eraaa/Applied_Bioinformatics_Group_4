@@ -59,10 +59,12 @@ FCdata = read.table(file = featureCountFile, header = TRUE, sep = "\t", quote = 
 
 #Select the geneID, chromosome, start, end, strand and length. 
 peakInfo  = FCdata [,1:6]
+peakInfo = peakInfo %>% dplyr::rename(geneID = Geneid)
+
 
 #Select the rest of the columns from the featureCount file, the counts. 
 countData = FCdata[,-1:-6]
-rownames(countData) = peakInfo$Geneid
+rownames(countData) = peakInfo$geneID
 ```
 
 
@@ -323,8 +325,6 @@ loadingsDF.all.factorDistance$max=abs(loadingsDF.all.factorDistance$distanceFact
 loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,loadingsDF.all.factorDistance.max) %>%
   dplyr::select(geneID, factor, direction)
 
-peakInfo = peakInfo %>% rename(geneID = Geneid)
-
 loadingsDF.all.factorDistance.max.peakInfo = inner_join (peakInfo,loadingsDF.all.factorDistance.max)
 
 loadingsDF.all.factorDistance.max.peakInfo = inner_join(
@@ -344,7 +344,7 @@ write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameATAC
                   quote = F, sep = "\t", col.names = T, row.names = F) 
 ```
 
-### Print PROseq data to file
+### Print ChIPseq data to file
 
 ```{r save the files ,message=FALSE ,warning = FALSE}
 sampleInfoFile = paste(params$workingDir, params$resultsDir,params$Antibody, "CBP.CBP.sampleInfo.QC.tab.txt", sep = "/")
