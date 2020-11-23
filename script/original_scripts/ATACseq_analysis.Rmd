@@ -83,6 +83,7 @@ sampleInfo$bamFiles2  =  gsub(pattern = "-",
 sampleInfo$Genotype = recode(sampleInfo$Genotype, Toll910 = "Toll9")
 sampleInfo$Genotype = recode(sampleInfo$Genotype, `Toll9/10` = "Toll9")
 sampleInfo$Genotype = recode(sampleInfo$Genotype, gd7 = "Gd7")
+sampleInfo$Genotype = recode(sampleInfo$Genotype, Toll10B = "Toll10b")
 
 # Filter out the sampleInfo that is not ATACseq
 sampleInfo = sampleInfo %>% filter(Assaytype == params$Method)
@@ -328,7 +329,7 @@ origo = data.frame(PC1 = 0, PC2 = 0, PC3 = 0)
 line.gd7 = rbind(mean[1, 2:4], origo, -mean[1, 2:4])
 line.gd7$factor = "Gd7"
 line.toll10b = rbind(mean[2, 2:4], origo, -mean[2, 2:4])
-line.toll10b$factor = "Toll10B"
+line.toll10b$factor = "Toll10b"
 line.toll9 = rbind(mean[3, 2:4], origo, -mean[3, 2:4])
 line.toll9$factor = "Toll9"
 line.time = rbind(-meantime[1, 2:4], origo, meantime[1, 2:4])
@@ -396,7 +397,7 @@ tmp = loadingsDF.all
 tmp$distance =  ((tmp$PC1 ^ 2 + tmp$PC2 ^ 2 + tmp$PC3 ^ 2) ^ 0.5)
 loadingsDF.all = tmp
 
-loadingsDF.all.factorDistance = loadingsDF.all %>% gather(key = factor, value = distance2Factor, Time, Gd7, Toll10B, Toll9)
+loadingsDF.all.factorDistance = loadingsDF.all %>% gather(key = factor, value = distance2Factor, Time, Gd7, Toll10b, Toll9)
 loadingsDF.all.factorDistance$distanceFactor = sqrt(
   loadingsDF.all.factorDistance$distance ^ 2 -
     loadingsDF.all.factorDistance$distance2Factor ^
@@ -446,6 +447,8 @@ fileNameATACseq = paste(params$workingDir,
                         params$ATACresultsDir,
                         params$ATACSeq.data,
                         sep = "/")
+loadingsDF.all.factorDistance.max.peakInfo2 = loadingsDF.all.factorDistance.max.peakInfo2 %>% rename(geneID = Geneid)
+
 write.table(
   x = loadingsDF.all.factorDistance.max.peakInfo2,
   file = fileNameATACseq,
