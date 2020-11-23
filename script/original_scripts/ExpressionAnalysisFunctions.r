@@ -7,6 +7,32 @@ library(GGally,quietly = TRUE,warn.conflicts = FALSE)
 library("RColorBrewer",quietly = TRUE,warn.conflicts = FALSE)
 library(ggplot2,quietly = TRUE,warn.conflicts = FALSE)
 
+getROCinfo <- function(enhancerData, scoreColumn = "distance2", classColumn = "enhancer" ,  FPR = 0.1){
+  ROCit_obj <- rocit(score=enhancerData[[scoreColumn]],
+                     class=enhancerData[[classColumn]],)
+  
+  ROCplotInfo = data.frame(score = scoreColumn, classifier = classColumn, TPR = ROCit_obj$TPR, FPR = ROCit_obj$FPR)
+  
+  InfoPlot = plot(ROCit_obj)
+  ksInfo = ksplot(ROCit_obj)
+  
+  
+  Youden  = data.frame(score = scoreColumn, classifier = classColumn,  
+                       TPR = InfoPlot$`optimal Youden Index point`[3] ,
+                       FPR = InfoPlot$`optimal Youden Index point`[2],
+                       YoudenCutoff = InfoPlot$`optimal Youden Index point`[4],
+                       ksCutoff = ksInfo$`KS Cutoff`,
+                       AUC = ROCit_obj$AUC,
+                       Neg_count = ROCit_obj$neg_count,
+                       hardCutOff = ROCit_obj$Cutoff[sum(ROCit_obj$FPR <FPR)],
+                       hardTPR = ROCit_obj$TPR[sum(ROCit_obj$FPR < FPR)], 
+                       FalsePositive = sum(ROCit_obj$FPR < FPR)
+  )
+  ROCInfo = list(ROCplotInfo=ROCplotInfo, Youden =  Youden, ROCplot = InfoPlot, KSinfo = ksInfo) 
+  return (ROCInfo)
+  
+}
+
 getEsnemblGeneName <-  function (host="www.ensembl.org", dataset="rnorvegicus_gene_ensembl", 
                                  attributes= c("ensembl_gene_id", "external_gene_name"), 
                                  filters = "ensembl_gene_id", values){
