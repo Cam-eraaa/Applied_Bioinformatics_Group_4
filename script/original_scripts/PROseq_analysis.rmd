@@ -12,6 +12,7 @@ params:
     informationDir: data_johan/information/cleaned
     resultsDir: results/original_method/PROseq
     PROseq.data: PROseq.data.tsv
+    PROseq.genes.data: PROseq.CBP.data.tsv
 ---
 
 ```{r setup, include=FALSE}
@@ -67,6 +68,54 @@ geneInfo = geneInfo %>% rename(geneID = Geneid)
 countData = FCdata[,-1:-6]
 rownames(countData) = geneInfo$geneID
 ```
+
+```{r  add  transcript to gene Information}
+# Loading the gtf file to extract annotation.
+gtfFile = paste(params$workingDir,
+                "Drosophila_melanogaster.BDGP6.28.101.gtf",
+                sep = "/")
+gtfInfo = read.table(
+  file = gtfFile,
+  header = F,
+  sep = "\t",
+  quote = "",
+  stringsAsFactors = F
+)
+# Chosing only the annotation for genes
+gtfInfoGene = gtfInfo %>% dplyr::filter(V3 == "gene")
+# Extract only gene name and geneID
+gtfInfoGene = gtfInfoGene[grep(pattern = "gene_biotype \"protein_coding\"", x = gtfInfoGene$V9),]
+gtfInfoGene = gtfInfoGene %>% separate(
+  col = V9,
+  sep = ";",
+  into =  c("geneID1", "geneName1", "gene_source", "gene_biotype", "empty")
+)
+gtfInfoGene = gtfInfoGene %>% separate(
+  col = geneID1,
+  sep = "\"",
+  into =  c("irrelevant", "geneID", "empty")
+)
+gtfInfoGene = gtfInfoGene %>% separate(
+  col = geneName1,
+  sep = "\"",
+  into =  c("irrelevant1", "geneName", "empty")
+)
+
+###### Contiune to fix the data frame gtfInfoGene
+gtfInfoAnnotation = gtfInfoGene %>% dplyr::select(V1, V4, V5, V7, geneID, geneName)
+
+# Summerize the information in a table with Chr, start, stop, direction,
+PROseqGenes = gtfInfoAnnotation %>% dplyr::rename(
+  "Chr" = V1,
+  "Start" = V4,
+  "End" = V5,
+  "geneDir" = V7
+)
+PROseqGenes$Chr = paste ("chr", PROseqGenes$Chr, sep = "")
+PROseqGenes = PROseqGenes %>% dplyr::select(geneID, Chr, Start, End)
+
+```
+
 
 ## Create sample information
 
@@ -150,13 +199,13 @@ So it turns out that there was a label switch in the samples.. After going back 
 
 ```{r change the two files that differ, include=FALSE}
 # Change filenames
-test = sampleInfo["toll10b_5h_rep1", ]
+sample = sampleInfo["toll10b_5h_rep1", ]
 sampleInfo["toll10b_5h_rep1", ] = sampleInfo["gd7_5h_rep1", ]
-sampleInfo["gd7_5h_rep1", ] = test
+sampleInfo["gd7_5h_rep1", ] = sample
 colnames(countData) = sampleInfo$sampleName
 sampleInfo.QC  = sampleInfo
 sampleInfo.QC$sampleName = rownames(sampleInfo)
-sampleInfo.QC %>% select(sampleName, bamFile) %>% separate(
+sampleInfo.QC %>% dplyr::select(sampleName, bamFile) %>% separate(
   col = sampleName,
   sep = "_",
   into =  c("mutant", "time", "replicate"),
@@ -427,6 +476,13 @@ fileNamePROseq = paste( params$workingDir, params$resultsDir,
                         params$PROseq.data,
                              sep = "/")
 write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNamePROseq,
+                  quote = F, sep = "\t", col.names = T, row.names = F)
+
+loadingsDF.all.factorDistance.max.peakInfo_genes = inner_join(loadingsDF.all.factorDistance.max.peakInfo2, PROseqGenes)
+fileNameProseq_genes = paste( params$workingDir, params$resultsDir,  
+                        params$PROseq.genes.data,
+                             sep = "/")
+write.table(x = loadingsDF.all.factorDistance.max.peakInfo_genes, file = fileNameProseq_genes,
                   quote = F, sep = "\t", col.names = T, row.names = F)
 
 # # Parameter changeable??? Goes 9000 to 2000 genes
