@@ -58,6 +58,8 @@ FCdata = read.table(
   quote = "",
   stringsAsFactors = FALSE
 )
+# Change file name
+featureCountFile_CBPPeak = paste(params$workingDir, params$dataDir, "counts.CBP.txt", sep = "/")
 
 # Creating matrix with geneID(1) and gene length(2)
 geneInfo  = FCdata [, 1:6]
@@ -119,31 +121,6 @@ geneInfo.QC = geneInfo %>% filter(logExpression > 1)
 countData.QC =  countData[geneInfo.QC$geneID, ]
 ```
 
-## Add information about genes involved in the differentiation of the tissues.
-
-A file with gene information has been downloaded from the FlyBase database. The gene IDs are compared to the geneIDs in the expression data.
-
-```{r script to check the known genes , include=FALSE}
-knownGenes = read.table(
-  file = paste(
-    params$workingDir,
-    params$informationDir,
-    "FlyBase_IDs.txt",
-    sep = "/"
-  ),
-  sep = "\t",
-  header = F,
-  quote = "",
-  stringsAsFactors = F
-)
-# Add name for the columns since the header was removed in the previous command
-colnames(knownGenes) = c("Submitted ID", "Current ID", "Converted ID", "Related record")
-
-# Set default value for the known gene as no
-geneInfo.QC$knownGene = "No"
-# Change value to yes if the geneID exist in the FlyBase database
-geneInfo.QC$knownGene[geneInfo.QC$geneID %in% knownGenes$`Current ID`] = "Yes"
-```
 
 ### Identifying that two samples that have wrong lables and needs to be switched.
 
@@ -157,7 +134,7 @@ sampleInfo["gd7_5h_rep1", ] = test
 colnames(countData) = sampleInfo$sampleName
 sampleInfo.QC  = sampleInfo
 sampleInfo.QC$sampleName = rownames(sampleInfo)
-sampleInfo.QC %>% select(sampleName, bamFile) %>% separate(
+sampleInfo.QC %>% dplyr::select(sampleName, bamFile) %>% separate(
   col = sampleName,
   sep = "_",
   into =  c("mutant", "time", "replicate"),
@@ -350,112 +327,87 @@ for (j in unique(line$factor)) {
   for (i in 1:nrow(loadings_norm)) {
     line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1, PC2, PC3)
     loadings_new[i, j] = dist3d(
-      b = as.numeric(line1[1,]),
-      c = as.numeric(line1[3,]),
+      b = as.numeric(line1[1, ]),
+      c = as.numeric(line1[3, ]),
       point = as.numeric(loadings_new[i, 1:3])
     )
   }
 }
 
-  
-loadingsDF = gather(loadings_new, key = PC, value = Loading, -geneID )
 
-ggplot(loadingsDF, mapping = aes(x = Loading, color = PC )) + geom_density() 
+loadingsDF = gather(loadings_new, key = PC, value = Loading,-geneID)
+
+ggplot(loadingsDF, mapping = aes(x = Loading, color = PC)) + geom_density()
 
 # Recreates the same data from as loadings_new but in another column order
 loadingsDF.all = loadingsDF %>%  spread(key = PC, value = Loading)
 
 tmp = loadingsDF.all
-tmp$distance =  ((tmp$PC1^2 + tmp$PC2^2 + tmp$PC3^2)^0.5)
+tmp$distance =  ((tmp$PC1 ^ 2 + tmp$PC2 ^ 2 + tmp$PC3 ^ 2) ^ 0.5)
 loadingsDF.all = tmp
 
 
-loadingsDF.all.factorDistance =loadingsDF.all %>% gather(key = factor, value = distance2Factor,Time,Gd7,Toll10b,Toll9 )
+loadingsDF.all.factorDistance = loadingsDF.all %>% gather(key = factor, value = distance2Factor, Time, Gd7, Toll10b, Toll9)
 
-loadingsDF.all.factorDistance$distanceFactor = sqrt(loadingsDF.all.factorDistance$distance^2 -
-                                                   loadingsDF.all.factorDistance$distance2Factor^2)
+loadingsDF.all.factorDistance$distanceFactor = sqrt(
+  loadingsDF.all.factorDistance$distance ^ 2 -
+    loadingsDF.all.factorDistance$distance2Factor ^
+    2
+)
 
 loadingsDF.all.factorDistance$distanceFactor[is.na(loadingsDF.all.factorDistance$distanceFactor)] = 0
 
 
 loadingsDF.all.factorDistance$direction = "Down"
-line$Dir = rep(c("Up","origo","Down"), 4)
+line$Dir = rep(c("Up", "origo", "Down"), 4)
 
 
-for(i in 1:nrow(loadingsDF.all.factorDistance)){
-  factor2 = loadingsDF.all.factorDistance[i,]$factor
-  UpPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Up") %>% dplyr::select(PC1,PC2,PC3)
-  DownPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Down") %>% dplyr::select(PC1,PC2,PC3)
-  point = loadingsDF.all.factorDistance[i,c("PC1","PC2","PC3")]
-  up = distance3d(as.numeric( UpPoint),as.numeric(point))
-  down = distance3d(as.numeric(DownPoint),as.numeric(point))
+for (i in 1:nrow(loadingsDF.all.factorDistance)) {
+  factor2 = loadingsDF.all.factorDistance[i, ]$factor
+  UpPoint = line %>% dplyr::filter(factor == factor2 &
+                                     Dir == "Up") %>% dplyr::select(PC1, PC2, PC3)
+  DownPoint = line %>% dplyr::filter(factor == factor2 &
+                                       Dir == "Down") %>% dplyr::select(PC1, PC2, PC3)
+  point = loadingsDF.all.factorDistance[i, c("PC1", "PC2", "PC3")]
+  up = distance3d(as.numeric(UpPoint), as.numeric(point))
+  down = distance3d(as.numeric(DownPoint), as.numeric(point))
   
-  if(up < down){
-    loadingsDF.all.factorDistance[i,"direction"] = "Up"
-  }else{
-    loadingsDF.all.factorDistance[i,"distanceFactor"] = 
-      -loadingsDF.all.factorDistance[i,"distanceFactor"]
+  if (up < down) {
+    loadingsDF.all.factorDistance[i, "direction"] = "Up"
+  } else{
+    loadingsDF.all.factorDistance[i, "distanceFactor"] =
+      -loadingsDF.all.factorDistance[i, "distanceFactor"]
   }
 }
 
-loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select( geneID,PC1, PC2,PC3, distance, factor,distanceFactor) %>% spread( key = factor, value = distanceFactor)
+loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select(geneID, PC1, PC2, PC3, distance, factor, distanceFactor) %>% spread(key = factor, value = distanceFactor)
 
 
 loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(geneID) %>% summarise(max = max(abs(distanceFactor)))
- 
-
-
-loadingsDF.all.factorDistance$max=abs(loadingsDF.all.factorDistance$distanceFactor) 
-
-
-
-loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,loadingsDF.all.factorDistance.max) %>%
+loadingsDF.all.factorDistance$max = abs(loadingsDF.all.factorDistance$distanceFactor)
+loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,
+                                               loadingsDF.all.factorDistance.max) %>%
   dplyr::select(geneID, factor, direction)
+loadingsDF.all.factorDistance.max.peakInfo = inner_join (normExpressionDF.QC, loadingsDF.all.factorDistance.max)
+loadingsDF.all.factorDistance.max.peakInfo = inner_join(loadingsDF.all.factorDistance.max.peakInfo,
+                                                        loadingsDF.all.factorDistance2)
 
-loadingsDF.all.factorDistance.max.peakInfo = inner_join (normExpressionDF.QC,loadingsDF.all.factorDistance.max )
-
-loadingsDF.all.factorDistance.max.peakInfo = inner_join(
-  loadingsDF.all.factorDistance.max.peakInfo,
-  loadingsDF.all.factorDistance2
-)
-
-
-loadingsDF.all.factorDistance.max.peakInfo2 = 
+loadingsDF.all.factorDistance.max.peakInfo2 =
   loadingsDF.all.factorDistance.max.peakInfo %>%
-  dplyr::select(-PC1, -PC2,-PC3,-distance)
+  dplyr::select(-PC1,-PC2, -PC3, -distance)
 
-fileNamePROseq = paste( params$workingDir, params$resultsDir,  
-                        params$PROseq.data,
-                             sep = "/")
-write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNamePROseq,
-                  quote = F, sep = "\t", col.names = T, row.names = F)
-
-fileNamePROseq.raw = paste( params$workingDir, params$resultsDir,  
-                        params$PROseq.data.raw,
-                             sep = "/")
-write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNamePROseq.raw,
-                  quote = F, sep = "\t", col.names = T, row.names = F)
-
-
-# # Parameter changeable??? Goes 9000 to 2000 genes
-# loadingsDF.all.filtered = loadingsDF.all.factorDistance.max.peakInfo %>% filter(distance >2)  %>% dplyr::select(geneID, factor, direction)
-# 
-# loadingsDF.all.filtered2  = inner_join(loadingsDF.all.filtered, loadingsDF.all.factorDistance2)
-# 
-# 
-# loadingsDF.all.filtered = loadingsDF.all.filtered2 
-# dim(loadingsDF.all.filtered)
-# 
-# loadingsDF.all.filtered.peakInfo = inner_join (peakInfo,loadingsDF.all.filtered )
-# 
-# PROseq.data.selected  = PROseq.data %>%filter (annotation2 == "DE") %>%dplyr::select(geneID,transcriptID, factor,direction) %>% distinct()
-# 
-# 
-# 
-# write.table(x = loadingsDF.all.filtered.peakInfo,
-#             file = paste( params$workingDir, params$resultsDir,
-#                           "selectedGenes.tsv" ,sep = "/"),
-#             quote = F, sep = "\t", col.names = TRUE, row.names = F)
+fileNamePROseq = paste(params$workingDir,
+                       params$resultsDir,
+                       params$PROseq.data,
+                       sep = "/")
+write.table(
+  x = loadingsDF.all.factorDistance.max.peakInfo2,
+  file = fileNamePROseq,
+  quote = F,
+  sep = "\t",
+  col.names = T,
+  row.names = F
+)
 
 
 ```

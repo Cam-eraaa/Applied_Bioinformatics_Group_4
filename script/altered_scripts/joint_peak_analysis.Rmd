@@ -11,12 +11,12 @@ params:
   PROseq.data: data_johan/results/cleaned/PROseq/PROseq.CBP.peak.tsv
   #PROseq.data: results/original_method/PROseq/PROseq.CBP.data.tsv
   ChIPseqDir: results/original_method/ChIPseq/
-  #CBP.data: CBP/ChIPseq.CBP.data.tsv
-  CBP.data: data_johan/results/cleaned/chipSeq/CBP-CBP_dm6.ChIPseq.peak.pattern.raw.tsv
-  #K27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
-  K27ac.data: data_johan/results/cleaned/chipSeq/K27ac.ChIPseq.peak.pattern.raw.tsv
-  #ATACseq.data: results/original_method/ATACseq/ATACseq.data.tsv
-  ATACseq.data: data_johan/results/cleaned/ATACseq/ATACseq.data.raw.tsv
+  CBP.data: CBP/ChIPseq.CBP.data.tsv
+  #CBP.data: data_johan/results/cleaned/chipSeq/CBP-CBP_dm6.ChIPseq.peak.pattern.raw.tsv
+  K27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
+  #K27ac.data: data_johan/results/cleaned/chipSeq/K27ac.ChIPseq.peak.pattern.raw.tsv
+  ATACseq.data: results/original_method/ATACseq/ATACseq.data.tsv
+  #ATACseq.data: data_johan/results/cleaned/ATACseq/ATACseq.data.raw.tsv
   GD7enhancer: data_johan/results/cleaned/enhancers/h3k27ac_gd7_csaw_intersect.bed
   Toll10Benhancer: data_johan/results/cleaned/enhancers/h3k27ac_Toll10B_csaw_intersect.bed
   Toll9enhancer: data_johan/results/cleaned/enhancers/h3k27ac_Tollrm910_csaw_intersect.bed
@@ -51,7 +51,6 @@ ATACseq.data = read.table(
 )
 # Rename the columns
 ATACseqInfo = ATACseq.data %>% dplyr::rename(
-  geneID = Geneid,
   "ATAC_Gd7" = Gd7,
   "ATAC_Toll10b" = Toll10b,
   "ATAC_Toll9" = Toll9,
@@ -65,13 +64,12 @@ ATACseqInfo = ATACseq.data %>% dplyr::rename(
 
 #Load the ChIPseq data for CBP
 CBPInfo =  read.table(
-  file = paste(params$workingDir, params$CBP.data, sep = ""), 
+  file = paste(params$workingDir, params$ChIPseqDir, params$CBP.data, sep = ""), 
   quote = "",
   sep = "\t",
   header = TRUE,
   stringsAsFactors = F
 )
-CBPInfo = CBPInfo %>% dplyr::rename(geneID = Geneid)
 # Rename the mutant headers
 CBPInfo = CBPInfo %>%
   dplyr::select(geneID, Gd7, Toll10b, Toll9) %>%
@@ -81,7 +79,7 @@ CBPInfo = CBPInfo %>%
 
 # Load the ChIPseq data for H3K27ac
 K27acInfo =  read.table(
-  file = paste(params$workingDir,params$K27ac.data, sep = "/"),
+  file = paste(params$workingDir,params$ChIPseqDir, params$K27ac.data, sep = "/"),
   quote = "",
   sep = "\t",
   header = TRUE,
@@ -89,14 +87,17 @@ K27acInfo =  read.table(
 )
 # Rename the columns
 K27acInfo = K27acInfo %>% dplyr::rename(
-  "K27ac_geneID" = Geneid,
+  "K27ac_geneID" = geneID,
   "K27ac_Start" = Start,
   "K27ac_End" = End ,
   "K27ac_factor" = factor,
   "K27ac_direction" = direction,
   "K27ac_Gd7" = Gd7,
   "K27ac_Toll10b" = Toll10b,
-  "K27ac_Toll9" = Toll9
+  "K27ac_Toll9" = Toll9,
+  "K27ac_Chr" = Chr,
+  "K27ac_Strand" = Strand,
+  "K27ac_Length" = Length
 )
 
 # Load the PROseq data
@@ -190,10 +191,10 @@ rownames(Enhancers) = Enhancers$enhancerID
 # Convert dataframe to a genomic range
 K27ac_peakData = makeGRangesFromDataFrame(
   K27acInfo,
-  seqnames.field = "Chr",
+  seqnames.field = "K27ac_Chr",
   start.field = "K27ac_Start",
   end.field = "K27ac_End",
-  strand.field = "Strand",
+  strand.field = "K27ac_Strand",
 )
 names(K27ac_peakData) = K27acInfo$K27ac_geneID
 
@@ -244,7 +245,6 @@ overlap_ATAC_K27ac = overlap_ATAC_K27ac %>% dplyr::select(K27ac_geneID,geneID )
 
 CBPpeak.ATAC.PRO.CBP  = inner_join(CBPpeak.ATAC.PRO.CBP,  overlap_ATAC_K27ac)
 CBPpeak.ATAC.PRO.CBP.K27ac =  inner_join(CBPpeak.ATAC.PRO.CBP,  K27acInfo, by="K27ac_geneID")
-#CBPpeak.ATAC.PRO.CBP.K27ac = CBPpeak.ATAC.PRO.CBP
 
 overlap_CBP_enhancers = data.frame(findOverlaps(ATAC_peakData,EnhancersPeakData, maxgap = 0))
 overlap_CBP_enhancers$enhancerID = EnhancersPeakData$enhancerID[overlap_CBP_enhancers$subjectHits]
@@ -300,7 +300,7 @@ KI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(K27ac_Toll9, K27ac_Tol
 
 #allEnhancerInfo2 = EnhancerInfo %>% dplyr::select(-geneID,-enhancerID,-enhancerGenotype,-insituID,-inSituLocation,-inSituScore,-geneID_unique,-enhancer,-inSitu,-K27ac_geneID, PRO_Time, ATAC_Time)
 # allEnhancerInfo2 = EnhancerInfo %>% dplyr::select(-geneID,-enhancerID,-enhancerGenotype,-insituID,-inSituLocation,-inSituScore,-geneID_unique,-enhancer,-inSitu,-K27ac_geneID, -Chr, -Strand, -Length, -ATAC_direction, -ATAC_factor, -ATAC_Start, -ATAC_End, -K27ac_factor, -K27ac_direction, -K27ac_Start, K27ac_End)
-allEnhancerInfo2 = EnhancerInfo %>% dplyr::select(-geneID,-enhancerID,-enhancerGenotype,-insituID,-inSituLocation,-inSituScore,-geneID_unique,-enhancer,-inSitu,-K27ac_geneID, -Chr, -Strand, -Length, -ATAC_direction, -ATAC_factor, -ATAC_Start, -ATAC_End)
+allEnhancerInfo2 = EnhancerInfo %>% dplyr::select(-geneID,-enhancerID,-enhancerGenotype,-insituID,-inSituLocation,-inSituScore,-geneID_unique,-enhancer,-inSitu,-K27ac_geneID, -Chr, -Strand, -Length, -ATAC_direction, -ATAC_factor, -ATAC_Start, -ATAC_End, -K27ac_Strand, -K27ac_Start, -K27ac_End, -K27ac_Length, -K27ac_direction, -K27ac_factor, -K27ac_Chr)
 allEnhancerInfo2.rownames = allEnhancerInfo2$geneID_unique
 mir.pca <- prcomp(allEnhancerInfo2, center = TRUE, scale = FALSE) 
 e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
@@ -332,13 +332,13 @@ FI =  AllData %>% filter(inSitu == 1) %>% ggplot(aes(PC1, PC2, color = inSituLoc
 
 ```{r plot this steps }
 
-# PE+PI+ plot_layout(ncol = 1)
-# AE+AI+ plot_layout(ncol = 1)
-# CE+CI+ plot_layout(ncol = 1)
-# KE+KI+ plot_layout(ncol = 1)
-# FE + FI+ plot_layout(ncol = 1)
-# 
-# PE+PI+AE+AI+CE+CI+KE+KI+FE+FI +plot_layout(ncol = 2)
+PE+PI+ plot_layout(ncol = 1)
+AE+AI+ plot_layout(ncol = 1)
+CE+CI+ plot_layout(ncol = 1)
+KE+KI+ plot_layout(ncol = 1)
+FE + FI+ plot_layout(ncol = 1)
+
+PE+PI+AE+AI+CE+CI+KE+KI+FE+FI +plot_layout(ncol = 2)
 
 
 ```
@@ -347,43 +347,43 @@ FI =  AllData %>% filter(inSitu == 1) %>% ggplot(aes(PC1, PC2, color = inSituLoc
 ### Assesment and selection
 
 ```{r roc analysis  , include=FALSE}
-# enhancerData = AllData
-# 
-# d1ROCi = getROCinfo(AllData,scoreColumn = "distance1", classColumn = "inSitu")
-# d2ROCi = getROCinfo(AllData,scoreColumn = "distance2", classColumn = "inSitu")
-# d3ROCi = getROCinfo(AllData,scoreColumn = "distance3", classColumn = "inSitu")
-# d4ROCi = getROCinfo(AllData,scoreColumn = "distance4", classColumn = "inSitu")
-# d5ROCi = getROCinfo(AllData,scoreColumn = "distance5", classColumn = "inSitu")
-# d1ROCe = getROCinfo(AllData,scoreColumn = "distance1", classColumn = "enhancer")
-# d2ROCe = getROCinfo(AllData,scoreColumn = "distance2", classColumn = "enhancer")
-# d3ROCe = getROCinfo(AllData,scoreColumn = "distance3", classColumn = "enhancer")
-# d4ROCe = getROCinfo(AllData,scoreColumn = "distance4", classColumn = "enhancer")
-# d5ROCe = getROCinfo(AllData,scoreColumn = "distance5", classColumn = "enhancer")
-# 
-# 
-# 
-# ROCplotInfo = rbind (d1ROCi$ROCplotInfo, d2ROCi$ROCplotInfo, d3ROCi$ROCplotInfo,d4ROCi$ROCplotInfo, d5ROCi$ROCplotInfo,
-#                      d1ROCe$ROCplotInfo, d2ROCe$ROCplotInfo, d3ROCe$ROCplotInfo,d4ROCe$ROCplotInfo, d5ROCe$ROCplotInfo)
-# ROCplotSummary = rbind(d1ROCi$Youden, d2ROCi$Youden, d3ROCi$Youden,d4ROCi$Youden, d5ROCi$Youden,
-#                      d1ROCe$Youden, d2ROCe$Youden, d3ROCe$Youden,d4ROCe$Youden, d5ROCe$Youden)
+enhancerData = AllData
+
+d1ROCi = getROCinfo(AllData,scoreColumn = "distance1", classColumn = "inSitu")
+d2ROCi = getROCinfo(AllData,scoreColumn = "distance2", classColumn = "inSitu")
+d3ROCi = getROCinfo(AllData,scoreColumn = "distance3", classColumn = "inSitu")
+d4ROCi = getROCinfo(AllData,scoreColumn = "distance4", classColumn = "inSitu")
+d5ROCi = getROCinfo(AllData,scoreColumn = "distance5", classColumn = "inSitu")
+d1ROCe = getROCinfo(AllData,scoreColumn = "distance1", classColumn = "enhancer")
+d2ROCe = getROCinfo(AllData,scoreColumn = "distance2", classColumn = "enhancer")
+d3ROCe = getROCinfo(AllData,scoreColumn = "distance3", classColumn = "enhancer")
+d4ROCe = getROCinfo(AllData,scoreColumn = "distance4", classColumn = "enhancer")
+d5ROCe = getROCinfo(AllData,scoreColumn = "distance5", classColumn = "enhancer")
+
+
+
+ROCplotInfo = rbind (d1ROCi$ROCplotInfo, d2ROCi$ROCplotInfo, d3ROCi$ROCplotInfo,d4ROCi$ROCplotInfo, d5ROCi$ROCplotInfo,
+                     d1ROCe$ROCplotInfo, d2ROCe$ROCplotInfo, d3ROCe$ROCplotInfo,d4ROCe$ROCplotInfo, d5ROCe$ROCplotInfo)
+ROCplotSummary = rbind(d1ROCi$Youden, d2ROCi$Youden, d3ROCi$Youden,d4ROCi$Youden, d5ROCi$Youden,
+                     d1ROCe$Youden, d2ROCe$Youden, d3ROCe$Youden,d4ROCe$Youden, d5ROCe$Youden)
 
 
 ```
 
 ```{r plot ROC}
 
-# ROCplotSummary
-# 
-# qplot(PC, Variance, data=e.var, geom = c("point")
-#       , ylim = c(0,max(e.var$Variance)+5) 
-#       ,ylab = "Variance (%)")
-# 
-# 
-# ggplot(ROCplotInfo, mapping =  aes(x = FPR, y = TPR, color = score))+ 
-#   geom_line()+ 
-#   geom_abline()+ 
-#   geom_point(data = ROCplotSummary, mapping = aes(y = TPR, x = FPR, color = score ), size = 4) +
-#     facet_grid(.~classifier)
+ROCplotSummary
+
+qplot(PC, Variance, data=e.var, geom = c("point")
+      , ylim = c(0,max(e.var$Variance)+5)
+      ,ylab = "Variance (%)")
+
+
+ggplot(ROCplotInfo, mapping =  aes(x = FPR, y = TPR, color = score))+
+  geom_line()+
+  geom_abline()+
+  geom_point(data = ROCplotSummary, mapping = aes(y = TPR, x = FPR, color = score ), size = 4) +
+    facet_grid(.~classifier)
 
 ```
 # Enhancer selection
@@ -394,21 +394,21 @@ Based on ROC statistics  it is best if we include all five PC
 ```{r plot classification }
 
 
-# scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance5")
-# 
-# AllData.enhancers = AllData %>% filter(distance5 > scores$YoudenCutoff)
-# 
-# AllData.enhancers = AllData.enhancers %>% replace_na(list(enhancerID = "None", enhancerGenotype = "None",insituID = "None",inSituLocation = "None", inSituScore = -1 )) 
-# 
-# 
-# peakInfo = data.frame(CBPPeakData)
-# peakInfo$geneID = names(CBPPeakData)
-# 
-# AllData.enhancers = inner_join(peakInfo, AllData.enhancers)
-# 
-# fileName = paste(params$workingDir, params$enhancerResult, sep = "")
-# 
-# write.table(x = AllData.enhancers, file = fileName, sep = "\t", quote = F, row.names = F, col.names = T )
+scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance5")
+
+AllData.enhancers = AllData %>% filter(distance5 > scores$YoudenCutoff)
+
+AllData.enhancers = AllData.enhancers %>% replace_na(list(enhancerID = "None", enhancerGenotype = "None",insituID = "None",inSituLocation = "None", inSituScore = -1 ))
+
+
+peakInfo = data.frame(CBPPeakData)
+peakInfo$geneID = names(CBPPeakData)
+
+AllData.enhancers = inner_join(peakInfo, AllData.enhancers)
+
+fileName = paste(params$workingDir, params$enhancerResult, sep = "")
+
+write.table(x = AllData.enhancers, file = fileName, sep = "\t", quote = F, row.names = F, col.names = T )
 
 ```
 
