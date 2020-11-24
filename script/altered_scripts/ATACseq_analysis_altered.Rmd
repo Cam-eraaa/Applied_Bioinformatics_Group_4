@@ -15,8 +15,9 @@ params:
     count_ATAC_QC: ATAC.CBP.peak.featureCount.count.QC.tab.txt
     normalisedATACpeakData: ATAC.CBP.peak.featureCount.rlog.tab.txt
     ATACSeq.data: altered.ATACseq.data.tsv
+    ATACSeq.data.raw: altered.ATACseq.raw.data.tsv
     Method: ATAC-Seq
-    PROseq.data: data_johan/results/PROseq/PROseq.data.tsv
+    PROseq.data: results/altered_method/PROseq/altered.PROseq.data.tsv
     
 ---
 
@@ -453,29 +454,21 @@ write.table(
   sep = "\t",
   col.names = T,
   row.names = F
-) 
+)
+
+fileNameATACseq.raw = paste(params$workingDir,
+                        params$ATACresultsDir,
+                        params$ATACSeq.data.raw,
+                        sep = "/")
+write.table(
+  x = loadingsDF.all.factorDistance.max.peakInfo,
+  file = fileNameATACseq.raw,
+  quote = F,
+  sep = "\t",
+  col.names = T,
+  row.names = F
+)
 
 
-```
-
-```{r test, include=FALSE}
-# # Parameter changeable??? Goes 9000 to 2000 genes
-# loadingsDF.all.filtered = loadingsDF.all.factorDistance.max.peakInfo %>% filter(distance >2)  %>% dplyr::select(Geneid, factor, direction)
-# 
-# loadingsDF.all.filtered2  = inner_join(loadingsDF.all.filtered, loadingsDF.all.factorDistance2)
-# 
-# 
-# loadingsDF.all.filtered = loadingsDF.all.filtered2 
-# dim(loadingsDF.all.filtered)
-# 
-# loadingsDF.all.filtered.peakInfo = inner_join (peakInfo,loadingsDF.all.filtered )
-# 
-# PROseq.data.selected  = PROseq.data %>%filter (annotation2 == "DE") %>%dplyr::select(geneID,transcriptID, factor,direction) %>% distinct()
-# 
-# 
-# write.table(x = loadingsDF.all.filtered.peakInfo, 
-#             file = paste( params$workingDir, params$ATACresultsDir, 
-#                           "selectedGenes.tsv" ,sep = "/"),
-#             quote = F, sep = "\t", col.names = TRUE, row.names = F)  
 ```
 
