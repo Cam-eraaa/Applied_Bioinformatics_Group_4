@@ -715,10 +715,10 @@ loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,loa
   dplyr::select(-PC1,-PC2,-PC3,-distance)
 
 
-fileNameATACseq = paste( params$workingDir, params$ChIPresultsDir,  
+fileNameChIPseq = paste( params$workingDir, params$ChIPresultsDir,  
                         params$ChIPSeq.data,
                              sep = &quot;/&quot;)
-write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameATACseq,
+write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameChIPseq,
                   quote = F, sep = &quot;\t&quot;, col.names = T, row.names = F) </code></pre>
 <div id="print-chipseq-data-to-file" class="section level3">
 <h3>Print ChIPseq data to file</h3>
