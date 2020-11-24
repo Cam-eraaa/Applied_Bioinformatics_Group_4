@@ -8,15 +8,15 @@ params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   RscriptsDir: script/original_scripts/
   inSitu.data: data_johan/results/cleaned/inSitu/inSitu.Stark.dm6.tsv
-  #PROseq.data: data_johan/results/cleaned/PROseq/PROseq.CBP.peak.tsv
-  PROseq.data: results/original_method/PROseq/PROseq.CBP.data.tsv
+  PROseq.data: data_johan/results/cleaned/PROseq/PROseq.CBP.peak.tsv
+  #PROseq.data: results/original_method/PROseq/PROseq.CBP.data.tsv
   ChIPseqDir: results/original_method/ChIPseq/
-  CBP.data: CBP/ChIPseq.CBP.data.tsv
-  #CBP.data: data_johan/results/cleaned/chipSeq/CBP-CBP_dm6.ChIPseq.peak.pattern.raw.tsv
-  K27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
-  #K27ac.data: data_johan/results/cleaned/chipSeq/K27ac.ChIPseq.peak.pattern.raw.tsv
-  ATACseq.data: results/original_method/ATACseq/ATACseq.data.tsv
-  #ATACseq.data: data_johan/results/cleaned/ATACseq/ATACseq.data.raw.tsv
+  #CBP.data: CBP/ChIPseq.CBP.data.tsv
+  CBP.data: data_johan/results/cleaned/chipSeq/CBP-CBP_dm6.ChIPseq.peak.pattern.raw.tsv
+  #K27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
+  K27ac.data: data_johan/results/cleaned/chipSeq/K27ac.ChIPseq.peak.pattern.raw.tsv
+  #ATACseq.data: results/original_method/ATACseq/ATACseq.data.tsv
+  ATACseq.data: data_johan/results/cleaned/ATACseq/ATACseq.data.raw.tsv
   GD7enhancer: data_johan/results/cleaned/enhancers/h3k27ac_gd7_csaw_intersect.bed
   Toll10Benhancer: data_johan/results/cleaned/enhancers/h3k27ac_Toll10B_csaw_intersect.bed
   Toll9enhancer: data_johan/results/cleaned/enhancers/h3k27ac_Tollrm910_csaw_intersect.bed
@@ -51,6 +51,7 @@ ATACseq.data = read.table(
 )
 # Rename the columns
 ATACseqInfo = ATACseq.data %>% dplyr::rename(
+  geneID = Geneid,
   "ATAC_Gd7" = Gd7,
   "ATAC_Toll10b" = Toll10b,
   "ATAC_Toll9" = Toll9,
@@ -64,12 +65,13 @@ ATACseqInfo = ATACseq.data %>% dplyr::rename(
 
 #Load the ChIPseq data for CBP
 CBPInfo =  read.table(
-  file = paste(params$workingDir, params$ChIPseqDir, params$CBP.data, sep = ""), 
+  file = paste(params$workingDir, params$CBP.data, sep = ""), 
   quote = "",
   sep = "\t",
   header = TRUE,
   stringsAsFactors = F
 )
+CBPInfo = CBPInfo %>% dplyr::rename(geneID = Geneid)
 # Rename the mutant headers
 CBPInfo = CBPInfo %>%
   dplyr::select(geneID, Gd7, Toll10b, Toll9) %>%
@@ -79,7 +81,7 @@ CBPInfo = CBPInfo %>%
 
 # Load the ChIPseq data for H3K27ac
 K27acInfo =  read.table(
-  file = paste(params$workingDir, params$ChIPseqDir, params$K27ac.data, sep = "/"),
+  file = paste(params$workingDir,params$K27ac.data, sep = "/"),
   quote = "",
   sep = "\t",
   header = TRUE,
@@ -87,7 +89,7 @@ K27acInfo =  read.table(
 )
 # Rename the columns
 K27acInfo = K27acInfo %>% dplyr::rename(
-  "K27ac_geneID" = geneID,
+  "K27ac_geneID" = Geneid,
   "K27ac_Start" = Start,
   "K27ac_End" = End ,
   "K27ac_factor" = factor,
@@ -107,8 +109,8 @@ PROseq.data = read.table(
   header = TRUE,
   stringsAsFactors = F
 )
-test = ATACseq.data %>% dplyr::select(geneID, Chr, Start, End)
-PROseqInfo2 = inner_join(PROseq.data, test, by=c("Chr", "Start", "End"))
+#test = ATACseq.data %>% dplyr::select(geneID, Chr, Start, End)
+#PROseqInfo2 = inner_join(PROseq.data, test, by=c("Chr", "Start", "End"))
 # Rename headers.
 PROseqInfo = PROseq.data %>%  dplyr::select(geneID, Gd7, Toll10b, Toll9, Time) %>% dplyr::rename(
   "PRO_Gd7" = Gd7,
@@ -241,8 +243,8 @@ overlap_ATAC_K27ac$geneID = names(ATAC_peakData)[overlap_ATAC_K27ac$queryHits]
 overlap_ATAC_K27ac = overlap_ATAC_K27ac %>% dplyr::select(K27ac_geneID,geneID )
 
 CBPpeak.ATAC.PRO.CBP  = inner_join(CBPpeak.ATAC.PRO.CBP,  overlap_ATAC_K27ac)
-#CBPpeak.ATAC.PRO.CBP.K27ac =  inner_join(CBPpeak.ATAC.PRO.CBP,  K27acInfo)
-CBPpeak.ATAC.PRO.CBP.K27ac = CBPpeak.ATAC.PRO.CBP
+CBPpeak.ATAC.PRO.CBP.K27ac =  inner_join(CBPpeak.ATAC.PRO.CBP,  K27acInfo, by="K27ac_geneID")
+#CBPpeak.ATAC.PRO.CBP.K27ac = CBPpeak.ATAC.PRO.CBP
 
 overlap_CBP_enhancers = data.frame(findOverlaps(ATAC_peakData,EnhancersPeakData, maxgap = 0))
 overlap_CBP_enhancers$enhancerID = EnhancersPeakData$enhancerID[overlap_CBP_enhancers$subjectHits]
