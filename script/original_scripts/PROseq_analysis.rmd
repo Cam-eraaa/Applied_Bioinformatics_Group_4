@@ -12,8 +12,9 @@ params:
     informationDir: data_johan/information/cleaned
     resultsDir: results/original_method/PROseq
     PROseq.data: PROseq.data.tsv
-    PROseq.genes.data: PROseq.CBP.data.tsv
+    PROseq.CBP.data: PROseq.CBP.data.tsv
     CountData: PROseq.CBP.peak.featureCount.count.tab.txt
+    #CountData: counts.CDS.txt
 ---
 
 ```{r setup, include=FALSE}
@@ -85,6 +86,12 @@ sampleInfo = sampleInfo %>% separate(
   into =  c("PROseq", "bam", "spiked", "mutant", "sampleInfo"),
   remove = FALSE
 )
+# sampleInfo = sampleInfo %>% separate(
+#   col = bamFile,
+#   sep = "\\.",
+#   into =  c("Dir", "mutant", "sampleInfo"),
+#   remove = FALSE
+# )
 sampleInfo = sampleInfo %>% separate(
   col = sampleInfo,
   sep = "_",
@@ -395,7 +402,7 @@ for (j in unique(line$factor)) {
     loadings_new[i, j] = dist3d(
       b = as.numeric(line1[1, ]),
       c = as.numeric(line1[3, ]),
-      point = as.numeric(loadings_new[i, 1:3])
+      point = as.numeric(loadings_norm[i, 1:3])
     )
   }
 }
@@ -450,7 +457,8 @@ for (i in 1:nrow(loadingsDF.all.factorDistance)) {
 loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select(geneID, PC1, PC2, PC3, distance, factor, distanceFactor) %>% spread(key = factor, value = distanceFactor)
 
 # The max value is the biggest value of the distanceFactor for each geneID
-loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(geneID) %>% summarise(max = max(abs(distanceFactor)))
+loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(geneID)
+loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance.max%>% summarise(max = max(abs(distanceFactor)))
 loadingsDF.all.factorDistance$max = abs(loadingsDF.all.factorDistance$distanceFactor)
 
 # Add the max column to the rest of the data frame
@@ -459,12 +467,12 @@ loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,
                                                by = "geneID") %>% dplyr::select(geneID, factor, direction)
 
 # Add the sample info
-loadingsDF.all.factorDistance.max.peakInfo = inner_join (normExpressionDF.QC, loadingsDF.all.factorDistance.max, by =
-                                                           "geneID")
+loadingsDF.all.factorDistance.max.peakInfo = inner_join (normExpressionDF.QC, loadingsDF.all.factorDistance.max)
 # Add the loading scores
 loadingsDF.all.factorDistance.max.peakInfo = inner_join(loadingsDF.all.factorDistance.max.peakInfo,
                                                         loadingsDF.all.factorDistance2,
                                                         by = "geneID")
+
 ```
 
 ```{r write to file}
@@ -473,16 +481,23 @@ loadingsDF.all.factorDistance.max.peakInfo2 =
   loadingsDF.all.factorDistance.max.peakInfo %>%
   dplyr::select(-PC1, -PC2,-PC3,-distance)
 
-fileNamePROseq = paste(params$workingDir,
+fileNamePROseq1 = paste(params$workingDir,
                        params$resultsDir,
                        params$PROseq.data,
                        sep = "/")
-write.table(
-  x = loadingsDF.all.factorDistance.max.peakInfo2,
-  file = fileNamePROseq,
-  quote = F,
-  sep = "\t",
-  col.names = T,
-  row.names = F
-)
+# write.table(
+#   x = loadingsDF.all.factorDistance.max.peakInfo2,
+#   file = fileNamePROseq1,
+#   quote = F,
+#   sep = "\t",
+#   col.names = T,
+#   row.names = F
+# )
+
+#loadings_out = loadingsDF.all.factorDistance.max.peakInfo2 %>% dplyr::select(-replicate, -bamFile, -sampleName)
+#fileNamePROseq2 = paste(params$workingDir,
+#                       params$resultsDir,
+#                       params$PROseq.CBP.data,
+#                       sep = "/")
+
 ```
