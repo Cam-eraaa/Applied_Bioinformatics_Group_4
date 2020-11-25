@@ -347,10 +347,10 @@ loadingsDF.all.factorDistance.max.peakInfo2 =
   dplyr::select(-PC1,-PC2,-PC3,-distance)
 
 
-fileNameATACseq = paste(params$workingDir, params$ChIPresultsDir,  
+fileNameK27ac = paste(params$workingDir, params$ChIPresultsDir,  
                         params$ChIPSeq.data,
                              sep = "/")
-write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameATACseq,
+write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameK27ac,
                   quote = F, sep = "\t", col.names = T, row.names = F) 
 ```
 
