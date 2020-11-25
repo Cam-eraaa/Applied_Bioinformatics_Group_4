@@ -7,7 +7,7 @@ output: html_document
 params:
     workingDir: ~/Applied_Bioinformatics_Group_4
     annotationDir: data_johan/annotations
-    proSeqDir: data_johan/results/all/PROseq
+    proSeqDir: results/original_method/PROseq
     proSeq.data: PROseq.data.tsv
     proSeq.data.PPC: PROseq.data.PPC.tsv
     ATACSeqDir: data_johan/results/all/ATACseq
@@ -20,7 +20,7 @@ params:
     sampleInfo: data_johan/information/ChIP_ATAC_sampleInfo.tab.txt
     bestTargets_write: results/original_method/TopTargets.txt
     bestTargets: data_johan/information/all/TopTargets.txt
-    results_file: results/original_method/combined.AllData.withMetaData.txt
+    results_file: results/altered_method/combined.AllData.withMetaData.txt
 
 ---
 
@@ -78,7 +78,6 @@ gtfInfoGene = gtfInfoGene %>% separate(
   sep = "\"",
   into =  c("irrelevant1", "geneName", "empty")
 )
-#gtfInfoGene = gtfInfoGene$geneID
 
 ###### Contiune to fix the data frame gtfInfoGene
 gtfInfoAnnotation = gtfInfoGene %>% dplyr::select(V1, V4, V5, V7, geneID, geneName)
@@ -565,14 +564,14 @@ ggplot(
 # Save the data
 
 ```{r save the data}
-# write.table(
-#   x = AllData,
-#   file = paste(params$workingDir, params$results_file , sep = "/"),
-#   quote = F,
-#   sep = "\t",
-#   row.names = F,
-#   col.names = T
-# )
+write.table(
+  x = AllData,
+  file = paste(params$workingDir, params$results_file , sep = "/"),
+  quote = F,
+  sep = "\t",
+  row.names = F,
+  col.names = T
+)
 ```
 
 
