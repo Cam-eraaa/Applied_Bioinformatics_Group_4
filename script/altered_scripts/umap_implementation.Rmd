@@ -1,0 +1,60 @@
+---
+title: "Implementing UMAP"
+author: "Elin Antonsson"
+date: "11/25/2020"
+output: html_document
+---
+
+# all_enhancer.data = allEnhancerInfo2[, grep("ATAC|PRO|CBP|K27ac", colnames(allEnhancerInfo2))]
+# all_enhancer.labels = allEnhancerInfo2[, c("ATAC", "PRO", "CBP", "K27ac")]
+
+# allEnhancerInfo2.umap = umap(all_enhancer.data)
+# head(allEnhancerInfo2.umap$layout, 3)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages("devtools")
+devtools::install_github("ropenscilabs/umapr")
+library(umapr)
+library(tidyverse)
+```
+
+## R Markdown
+
+```{r Trying UMAPR, filter after}
+all_enhancer.data = allEnhancerInfo2[, grep("ATAC|PRO|CBP|K27ac", colnames(allEnhancerInfo2))]
+embedding <- umap(all_enhancer.data)
+new_embedding = left_join(EnhancerInfo,embedding)
+
+head(new_embedding)
+
+new_embedding = new_embedding %>% filter(!is.na(enhancerGenotype))
+
+new_embedding %>% 
+  mutate(Species = new_embedding$inSituLocation) %>%
+  ggplot(aes(UMAP1, UMAP2, color = Species)) + geom_point()
+```
+
+## Filter before UMAP instead of after
+
+```{r filter before}
+allEnhancerInfoWithInfo = left_join(EnhancerInfo,allEnhancerInfo2)
+
+new_embedding = allEnhancerInfoWithInfo %>% filter(!is.na(enhancerGenotype))
+
+all_enhancer.data = new_embedding[, grep("ATAC_Gd7|ATAC_Time|ATAC_Toll10b|ATAC_Toll9|PRO_Gd7|PRO_Toll10b|PRO_Toll9|PRO_Time|CBP_Gd7|CBP_Toll10b|CBP_Toll9|K27ac_Gd7|K27ac_Toll10b|K27ac_Toll9", colnames(new_embedding))]
+all_enhancer.labels = new_embedding[, "enhancerGenotype"]
+
+
+embedding <- umap(all_enhancer.data)
+
+head(embedding)
+
+
+embedding %>% 
+  mutate(Species = all_enhancer.labels) %>%
+  ggplot(aes(UMAP1, UMAP2, color = Species)) + geom_point()
+
+run_umap_shiny(new_embedding)
+
+```
