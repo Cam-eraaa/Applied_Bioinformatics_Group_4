@@ -12,9 +12,7 @@ params:
     informationDir: data_johan/information/cleaned
     resultsDir: results/original_method/PROseq
     PROseq.data: PROseq.data.tsv
-    PROseq.CBP.data: PROseq.CBP.data.tsv
-    CountData: PROseq.CBP.peak.featureCount.count.tab.txt
-    #CountData: counts.CDS.txt
+    CountData: counts.CDS.txt
 ---
 
 ```{r setup, include=FALSE}
@@ -36,7 +34,7 @@ library(clusterProfiler)
 library(org.Dm.eg.db)
 library(DESeq2)
 library("tidyverse")
-#library(dplyr)
+library(dplyr)
 library(tidyr)
 library(knitr)
 library(kableExtra)
@@ -83,15 +81,9 @@ sampleInfo = data.frame(bamFile =  colnames(countData))
 sampleInfo = sampleInfo %>% separate(
   col = bamFile,
   sep = "\\.",
-  into =  c("PROseq", "bam", "spiked", "mutant", "sampleInfo"),
+  into =  c("Dir", "mutant", "sampleInfo"),
   remove = FALSE
 )
-# sampleInfo = sampleInfo %>% separate(
-#   col = bamFile,
-#   sep = "\\.",
-#   into =  c("Dir", "mutant", "sampleInfo"),
-#   remove = FALSE
-# )
 sampleInfo = sampleInfo %>% separate(
   col = sampleInfo,
   sep = "_",
@@ -492,11 +484,5 @@ write.table(
   col.names = T,
   row.names = F
 )
-
-#loadings_out = loadingsDF.all.factorDistance.max.peakInfo2 %>% dplyr::select(-replicate, -bamFile, -sampleName)
-#fileNamePROseq2 = paste(params$workingDir,
-#                       params$resultsDir,
-#                       params$PROseq.CBP.data,
-#                       sep = "/")
 
 ```
