@@ -7,7 +7,8 @@ output: html_document
 params:
     workingDir: ~/Applied_Bioinformatics_Group_4
     annotationDir: data_johan/annotations
-    proSeqDir: results/original_method/PROseq
+    #proSeqDir: results/original_method/PROseq
+    proSeqDir: data_johan/results/all/PROseq/
     proSeq.data: PROseq.data.tsv
     proSeq.data.PPC: PROseq.data.PPC.tsv
     ATACSeqDir: data_johan/results/all/ATACseq
