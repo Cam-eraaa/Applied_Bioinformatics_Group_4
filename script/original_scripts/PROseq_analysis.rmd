@@ -463,8 +463,7 @@ loadingsDF.all.factorDistance$max = abs(loadingsDF.all.factorDistance$distanceFa
 
 # Add the max column to the rest of the data frame
 loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,
-                                               loadingsDF.all.factorDistance.max,
-                                               by = "geneID") %>% dplyr::select(geneID, factor, direction)
+                                               loadingsDF.all.factorDistance.max) %>% dplyr::select(geneID, factor, direction)
 
 # Add the sample info
 loadingsDF.all.factorDistance.max.peakInfo = inner_join (normExpressionDF.QC, loadingsDF.all.factorDistance.max)
@@ -481,18 +480,18 @@ loadingsDF.all.factorDistance.max.peakInfo2 =
   loadingsDF.all.factorDistance.max.peakInfo %>%
   dplyr::select(-PC1, -PC2,-PC3,-distance)
 
-fileNamePROseq1 = paste(params$workingDir,
+fileNamePROseq = paste(params$workingDir,
                        params$resultsDir,
                        params$PROseq.data,
                        sep = "/")
-# write.table(
-#   x = loadingsDF.all.factorDistance.max.peakInfo2,
-#   file = fileNamePROseq1,
-#   quote = F,
-#   sep = "\t",
-#   col.names = T,
-#   row.names = F
-# )
+write.table(
+  x = loadingsDF.all.factorDistance.max.peakInfo2,
+  file = fileNamePROseq,
+  quote = F,
+  sep = "\t",
+  col.names = T,
+  row.names = F
+)
 
 #loadings_out = loadingsDF.all.factorDistance.max.peakInfo2 %>% dplyr::select(-replicate, -bamFile, -sampleName)
 #fileNamePROseq2 = paste(params$workingDir,
