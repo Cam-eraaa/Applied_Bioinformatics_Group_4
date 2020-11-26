@@ -6,19 +6,17 @@ output: html_document
 
 params:
     workingDir: ~/Applied_Bioinformatics_Group_4
-    annotationDir: data_johan/annotations
-    #proSeqDir: results/original_method/PROseq
-    proSeqDir: data_johan/results/all/PROseq/
-    proSeq.data: PROseq.data.tsv
-    proSeq.data.PPC: PROseq.data.PPC.tsv
+    PROseqDir: data_johan/results/all/PROseq/
+    PROseq.CDS.data: PROseq.data.tsv
+    PROseq.data.PPC: PROseq.data.PPC.tsv
     ATACSeqDir: data_johan/results/all/ATACseq
     ATACSeq.data: ATACseq.data.raw.tsv
-    chipSeqDir: data_johan/results/all/chipSeq
+    ChIPseqDir: data_johan/results/all/chipSeq
     k27ac.data: K27ac.ChIPseq.peak.pattern.tsv
     CBP.data: ATAC-CBP_dm6.ChIPseq.peak.pattern.tsv
-    RscriptsDir: script/original_scripts
-    dataDir: data_johan/data/ATACseq
     sampleInfo: data_johan/information/ChIP_ATAC_sampleInfo.tab.txt
+    # I am working on recreating the Regions file
+    Regions: data_johan/results/all/combined.peaks.location.tsv
     bestTargets_write: results/original_method/TopTargets.txt
     bestTargets: data_johan/information/all/TopTargets.txt
     results_file: results/altered_method/combined.AllData.withMetaData.txt
@@ -116,22 +114,23 @@ gene2transcriptInfo  = gtfInfomRNA_DF %>% dplyr::select(geneID, transcriptID)
 
 ### CDS values
 ```{r PROseq  CDS info}
-PROseqInfo = read.table(
-  file = paste(params$workingDir, params$proSeqDir, params$proSeq.data,
+# Load the tsv based on counts per gene
+PROseqInfoCDS = read.table(
+  file = paste(params$workingDir, params$PROseqDir, params$PROseq.CDS.data,
                sep = "/"),
   quote = "",
   sep = "\t",
   header = TRUE,
   stringsAsFactors = F
 )
-
-annotation2 =  PROseqInfo %>% filter(factor %in% c("Toll10b", "Toll9", "Gd7") &
+# Extract the mutants and annotation
+annotation2 =  PROseqInfoCDS %>% filter(factor %in% c("Toll10b", "Toll9", "Gd7") &
                                        annotation2 == "DE") %>%
   dplyr::select(geneID, annotation, distance, factor, direction) %>%
   distinct()
 
 
-PROseqData = PROseqInfo %>% dplyr::select(geneID,
+PROseqData = PROseqInfoCDS %>% dplyr::select(geneID,
                                           factor,
                                           direction,
                                           annotation,
@@ -167,17 +166,17 @@ topTarget = inner_join(topTarget, gtfInfoAnnotation)
 
 topTargetsFileName_new = paste(params$workingDir, params$bestTargets_write, sep = "/")
 PROseqData.topTargets =  inner_join(PROseqData, topTarget) %>% dplyr::select(geneName, factor, direction, annotation, Factor, Direction)
-# write.table(
-#   x = PROseqData.topTargets,
-#   file = topTargetsFileName_new,
-#   sep = "\t",
-#   quote = F,
-#   row.names = F,
-#   col.names =  T
-# )
+write.table(
+  x = PROseqData.topTargets,
+  file = topTargetsFileName_new,
+  sep = "\t",
+  quote = F,
+  row.names = F,
+  col.names =  T
+)
 
-
-PROseqInfo %>% dplyr::select(geneID,
+# Plot the PROseq data where it has been divided into background and factor
+PROseqInfoCDS %>% dplyr::select(geneID,
                              Chr,
                              Start,
                              End,
@@ -192,7 +191,7 @@ PROseqInfo %>% dplyr::select(geneID,
                                y = Toll9,
                                color = factor,
                                shape = direction
-                             )) + geom_point() 
+                             )) + geom_point()
 ```
 
 ### PPC values
@@ -201,8 +200,8 @@ PROseqInfo %>% dplyr::select(geneID,
 PROseqInfo.PPC = read.table(
   file = paste(
     params$workingDir,
-    params$proSeqDir,
-    params$proSeq.data.PPC,
+    params$PROseqDir,
+    params$PROseq.data.PPC,
     sep = "/"
   ),
   quote = "",
@@ -243,7 +242,7 @@ colnames(ATACseqInfo) = paste("ATACseq", colnames(ATACseqInfo), sep = "_")
 
 ```{r K27ac annotation}
 K27acInfo =  read.table(
-  file = paste(params$workingDir, params$chipSeqDir,
+  file = paste(params$workingDir, params$ChIPseqDir,
                params$k27ac.data,
                sep = "/"),
   quote = "",
@@ -270,7 +269,7 @@ colnames(K27acLocation)[2] = "Chr"
 
 
 CBPInfo =  read.table(
-  file = paste(params$workingDir, params$chipSeqDir, params$CBP.data, sep = "/"),
+  file = paste(params$workingDir, params$ChIPseqDir, params$CBP.data, sep = "/"),
   quote = "",
   sep = "\t",
   header = TRUE,
@@ -290,11 +289,8 @@ colnames(CBPLocation)[2] = "Chr"
 
 ```{r merge with annotation}
 usedRegionsAndGenes = read.table(
-  file = paste(
-    params$workingDir,
-    "data_johan/results/all/combined.peaks.location.tsv" ,
-    sep = "/"
-  ),
+  file = paste(params$workingDir, params$Regions,
+               sep = "/"),
   header = T,
   quote = "",
   sep = "\t",
