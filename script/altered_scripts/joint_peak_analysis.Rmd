@@ -124,28 +124,28 @@ PROseqInfo = PROseq.data %>%  dplyr::select(geneID, Gd7, Toll10b, Toll9, Time) %
   "PRO_Time" = Time
 )
 
-PROseq.data %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2,PC1,PC2,PC3) %>% distinct()  %>%  filter( factor != "Time") %>% ggplot(mapping = aes(x = PC2, y = PC3, color = factor, shape = direction )) + geom_point() 
-
-
-annotation2 =  PROseqInfo %>% filter(factor %in% c("Toll10b","Toll9","Gd7") & annotation2 == "DE") %>%
-  dplyr::select(geneID, annotation, distance, factor, direction ) %>%
-  distinct()
-
-
-PROseqData = PROseqInfo2 %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2, Gd7,Toll10b,Toll9) %>% distinct()
-
-PROseqData.PI = PROseqInfo2 %>% group_by(geneID) %>% summarise(PI = max(PI))
-colnames(PROseqData)[6] = paste("PROseq", colnames(PROseqData)[6], sep = "_")
-colnames(PROseqData)[7] = paste("PROseq", colnames(PROseqData)[7], sep = "_")
-colnames(PROseqData)[8] = paste("PROseq", colnames(PROseqData)[8], sep = "_")
-colnames(PROseqData)[9] = paste("PROseq", colnames(PROseqData)[9], sep = "_")
-
-PROseqData.DE  = PROseqData %>% filter(PROseq_annotation2 == "DE" & PROseq_factor != "Time") 
-
-PROseqData.DE = inner_join(PROseqData.DE, PROseqData.PI)
-PROseqData.DE = PROseqData.DE %>% mutate(Chr = paste("chr",Chr, sep = ""))
-
-rownames(PROseqData.DE) = PROseqData.DE$geneID
+# PROseq.data %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2,PC1,PC2,PC3) %>% distinct()  %>%  filter( factor != "Time") %>% ggplot(mapping = aes(x = PC2, y = PC3, color = factor, shape = direction )) + geom_point() 
+# 
+# 
+# annotation2 =  PROseqInfo %>% filter(factor %in% c("Toll10b","Toll9","Gd7") & annotation2 == "DE") %>%
+#   dplyr::select(geneID, annotation, distance, factor, direction ) %>%
+#   distinct()
+# 
+# 
+# PROseqData = PROseqInfo2 %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2, Gd7,Toll10b,Toll9) %>% distinct()
+# 
+# PROseqData.PI = PROseqInfo2 %>% group_by(geneID) %>% summarise(PI = max(PI))
+# colnames(PROseqData)[6] = paste("PROseq", colnames(PROseqData)[6], sep = "_")
+# colnames(PROseqData)[7] = paste("PROseq", colnames(PROseqData)[7], sep = "_")
+# colnames(PROseqData)[8] = paste("PROseq", colnames(PROseqData)[8], sep = "_")
+# colnames(PROseqData)[9] = paste("PROseq", colnames(PROseqData)[9], sep = "_")
+# 
+# PROseqData.DE  = PROseqData %>% filter(PROseq_annotation2 == "DE" & PROseq_factor != "Time") 
+# 
+# PROseqData.DE = inner_join(PROseqData.DE, PROseqData.PI)
+# PROseqData.DE = PROseqData.DE %>% mutate(Chr = paste("chr",Chr, sep = ""))
+# 
+# rownames(PROseqData.DE) = PROseqData.DE$geneID
 ```
 
 ```{r Load the Insitu data files}
@@ -442,9 +442,6 @@ fileName = paste(params$workingDir, params$enhancerResult, sep = "")
 
 #write.table(x = AllData.enhancers_cleaned, file = fileName, sep = "\t", quote = F, row.names = F, col.names = T )
 
-regions_id = AllData.enhancer %>% dplyr::select(geneID)
-regionsFile = paste(params$workingDir, params$Regions, sep="")
-#write.table(x = regions_id, file = fileName, sep = "\t", quote = F, row.names = F, col.names = T )
 
 ```
 

@@ -412,7 +412,7 @@ tmp$distance =  ((tmp$PC1 ^ 2 + tmp$PC2 ^ 2 + tmp$PC3 ^ 2) ^ 0.5)
 loadingsDF.all = tmp
 loadingsDF.all.factorDistance = loadingsDF.all %>% gather(key = factor, value = distance2Factor, Time, Gd7, Toll10b, Toll9)
 
-# Caluclates the distance by taking the distance for the loading scores to the distance to the factor(mutants or time). The bigger difference the more it is deviating form the norm. This means there will be one distance for each CBP Peak. (e.g. region 100 will have 4 column (time and mutants)) 
+# Calculates the distance by taking the distance for the loading scores to the distance to the factor(mutants or time). The bigger difference the more it is deviating form the norm. This means there will be one distance for each CBP Peak. (e.g. region 100 will have 4 column (time and mutants)) 
 loadingsDF.all.factorDistance$distanceFactor = sqrt(
   loadingsDF.all.factorDistance$distance ^ 2 -
     loadingsDF.all.factorDistance$distance2Factor ^ 2
