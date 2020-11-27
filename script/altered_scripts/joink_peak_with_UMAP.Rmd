@@ -1,7 +1,6 @@
 ---
-title: "Identifying the enhancer gene pairs"
-author: "Jenny Jakobsson"
-date: "11/19/2020"
+title: "Joint Peak Analysis with UMAP"
+author: "Elin Antonsson"
 output: html_document
 
 params:
@@ -334,36 +333,30 @@ KI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(K27ac_Toll9, K27ac_Tol
 ```
 
 
-```{r PCA analysis, include=FALSE}
-
+```{r Trying UMAPR, filter after, better}
 allEnhancerInfo2 = EnhancerInfo %>% dplyr::select(-geneID,-enhancerID,-enhancerGenotype,-insituID,-inSituLocation,-inSituScore,-enhancer,-inSitu,-K27ac_geneID, -Chr, -Strand, -Length, -ATAC_direction, -ATAC_factor, -ATAC_Start, -ATAC_End, -K27ac_Strand, -K27ac_Start, -K27ac_End, -K27ac_Length, -K27ac_direction, -K27ac_factor, -K27ac_Chr, -geneID_unique)
 
-rownames(allEnhancerInfo2) = EnhancerInfo$geneID_unique
+all_enhancer.data = allEnhancerInfo2[, grep("ATAC|PRO|CBP|K27ac", colnames(allEnhancerInfo2))]
+embedding <- umap(all_enhancer.data)
+new_embedding = left_join(EnhancerInfo,embedding)
 
-mir.pca <- prcomp(allEnhancerInfo2, center = TRUE, scale = FALSE) 
-e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
-e.var = as.data.frame( e.var )
-e.var$PC = as.factor(1:nrow(e.var)) 
-e.var$Variance = e.var$e.var*100
-e.var$CumulativeVariance = cumsum(e.var$Variance)
-qplot(PC, Variance, data=e.var, geom = c("point")
-      , ylim = c(0,max(e.var$Variance)+5) 
-      ,ylab = "Variance (%)")
+#I think it is best not to filter
+#new_embedding = new_embedding %>% filter(!is.na(enhancerGenotype))
 
-pctable = as.data.frame(mir.pca$x)[, 1:5]
+new_embedding %>% 
+  mutate(Species = new_embedding$enhancerGenotype) %>%
+  ggplot(aes(UMAP1, UMAP2, color = Species)) + geom_point()
 
-pctable$geneID_unique = rownames(pctable)
 
-AllData = left_join(EnhancerInfo,pctable)
+AllData = new_embedding %>% mutate(distance1 = abs(UMAP1))
+AllData = AllData %>% mutate(distance2 = (UMAP1^2+UMAP2^2)^0.5)
 
-AllData = AllData %>% mutate(distance5 = (PC1^2+PC2^2+PC3^2+PC4^2++PC5^2)^0.5)
-AllData = AllData %>% mutate(distance4 = (PC1^2+PC2^2+PC3^2+PC4^2)^0.5)
-AllData = AllData %>% mutate(distance3 = (PC1^2+PC2^2+PC3^2)^0.5)
-AllData = AllData %>% mutate(distance2 = (PC1^2+PC2^2)^0.5)
-AllData = AllData %>% mutate(distance1 = abs(PC1))
+# Plot density plot
+FE =  AllData %>% filter(enhancer == 1) %>% ggplot(aes(UMAP1, UMAP2, color = enhancerGenotype )) + geom_point()+ geom_density_2d(AllData,mapping = aes(UMAP1, UMAP2), color= "grey")
+FI =  AllData %>% filter(inSitu == 1) %>% ggplot(aes(UMAP1, UMAP2, color = inSituLocation )) + geom_point()+ geom_density_2d(AllData,mapping = aes(UMAP1, UMAP2), color= "grey")
 
-FE =  AllData %>% filter(enhancer == 1) %>% ggplot(aes(PC1, PC2, color = enhancerGenotype )) + geom_point()+ geom_density_2d(AllData,mapping = aes(PC1, PC2), color= "grey")
-FI =  AllData %>% filter(inSitu == 1) %>% ggplot(aes(PC1, PC2, color = inSituLocation )) + geom_point()+ geom_density_2d(AllData,mapping = aes(PC1, PC2), color= "grey")
+FE + FI+ plot_layout(ncol = 1)
+
 ```
 
 ```{r plot this steps }
@@ -379,7 +372,6 @@ PE+PI+AE+AI+CE+CI+KE+KI+FE+FI +plot_layout(ncol = 2)
 
 ```
 
-
 ### Assesment and selection
 
 ```{r roc analysis  , include=FALSE}
@@ -387,33 +379,13 @@ enhancerData = AllData
 
 d1ROCi = getROCinfo(AllData,scoreColumn = "distance1", classColumn = "inSitu")
 d2ROCi = getROCinfo(AllData,scoreColumn = "distance2", classColumn = "inSitu")
-d3ROCi = getROCinfo(AllData,scoreColumn = "distance3", classColumn = "inSitu")
-d4ROCi = getROCinfo(AllData,scoreColumn = "distance4", classColumn = "inSitu")
-d5ROCi = getROCinfo(AllData,scoreColumn = "distance5", classColumn = "inSitu")
 d1ROCe = getROCinfo(AllData,scoreColumn = "distance1", classColumn = "enhancer")
 d2ROCe = getROCinfo(AllData,scoreColumn = "distance2", classColumn = "enhancer")
-d3ROCe = getROCinfo(AllData,scoreColumn = "distance3", classColumn = "enhancer")
-d4ROCe = getROCinfo(AllData,scoreColumn = "distance4", classColumn = "enhancer")
-d5ROCe = getROCinfo(AllData,scoreColumn = "distance5", classColumn = "enhancer")
 
-
-
-ROCplotInfo = rbind (d1ROCi$ROCplotInfo, d2ROCi$ROCplotInfo, d3ROCi$ROCplotInfo,d4ROCi$ROCplotInfo, d5ROCi$ROCplotInfo,
-                     d1ROCe$ROCplotInfo, d2ROCe$ROCplotInfo, d3ROCe$ROCplotInfo,d4ROCe$ROCplotInfo, d5ROCe$ROCplotInfo)
-ROCplotSummary = rbind(d1ROCi$Youden, d2ROCi$Youden, d3ROCi$Youden,d4ROCi$Youden, d5ROCi$Youden,
-                     d1ROCe$Youden, d2ROCe$Youden, d3ROCe$Youden,d4ROCe$Youden, d5ROCe$Youden)
-
-
-```
-
-```{r plot ROC}
-
-ROCplotSummary
-
-qplot(PC, Variance, data=e.var, geom = c("point")
-      , ylim = c(0,max(e.var$Variance)+5)
-      ,ylab = "Variance (%)")
-
+ROCplotInfo = rbind (d1ROCi$ROCplotInfo, d2ROCi$ROCplotInfo,
+                     d1ROCe$ROCplotInfo, d2ROCe$ROCplotInfo)
+ROCplotSummary = rbind(d1ROCi$Youden, d2ROCi$Youden,
+                     d1ROCe$Youden, d2ROCe$Youden)
 
 ggplot(ROCplotInfo, mapping =  aes(x = FPR, y = TPR, color = score))+
   geom_line()+
@@ -422,17 +394,19 @@ ggplot(ROCplotInfo, mapping =  aes(x = FPR, y = TPR, color = score))+
     facet_grid(.~classifier)
 
 ```
+
+
 # Enhancer selection
 
 
-Based on ROC statistics  it is best if we include all five PC  
+Based on ROC statistics  it is best if we include both UMAP1 and UMAP2 and that we look at the enhancer data 
 
 ```{r plot classification }
 
 
-scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance5")
+scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance2")
 
-AllData.enhancers = AllData %>% filter(distance5 > scores$YoudenCutoff)
+AllData.enhancers = AllData %>% filter(distance2 > scores$YoudenCutoff)
 
 AllData.enhancers = AllData.enhancers %>% replace_na(list(enhancerID = "None", enhancerGenotype = "None",insituID = "None",inSituLocation = "None", inSituScore = -1 ))
 
@@ -442,7 +416,7 @@ peakInfo$geneID = names(ATAC_peakData)
 
 AllData.enhancers = AllData.enhancers %>% dplyr::select(-geneID_unique)
 AllData.enhancers = inner_join(peakInfo, AllData.enhancers, by = "geneID")
-AllData.enhancers_cleaned = AllData.enhancers %>% dplyr::select(geneID, -seqnames, Chr, start, end, -width, -strand, -ATAC_Start, -ATAC_End, -Strand, Length, ATAC_factor, ATAC_direction, ATAC_Gd7,  ATAC_Toll10b, ATAC_Toll9, ATAC_Time, PRO_Gd7, PRO_Toll10b, PRO_Toll9, PRO_Time, CBP_Gd7,  CBP_Toll10b, CBP_Toll9, K27ac_geneID, -K27ac_Chr, -K27ac_Start, -K27ac_End, -K27ac_Strand, -K27ac_Length,  -K27ac_factor, -K27ac_direction, K27ac_Gd7, K27ac_Toll10b, K27ac_Toll9, enhancerID, enhancerGenotype, insituID, inSituLocation, inSituScore, enhancer, inSitu, PC1, PC2, PC3, PC4, PC5, distance1, distance2, distance3, distance4, distance5)
+AllData.enhancers_cleaned = AllData.enhancers %>% dplyr::select(geneID, -seqnames, Chr, start, end, -width, -strand, -ATAC_Start, -ATAC_End, -Strand, Length, ATAC_factor, ATAC_direction, ATAC_Gd7,  ATAC_Toll10b, ATAC_Toll9, ATAC_Time, PRO_Gd7, PRO_Toll10b, PRO_Toll9, PRO_Time, CBP_Gd7,  CBP_Toll10b, CBP_Toll9, K27ac_geneID, -K27ac_Chr, -K27ac_Start, -K27ac_End, -K27ac_Strand, -K27ac_Length,  -K27ac_factor, -K27ac_direction, K27ac_Gd7, K27ac_Toll10b, K27ac_Toll9, enhancerID, enhancerGenotype, insituID, inSituLocation, inSituScore, enhancer, inSitu, UMAP1, UMAP2, distance1, distance2)
 
 fileName = paste(params$workingDir, params$enhancerResult, sep = "")
 
@@ -506,6 +480,7 @@ AllData2 = AllData_test %>% dplyr::select(
 AllData.saved = AllData_test
 
 ```
+
 
 ```{r save the data}
 write.table(
