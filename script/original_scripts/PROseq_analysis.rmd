@@ -84,40 +84,41 @@ rownames(countData) = geneInfo$geneID
 
 ```{r fixing start and stop to a single positions}
 # Ran loops to find the the max number of values for stop is 1723
-start_matrix = matrix(NA, nrow = 13947, ncol =1723)
+start_matrix = matrix(NA, nrow = 13947, ncol = 1723)
 vector = c()
 start = positions %>% dplyr::select(Start, Geneid)
 num_rows = dim(start)[1]
-start_min = c()
+start$start_min = NA
 
+rownames(start)[start$Geneid == "FBgn0024277"]
+start_row = 3523
 # Splitting the values for each row
-for(start_row in 1:num_rows) {
+for (start_row in 1:num_rows) {
   vector = str_split(start[[1]][start_row], ";")
   num_cols = length(vector[[1]])
-  for(start_col in 1:num_cols){
+  for (start_col in 1:num_cols) {
     start_matrix[start_row, start_col] = vector[[1]][start_col]
   }
-  start_min = c(start_min, min(start_matrix[start_row, ], na.rm=TRUE))
-  start$start_min[start$Geneid == start[[2]][start_row]] = max(start_matrix[start_row, ], na.rm=TRUE)
+  min_col = which.min(start_matrix[start_row,])
+  start$start_min[start$Geneid == start[[2]][start_row]] = start_matrix[start_row, min_col]
 }
 
 # Ran loops to find the the max number of values for stop is 1723
-end_matrix = matrix(NA, nrow = 13948, ncol =1723)
+end_matrix = matrix(NA, nrow = 13948, ncol = 1723)
 vector = c()
 end = positions %>% dplyr::select(End, Geneid)
 rows = dim(end)[1]
-end_max = c()
-end$end_max = 0
+end$end_max = NA
 
 # Splitting the values for each row
-for(end_row in 1:rows) {
+for (end_row in 1:rows) {
   vector = str_split(end[[1]][end_row], ";")
   cols = length(vector[[1]])
-  for(end_col in 1:cols){
+  for (end_col in 1:cols) {
     end_matrix[end_row, end_col] = vector[[1]][end_col]
   }
-  end_max = c(end_max, max(end_matrix[end_row, ], na.rm=TRUE))
-  end$end_max[end$Geneid == end[[2]][end_row]] = max(end_matrix[end_row, ], na.rm=TRUE)
+  max_col = which.max(end_matrix[end_row,])
+  end$end_max[end$Geneid == end[[2]][end_row]] = end_matrix[end_row, max_col]
 }
 
 positions_fixed = data.frame(positions$Geneid, chr, strand)
@@ -125,7 +126,13 @@ positions_fixed = positions_fixed %>% dplyr::rename(Geneid = positions.Geneid)
 positions_fixed = inner_join(positions_fixed, start)
 positions_fixed = inner_join(positions_fixed, end)
 positions_fixed = positions_fixed %>% dplyr::select(Geneid, chr, start_min, end_max, strand)
-positions_fixed = positions_fixed %>% dplyr::rename(geneID = Geneid, Chr = chr, Start = start_min, End = end_max, Strand = strand)
+positions_fixed = positions_fixed %>% dplyr::rename(
+  geneID = Geneid,
+  Chr = chr,
+  Start = start_min,
+  End = end_max,
+  Strand = strand
+)
 geneInfo = inner_join(positions_fixed, geneInfo)
 ```
 
