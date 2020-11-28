@@ -8,10 +8,8 @@ params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   RscriptsDir: script/original_scripts/
   inSitu.data: data_johan/results/cleaned/inSitu/inSitu.Stark.dm6.tsv
-  PROseqDir: results/original_method/PROseq/
-  #PROseq.data: data_johan/results/cleaned/PROseq/PROseq.CBP.peak.tsv
   PROseq.data: results/altered_method/PROseq/PROseq.CBP.data.tsv
-  PROseq.gene.data: results/priginal_method/PROseq.data.tsv
+  PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
   ChIPseqDir: results/original_method/ChIPseq/
   CBP.data: CBP/ChIPseq.CBP.data.tsv
   K27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
@@ -21,7 +19,6 @@ params:
   Toll9enhancer: data_johan/results/cleaned/enhancers/h3k27ac_Tollrm910_csaw_intersect.bed
   enhancerResult: results/altered_method/enhancers/enhancers.tsv
   Regions: results/altered_method/enhancers/regions_id.tsv
-  
   results_file: results/altered_method/combined.AllData.withMetaData.txt
   results_file_cleaned: results/altered_method/AllData_cleaned.txt
   
@@ -111,7 +108,7 @@ K27acInfo = K27acInfo %>% dplyr::rename(
 
 ```{r Load the PROseq data files}
 # Load the PROseq data
-PROseq_file = paste(params$workingDir, params$PROseqDir, params$PROseq.data, sep = "")
+PROseq_file = paste(params$workingDir, params$PROseq.data, sep = "")
 
 PROseq.data = read.table(
   file = PROseq_file ,
@@ -131,28 +128,26 @@ PROseqInfo = PROseq.data %>%  dplyr::select(geneID, Gd7, Toll10b, Toll9, Time) %
 #  "Direction" = direction
 )
 
-# PROseq.data %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2,PC1,PC2,PC3) %>% distinct()  %>%  filter( factor != "Time") %>% ggplot(mapping = aes(x = PC2, y = PC3, color = factor, shape = direction )) + geom_point() 
-# 
-# 
-# annotation2 =  PROseqInfo %>% filter(factor %in% c("Toll10b","Toll9","Gd7") & annotation2 == "DE") %>%
-#   dplyr::select(geneID, annotation, distance, factor, direction ) %>%
-#   distinct()
-# 
-# 
-# PROseqData = PROseqInfo2 %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2, Gd7,Toll10b,Toll9) %>% distinct()
-# 
-# PROseqData.PI = PROseqInfo2 %>% group_by(geneID) %>% summarise(PI = max(PI))
-# colnames(PROseqData)[6] = paste("PROseq", colnames(PROseqData)[6], sep = "_")
-# colnames(PROseqData)[7] = paste("PROseq", colnames(PROseqData)[7], sep = "_")
-# colnames(PROseqData)[8] = paste("PROseq", colnames(PROseqData)[8], sep = "_")
-# colnames(PROseqData)[9] = paste("PROseq", colnames(PROseqData)[9], sep = "_")
-# 
-# PROseqData.DE  = PROseqData %>% filter(PROseq_annotation2 == "DE" & PROseq_factor != "Time") 
-# 
-# PROseqData.DE = inner_join(PROseqData.DE, PROseqData.PI)
-# PROseqData.DE = PROseqData.DE %>% mutate(Chr = paste("chr",Chr, sep = ""))
-# 
-# rownames(PROseqData.DE) = PROseqData.DE$geneID
+PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
+
+PROseq.gene.data = read.table(
+  file = PROseq_gene_file ,
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+
+
+PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, Strand) %>% dplyr::rename(
+  "Gene_geneID" = geneID,
+  "Gene_Chr" = Chr,
+  "Gene_Start" = Start,
+  "Gene_End" = End,
+  "Gene_Strand" = Strand
+)
+PROseqGeneInfo = PROseqGeneInfo %>% distinct()
+
 ```
 
 ```{r Load the Insitu data files}
@@ -235,6 +230,13 @@ K27ac_peakData = makeGRangesFromDataFrame(
 )
 names(K27ac_peakData) = K27acInfo$K27ac_geneID
 
+PRO_genes_peakData = makeGRangesFromDataFrame(PROseqGeneInfo,
+                                              seqnames.field = "Gene_Chr",
+                                              start.field = "Gene_Start",
+                                              end.field = "Gene_End",
+                                              strand.field = "Gene_Strand"
+                                              )
+names(PRO_genes_peakData) = PROseqGeneInfo$geneID
 inSitu_peakData = makeGRangesFromDataFrame(inSitu.Data,
                                       seqnames.field = c("Chr","seqnames"), 
                                       start.field = c("Start","start"), 

@@ -86,7 +86,7 @@ rownames(countData) = geneInfo$geneID
 # Ran loops to find the the max number of values for stop is 1723
 start_matrix = matrix(NA, nrow = 13947, ncol =1723)
 vector = c()
-start = positions %>% dplyr::select(Start)
+start = positions %>% dplyr::select(Start, Geneid)
 num_rows = dim(start)[1]
 start_min = c()
 
@@ -98,14 +98,16 @@ for(start_row in 1:num_rows) {
     start_matrix[start_row, start_col] = vector[[1]][start_col]
   }
   start_min = c(start_min, min(start_matrix[start_row, ], na.rm=TRUE))
+  start$start_min[start$Geneid == start[[2]][start_row]] = max(start_matrix[start_row, ], na.rm=TRUE)
 }
 
 # Ran loops to find the the max number of values for stop is 1723
-end_matrix = matrix(NA, nrow = 13947, ncol =1723)
+end_matrix = matrix(NA, nrow = 13948, ncol =1723)
 vector = c()
-end = positions %>% dplyr::select(End)
+end = positions %>% dplyr::select(End, Geneid)
 rows = dim(end)[1]
 end_max = c()
+end$end_max = 0
 
 # Splitting the values for each row
 for(end_row in 1:rows) {
@@ -114,10 +116,16 @@ for(end_row in 1:rows) {
   for(end_col in 1:cols){
     end_matrix[end_row, end_col] = vector[[1]][end_col]
   }
-  end_max = c(end_max, min(end_matrix[end_row, ], na.rm=TRUE))
+  end_max = c(end_max, max(end_matrix[end_row, ], na.rm=TRUE))
+  end$end_max[end$Geneid == end[[2]][end_row]] = max(end_matrix[end_row, ], na.rm=TRUE)
 }
-positions_fixed = data.frame(positions$Geneid, chr, start_min, end_max, strand)
-positions_fixed = positions_fixed %>% dplyr::rename(geneID = positions.Geneid, Chr = chr, Start = start_min, End=end_max, Strand = strand)
+
+positions_fixed = data.frame(positions$Geneid, chr, strand)
+positions_fixed = positions_fixed %>% dplyr::rename(Geneid = positions.Geneid)
+positions_fixed = inner_join(positions_fixed, start)
+positions_fixed = inner_join(positions_fixed, end)
+positions_fixed = positions_fixed %>% dplyr::select(Geneid, chr, start_min, end_max, strand)
+positions_fixed = positions_fixed %>% dplyr::rename(geneID = Geneid, Chr = chr, Start = start_min, End = end_max, Strand = strand)
 geneInfo = inner_join(positions_fixed, geneInfo)
 ```
 
