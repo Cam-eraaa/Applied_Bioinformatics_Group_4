@@ -8,9 +8,10 @@ params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   RscriptsDir: script/original_scripts/
   inSitu.data: data_johan/results/cleaned/inSitu/inSitu.Stark.dm6.tsv
-  #PROseqDir: results/original_method/PROseq
-  PROseq.data: data_johan/results/cleaned/PROseq/PROseq.CBP.peak.tsv
-  #PROseq.data: results/original_method/PROseq/PROseq.data.tsv
+  PROseqDir: results/original_method/PROseq/
+  #PROseq.data: data_johan/results/cleaned/PROseq/PROseq.CBP.peak.tsv
+  PROseq.data: results/altered_method/PROseq/PROseq.CBP.data.tsv
+  PROseq.gene.data: results/priginal_method/PROseq.data.tsv
   ChIPseqDir: results/original_method/ChIPseq/
   CBP.data: CBP/ChIPseq.CBP.data.tsv
   K27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
@@ -110,7 +111,7 @@ K27acInfo = K27acInfo %>% dplyr::rename(
 
 ```{r Load the PROseq data files}
 # Load the PROseq data
-PROseq_file = paste(params$workingDir, params$PROseq.data, sep = "")
+PROseq_file = paste(params$workingDir, params$PROseqDir, params$PROseq.data, sep = "")
 
 PROseq.data = read.table(
   file = PROseq_file ,
