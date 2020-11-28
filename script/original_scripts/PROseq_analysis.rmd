@@ -60,6 +60,19 @@ FCdata = read.table(
 )
 
 # Creating matrix with geneID(1) and gene length(2)
+positions = FCdata[, 1:5]
+chr = positions %>% dplyr::select(Chr) %>% separate(
+  col = Chr,
+  into = c("chr"),
+  sep = ";",
+  remove = TRUE
+)
+strand = positions %>% dplyr::select(Strand) %>% separate(
+  col = Strand,
+  into = c("strand"),
+  sep = ";",
+  remove = TRUE
+)
 geneInfo  = FCdata [, 1:6]
 geneInfo  = geneInfo[, c(1, 6)]
 geneInfo = geneInfo %>% rename(geneID = Geneid)
@@ -69,6 +82,44 @@ countData = FCdata[,-1:-6]
 rownames(countData) = geneInfo$geneID
 ```
 
+```{r fixing start and stop to a single positions}
+# Ran loops to find the the max number of values for stop is 1723
+start_matrix = matrix(NA, nrow = 13947, ncol =1723)
+vector = c()
+start = positions %>% dplyr::select(Start)
+num_rows = dim(start)[1]
+start_min = c()
+
+# Splitting the values for each row
+for(start_row in 1:num_rows) {
+  vector = str_split(start[[1]][start_row], ";")
+  num_cols = length(vector[[1]])
+  for(start_col in 1:num_cols){
+    start_matrix[start_row, start_col] = vector[[1]][start_col]
+  }
+  start_min = c(start_min, min(start_matrix[start_row, ], na.rm=TRUE))
+}
+
+# Ran loops to find the the max number of values for stop is 1723
+end_matrix = matrix(NA, nrow = 13947, ncol =1723)
+vector = c()
+end = positions %>% dplyr::select(End)
+rows = dim(end)[1]
+end_max = c()
+
+# Splitting the values for each row
+for(end_row in 1:rows) {
+  vector = str_split(end[[1]][end_row], ";")
+  cols = length(vector[[1]])
+  for(end_col in 1:cols){
+    end_matrix[end_row, end_col] = vector[[1]][end_col]
+  }
+  end_max = c(end_max, min(end_matrix[end_row, ], na.rm=TRUE))
+}
+positions_fixed = data.frame(positions$Geneid, chr, start_min, end_max, strand)
+positions_fixed = positions_fixed %>% dplyr::rename(geneID = positions.Geneid, Chr = chr, Start = start_min, End=end_max, Strand = strand)
+geneInfo = inner_join(positions_fixed, geneInfo)
+```
 
 ## Create sample information
 
@@ -472,12 +523,14 @@ loadingsDF.all.factorDistance.max.peakInfo2 =
   loadingsDF.all.factorDistance.max.peakInfo %>%
   dplyr::select(-PC1, -PC2,-PC3,-distance)
 
+output = inner_join(geneInfo.QC, loadingsDF.all.factorDistance.max.peakInfo2)
+
 fileNamePROseq = paste(params$workingDir,
                        params$resultsDir,
                        params$PROseq.data,
                        sep = "/")
 write.table(
-  x = loadingsDF.all.factorDistance.max.peakInfo2,
+  x = output,
   file = fileNamePROseq,
   quote = F,
   sep = "\t",
