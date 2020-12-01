@@ -128,6 +128,7 @@ PROseqInfo = PROseq.data %>%  dplyr::select(geneID, Gd7, Toll10b, Toll9, Time) %
 #  "Direction" = direction
 )
 
+# Here is where I added the file from PROseq_analysis in original_method. I want to overlap with the CBP peaks by using e.g. enhancer distance 15kb
 PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
 
 PROseq.gene.data = read.table(
@@ -146,7 +147,6 @@ PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, St
   "Gene_End" = End,
   "Gene_Strand" = Strand
 )
-PROseqGeneInfo = PROseqGeneInfo %>% distinct()
 
 ```
 
