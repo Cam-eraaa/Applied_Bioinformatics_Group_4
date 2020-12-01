@@ -97,6 +97,7 @@ enhancer_gene_pairs_unique = unique(enhancer_gene_pairs)
 ```{r Filtering}
 enhancer_gene_pairs_unique_0kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance == 0 )  
 
+enhancer_gene_pairs_unique_ambiguous = enhancer_gene_pairs_unique %>% filter(EnhancerDistance == 0 & EnhancerDistance < 1500 )  
 enhancer_gene_pairs_unique_over_15kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance > 1500 )  
 ```
 
