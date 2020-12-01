@@ -34,12 +34,13 @@ source(paste(params$workingDir, params$RscriptsDir,"ExpressionAnalysisFunctions.
 #install.packages("ROCit")
 #install.packages("patchwork")
 #BiocManager::install("heatmaps")
+#devtools::install_github("ropenscilabs/umapr")
 library("heatmaps")
 library(patchwork)
 library(ROCit)
 library(tidyverse)
 library(GenomicRanges)
-
+library(umapr)
 ```
 # Combining the scores to predict enhancer gene pairs
 
@@ -150,28 +151,6 @@ PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, St
 )
 PROseqGeneInfo = PROseqGeneInfo %>% distinct()
 
-# PROseq.data %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2,PC1,PC2,PC3) %>% distinct()  %>%  filter( factor != "Time") %>% ggplot(mapping = aes(x = PC2, y = PC3, color = factor, shape = direction )) + geom_point() 
-# 
-# 
-# annotation2 =  PROseqInfo %>% filter(factor %in% c("Toll10b","Toll9","Gd7") & annotation2 == "DE") %>%
-#   dplyr::select(geneID, annotation, distance, factor, direction ) %>%
-#   distinct()
-# 
-# 
-# PROseqData = PROseqInfo2 %>% dplyr::select(geneID,Chr,Start,End,Strand,factor, direction, annotation,annotation2, Gd7,Toll10b,Toll9) %>% distinct()
-# 
-# PROseqData.PI = PROseqInfo2 %>% group_by(geneID) %>% summarise(PI = max(PI))
-# colnames(PROseqData)[6] = paste("PROseq", colnames(PROseqData)[6], sep = "_")
-# colnames(PROseqData)[7] = paste("PROseq", colnames(PROseqData)[7], sep = "_")
-# colnames(PROseqData)[8] = paste("PROseq", colnames(PROseqData)[8], sep = "_")
-# colnames(PROseqData)[9] = paste("PROseq", colnames(PROseqData)[9], sep = "_")
-# 
-# PROseqData.DE  = PROseqData %>% filter(PROseq_annotation2 == "DE" & PROseq_factor != "Time") 
-# 
-# PROseqData.DE = inner_join(PROseqData.DE, PROseqData.PI)
-# PROseqData.DE = PROseqData.DE %>% mutate(Chr = paste("chr",Chr, sep = ""))
-# 
-# rownames(PROseqData.DE) = PROseqData.DE$geneID
 ```
 
 ```{r Load the Insitu data files}
@@ -238,7 +217,7 @@ Toll9enhancers$Genotype = "Toll9"
 # Combine all enhancer data into one dataframe
 Enhancers = rbind(GD7enhancers,Toll10Benhancers,Toll9enhancers)
 Enhancers$Strand = "."
-#Enhancers$Chr = paste("chr",Enhancers$Chr, sep = "")
+Enhancers$Chr = paste("chr",Enhancers$Chr, sep = "")
 Enhancers$enhancerID = paste("region",1:nrow(Enhancers))
 rownames(Enhancers) = Enhancers$enhancerID
 ```

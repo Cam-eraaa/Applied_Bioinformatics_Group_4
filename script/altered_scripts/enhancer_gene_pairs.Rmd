@@ -2,6 +2,13 @@
 title: "Trying to connect gene and enhancer"
 author: "Elin Antonsson"
 output: html_document
+
+params:
+  workingDir: ~/Applied_Bioinformatics_Group_4/
+  PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
+  enhancer.data: results/altered_method/enhancers/enhancers.tsv
+
+  
 ---
 
 ```{r setup, include=FALSE}
@@ -12,6 +19,30 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r from ATAC-CBP_seq_analysis}
 
 #This is just the output from PROseq_analysis
+our_enhancer_file = paste(params$workingDir, params$enhancer.data, sep = "")
+
+our_enhancer_data = read.table(
+  file = our_enhancer_file ,
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+
+our_enhancer_data = tibble::rowid_to_column(our_enhancer_data, "enhancer_row")
+
+our_enhancer_data= our_enhancer_data %>% dplyr::rename(
+  "EnhancerID" = geneID)
+
+#This is the output from joint_peak_with_UMAP
+ourEnhancerData = makeGRangesFromDataFrame(our_enhancer_data,
+                                      seqnames.field = "Chr", 
+                                      start.field = "start", 
+                                      end.field = "end")
+
+
+
+PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
 
 PROseq.gene.data = read.table(
   file = PROseq_gene_file ,
@@ -21,30 +52,43 @@ PROseq.gene.data = read.table(
   stringsAsFactors = F
 )
 
-
-PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, Strand) %>% dplyr::rename(
+PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, Strand, direction, factor) %>% dplyr::rename(
   "Gene_geneID" = geneID,
   "Gene_Chr" = Chr,
   "Gene_Start" = Start,
   "Gene_End" = End,
-  "Gene_Strand" = Strand
+  "Gene_Strand" = Strand,
+  "Gene_Direction" = direction,
+  "Gene_Factor" = factor
 )
+
 PROseqGeneInfo = PROseqGeneInfo %>% distinct()
+
+PROseqGeneInfo$Gene_Chr = paste("chr",PROseqGeneInfo$Gene_Chr, sep = "")
+PROseqGeneInfo = tibble::rowid_to_column(PROseqGeneInfo, "gene_row")
 
 PROData = makeGRangesFromDataFrame(PROseqGeneInfo,
                                       seqnames.field = "Gene_Chr", 
                                       start.field = "Gene_Start", 
                                       end.field = "Gene_End")
 
-#This is the output from joint_peak_with_UMAP
-ourEnhancerData = makeGRangesFromDataFrame(AllData_test,
-                                      seqnames.field = "Chr", 
-                                      start.field = "start", 
-                                      end.field = "end")
 
-test_pairs = data.frame(distanceToNearest(ourEnhancerData, PROData))
-#The problem now is that the chromosomes have different names
 
+test_pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand=TRUE))
+colnames(test_pairs) = c("enhancer_row","gene_row","EnhancerDistance")
+
+#test_pairs$K27ac_geneID = names(PROseqGeneInfo)[test_pairs$subjectHits]
+#test_pairs$geneID = names(our_enhancer_data)[test_pairs$queryHits]
+#test_pairs = test_pairs %>% dplyr::select(K27ac_geneID,geneID)
+
+joined = inner_join(PROseqGeneInfo, test_pairs)
+joined = inner_join(our_enhancer_data, joined)
+
+joined$PRO_direction = gsub(pattern = "None", replacement = "Up", joined$Gene_Direction)
+joined$PROseq_Classification = paste(joined$Gene_Factor,joined$PRO_direction, sep = " " )
+joined$ATACseq_Classification = paste(joined$ATAC_factor,joined$ATAC_direction, sep = " " )
+
+enhancer_gene_pairs = joined %>% dplyr::select(EnhancerID, Chr, start, end, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, EnhancerDistance, PROseq_Classification, ATACseq_Classification)
 
 ````
 
