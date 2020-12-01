@@ -1,0 +1,51 @@
+---
+title: "Trying to connect gene and enhancer"
+author: "Elin Antonsson"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r from ATAC-CBP_seq_analysis}
+
+#This is just the output from PROseq_analysis
+
+PROseq.gene.data = read.table(
+  file = PROseq_gene_file ,
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+
+
+PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, Strand) %>% dplyr::rename(
+  "Gene_geneID" = geneID,
+  "Gene_Chr" = Chr,
+  "Gene_Start" = Start,
+  "Gene_End" = End,
+  "Gene_Strand" = Strand
+)
+PROseqGeneInfo = PROseqGeneInfo %>% distinct()
+
+PROData = makeGRangesFromDataFrame(PROseqGeneInfo,
+                                      seqnames.field = "Gene_Chr", 
+                                      start.field = "Gene_Start", 
+                                      end.field = "Gene_End")
+
+#This is the output from joint_peak_with_UMAP
+ourEnhancerData = makeGRangesFromDataFrame(AllData_test,
+                                      seqnames.field = "Chr", 
+                                      start.field = "start", 
+                                      end.field = "end")
+
+test_pairs = data.frame(distanceToNearest(ourEnhancerData, PROData))
+#The problem now is that the chromosomes have different names
+
+
+````
+
+
