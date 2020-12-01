@@ -90,6 +90,88 @@ joined$ATACseq_Classification = paste(joined$ATAC_factor,joined$ATAC_direction, 
 
 enhancer_gene_pairs = joined %>% dplyr::select(EnhancerID, Chr, start, end, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, EnhancerDistance, PROseq_Classification, ATACseq_Classification)
 
-````
+enhancer_gene_pairs_unique = unique(enhancer_gene_pairs)
+
+```
+
+```{r Filtering}
+enhancer_gene_pairs_unique_0kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance == 0 )  
+
+enhancer_gene_pairs_unique_over_15kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance > 1500 )  
+```
+
+```{r Filtering visualization}
+
+
+confusion_matrix <- as.data.frame(table(enhancer_gene_pairs_over_15kb$PROseq_Classification, enhancer_gene_pairs_over_15kb$ATACseq_Classification))
+colnames(confusion_matrix) = c("PROseq classification", "ATACseq classification", "Freq")
+ggplot(data = confusion_matrix,
+       mapping = aes(x = `PROseq classification`,
+                     y = `ATACseq classification`)) + 
+  geom_tile(aes(fill = Freq)) +
+  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+  scale_fill_gradient(low = "blue",
+                      high = "red",
+                      trans = "log")+ 
+  labs(title = "ATACseq peak and PROseq Gene correlation ",
+              subtitle = "15 - 100 kb up- or downstream of gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is 15 - 100 kb up- or downstream of gene") 
+#ggsave(filename = paste(params$workingDir,params$ATACSeqDir, "ATAC_PROseqCorrelation_100kb.pdf", sep="/"), width = 8)
+
+ggplot(joined, mapping = aes(x =ATAC_factor , fill = ATAC_direction ))+ 
+  geom_bar() + 
+  facet_grid( cols = vars(Gene_Factor,Gene_Direction))+ 
+  labs(title = "ATACseq peak and PROseq Gene correlation ",
+              subtitle = "15 -100 kb up- or downstream of gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is 15 -100 kb up- or downstream of gene") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+#ggsave(filename = paste(params$workingDir,params$ATACSeqDir, "ATAC_PROseqCorrelation_100kb.barplot.pdf", sep="/"), width = 8)
+
+```
+
+
+```{r Visualising correlation  background}
+
+Both_data  = joined %>% filter(ATAC_factor != "Time")
+
+
+ggplot(Both_data, aes(x= log10(EnhancerDistance+1 )))+ geom_histogram()
+ggsave(filename = paste(params$workingDir,params$ATACSeqDir, "ATAC_PROseqCorrelation_distance.pdf", sep="/"), width = 8)
+
+confusion_matrix <- as.data.frame(table(Both_data$PROseq_Classification, Both_data$ATACseq_Classification))
+colnames(confusion_matrix) = c("PROseq classification", "ATACseq classification", "Freq")
+ggplot(data = confusion_matrix,
+       mapping = aes(x = `PROseq classification`,
+                     y = `ATACseq classification`)) + 
+  geom_tile(aes(fill = Freq)) +
+  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
+  scale_fill_gradient(low = "blue",
+                      high = "red",
+                      trans = "log")+ 
+  labs(title = "ATACseq peak and PROseq Gene correlation ",
+              subtitle = "All closest peak and gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is all distances  up- or downstream of gene") 
+
+
+
+ggplot(Both_data, mapping = aes(x =ATAC_factor , fill = ATAC_direction ))+ 
+  geom_bar() + 
+  facet_grid( cols = vars(Gene_Factor,Gene_Direction))+ 
+  labs(title = "ATACseq peak and PROseq Gene correlation ",
+              subtitle = "All closest peak and gene",
+              caption = "Gene is subset of genes that where identified using PROseq data
+Genes are divided based on PROseq analysis annotation
+         Peak is all distances  up- or downstream of gene")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+
+```
+
 
 
