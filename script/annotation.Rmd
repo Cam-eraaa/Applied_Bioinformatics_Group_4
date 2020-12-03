@@ -1,0 +1,51 @@
+---
+title: "Adding annotation"
+author: "Jenny Jakobsson"
+date: "12/3/2020"
+output: html_document
+
+params:
+  workingDir: ~/Applied_Bioinformatics_Group_4/
+  functionAnnotation: hgTables.txt
+  pairsFile: results/altered_method/combined.AllData.withMetaData.txt
+  results: results.txt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("tidyverse")
+```
+
+```{r }
+# Load the ATAC seq loading scores
+annotation_data = read.table(
+  file = paste(params$workingDir, params$functionAnnotation, sep = ""),
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+pairs = read.table(
+  file = paste(params$workingDir, params$pairsFile, sep = ""),
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+
+pairs_cleaned = pairs %>% dplyr::select(Chr, ATAC_Start, ATAC_End, K27ac_Chr, K27ac_Start, K27ac_End)
+pairs_cleaned = pairs_cleaned %>% dplyr::rename()
+
+colnames(annotation_data)
+
+annotation_data_cleaned = annotation_data %>% dplyr::select(chrom, name, score, geneName)
+
+#write.table(
+#  x = AllData,
+#  file = paste(params$workingDir, params$results , sep = "/"),
+#  quote = F,
+#  sep = "\t",
+#  row.names = F,
+#  col.names = T
+#)
+```
