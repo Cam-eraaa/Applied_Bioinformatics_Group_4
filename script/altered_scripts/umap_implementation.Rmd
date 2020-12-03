@@ -62,8 +62,8 @@ embedding <- umap(all_enhancer.data)
 head(embedding)
 
 
-FE =  AllData %>% filter(enhancer == 1) %>% ggplot(aes(UMAP1, UMAP2, color = enhancerGenotype )) + geom_point()+ geom_density_2d(AllData,mapping = aes(UMAP1, UMAP2), color= "grey")
-FI =  AllData %>% filter(inSitu == 1) %>% ggplot(aes(UMAP1, UMAP2, color = inSituLocation )) + geom_point()+ geom_density_2d(AllData,mapping = aes(UMAP1, UMAP2), color= "grey")
+FE =  embedding %>% filter(enhancer == 1) %>% ggplot(aes(UMAP1, UMAP2, color = enhancerGenotype )) + geom_point()+ geom_density_2d(AllData,mapping = aes(UMAP1, UMAP2), color= "grey")
+FI =  embedding %>% filter(inSitu == 1) %>% ggplot(aes(UMAP1, UMAP2, color = inSituLocation )) + geom_point()+ geom_density_2d(AllData,mapping = aes(UMAP1, UMAP2), color= "grey")
 
 FE + FI+ plot_layout(ncol = 1)
 
@@ -94,7 +94,7 @@ clusterable_embedding = umap(
 ```
 
 ```{r ROC}
-AllData = new_embedding %>% mutate(distance1 = abs(UMAP1))
+AllData = embedding %>% mutate(distance1 = abs(UMAP1))
 AllData = AllData %>% mutate(distance2 = (UMAP1^2+UMAP2^2)^0.5)
 
 
@@ -114,3 +114,20 @@ ggplot(ROCplotInfo, mapping =  aes(x = FPR, y = TPR, color = score))+
   geom_point(data = ROCplotSummary, mapping = aes(y = TPR, x = FPR, color = score ), size = 4) +
     facet_grid(.~classifier)
 ```
+
+```{r ROC}
+custom.config = umap.defaults
+custom.config$n_components = 5
+
+
+umap <- umap(all_enhancer.data)
+
+df <- data.frame(x = umap$layout[,1],
+                 y = umap$layout[,2],
+                 Species = colnames(all_enhancer.data))
+
+ggplot(df, aes(x, y, colour = Species)) +
+  geom_point()
+
+```
+

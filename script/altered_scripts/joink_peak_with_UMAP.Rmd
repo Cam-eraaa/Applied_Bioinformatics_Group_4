@@ -7,9 +7,9 @@ params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   RscriptsDir: script/original_scripts/
   inSitu.data: data_johan/results/cleaned/inSitu/inSitu.Stark.dm6.tsv
-  #PROseqDir: results/original_method/PROseq
-  #PROseq.data: data_johan/results/cleaned/PROseq/PROseq.CBP.peak.tsv
-  PROseq.data: results/original_method/PROseq/PROseq.data.tsv
+  #PROseq.data: data_johan/results/cleaned/PROseq/PROseq.CBP.peak.tsv #this was fine
+  PROseq.data: results/altered_method/PROseq/PROseq.CBP.data.tsv #this was not
+  PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
   ChIPseqDir: results/original_method/ChIPseq/
   CBP.data: CBP/ChIPseq.CBP.data.tsv
   K27ac.data: K27ac/ChIPseq.H3K27Ac.data.tsv
@@ -19,10 +19,9 @@ params:
   Toll9enhancer: data_johan/results/cleaned/enhancers/h3k27ac_Tollrm910_csaw_intersect.bed
   enhancerResult: results/altered_method/enhancers/enhancers.tsv
   Regions: results/altered_method/enhancers/regions_id.tsv
-  PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  
-  results_file: results/altered_method/combined.AllData.withMetaData.txt
-  results_file_cleaned: results/altered_method/AllData_cleaned.txt
+
+  results_file: results/altered_method/UMAP_combined.AllData.withMetaData.txt
+  results_file_cleaned: results/altered_method/UMAP_AllData_cleaned.txt
   
 ---
 
@@ -352,7 +351,7 @@ embedding <- umap(all_enhancer.data)
 new_embedding = left_join(EnhancerInfo,embedding)
 
 #I think it is best not to filter
-#new_embedding = new_embedding %>% filter(!is.na(enhancerGenotype))
+new_embedding = new_embedding %>% filter(!is.na(enhancerGenotype))
 
 new_embedding %>% 
   mutate(Species = new_embedding$enhancerGenotype) %>%

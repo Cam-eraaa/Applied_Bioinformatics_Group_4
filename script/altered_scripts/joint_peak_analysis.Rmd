@@ -119,13 +119,13 @@ PROseq.data = read.table(
 )
 
 # Rename headers.
-PROseqInfo = PROseq.data %>%  dplyr::select(geneID, Gd7, Toll10b, Toll9, Time) %>% dplyr::rename(
+PROseqInfo = PROseq.data %>%  dplyr::select(geneID, Gd7, Toll10b, Toll9, Time, factor, direction) %>% dplyr::rename(
   "PRO_Gd7" = Gd7,
   "PRO_Toll10b" = Toll10b,
   "PRO_Toll9" = Toll9,
   "PRO_Time" = Time, 
-#  "Factor" = factor, 
-#  "Direction" = direction
+  "Factor" = factor, 
+  "Direction" = direction
 )
 
 # Here is where I added the file from PROseq_analysis in original_method. I want to overlap with the CBP peaks by using e.g. enhancer distance 15kb
