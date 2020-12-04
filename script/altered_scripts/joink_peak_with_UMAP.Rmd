@@ -351,7 +351,7 @@ embedding <- umap(all_enhancer.data)
 new_embedding = left_join(EnhancerInfo,embedding)
 
 #I think it is best not to filter
-new_embedding = new_embedding %>% filter(!is.na(enhancerGenotype))
+#new_embedding = new_embedding %>% filter(!is.na(enhancerGenotype))
 
 new_embedding %>% 
   mutate(Species = new_embedding$enhancerGenotype) %>%

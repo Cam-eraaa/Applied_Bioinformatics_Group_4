@@ -19,8 +19,8 @@ params:
   Toll9enhancer: data_johan/results/cleaned/enhancers/h3k27ac_Tollrm910_csaw_intersect.bed
   enhancerResult: results/altered_method/enhancers/enhancers.tsv
   Regions: results/altered_method/enhancers/regions_id.tsv
-  results_file: results/altered_method/combined.AllData.withMetaData.txt
-  results_file_cleaned: results/altered_method/AllData_cleaned.txt
+  results_file: results/altered_method/from_joint_peak/combined.AllData.withMetaData.tsv
+  results_file_cleaned: results/altered_method/from_joint_peak/AllData_cleaned.tsv
   
 ---
 
@@ -342,7 +342,7 @@ KI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(K27ac_Toll9, K27ac_Tol
 
 ```{r PCA analysis, include=FALSE}
 
-allEnhancerInfo2 = EnhancerInfo %>% dplyr::select(-geneID,-enhancerID,-enhancerGenotype,-insituID,-inSituLocation,-inSituScore,-enhancer,-inSitu,-K27ac_geneID, -Chr, -Strand, -Length, -ATAC_direction, -ATAC_factor, -ATAC_Start, -ATAC_End, -K27ac_Strand, -K27ac_Start, -K27ac_End, -K27ac_Length, -K27ac_direction, -K27ac_factor, -K27ac_Chr, -geneID_unique)
+allEnhancerInfo2 = EnhancerInfo %>% dplyr::select(-geneID,-enhancerID,-enhancerGenotype,-insituID,-inSituLocation,-inSituScore,-enhancer,-inSitu,-K27ac_geneID, -Chr, -Strand, -Length, -ATAC_direction, -ATAC_factor, -ATAC_Start, -ATAC_End, -K27ac_Strand, -K27ac_Start, -K27ac_End, -K27ac_Length, -K27ac_direction, -K27ac_factor, -K27ac_Chr, -geneID_unique, -Factor, -Direction)
 
 rownames(allEnhancerInfo2) = EnhancerInfo$geneID_unique
 
@@ -414,8 +414,6 @@ ROCplotSummary = rbind(d1ROCi$Youden, d2ROCi$Youden, d3ROCi$Youden,d4ROCi$Youden
 
 ```{r plot ROC}
 
-ROCplotSummary
-
 qplot(PC, Variance, data=e.var, geom = c("point")
       , ylim = c(0,max(e.var$Variance)+5)
       ,ylab = "Variance (%)")
@@ -450,10 +448,6 @@ AllData.enhancers = AllData.enhancers %>% dplyr::select(-geneID_unique)
 AllData.enhancers = inner_join(peakInfo, AllData.enhancers, by = "geneID")
 AllData.enhancers_cleaned = AllData.enhancers %>% dplyr::select(geneID, -seqnames, Chr, start, end, -width, -strand, -ATAC_Start, -ATAC_End, -Strand, Length, ATAC_factor, ATAC_direction, ATAC_Gd7,  ATAC_Toll10b, ATAC_Toll9, ATAC_Time, PRO_Gd7, PRO_Toll10b, PRO_Toll9, PRO_Time, CBP_Gd7,  CBP_Toll10b, CBP_Toll9, K27ac_geneID, -K27ac_Chr, -K27ac_Start, -K27ac_End, -K27ac_Strand, -K27ac_Length,  -K27ac_factor, -K27ac_direction, K27ac_Gd7, K27ac_Toll10b, K27ac_Toll9, enhancerID, enhancerGenotype, insituID, inSituLocation, inSituScore, enhancer, inSitu, PC1, PC2, PC3, PC4, PC5, distance1, distance2, distance3, distance4, distance5)
 
-fileName = paste(params$workingDir, params$enhancerResult, sep = "")
-
-#write.table(x = AllData.enhancers_cleaned, file = fileName, sep = "\t", quote = F, row.names = F, col.names = T )
-
 
 ```
 
@@ -484,22 +478,33 @@ PRO_ATAC_CHiP_data = AllData_test %>%
     CBP_Toll9 = mean(CBP_Toll9)
   )
 
-AllData2 = AllData_test %>% dplyr::select(
-  PRO_Time,
-  PRO_Gd7,
-  PRO_Toll10b,
-  PRO_Toll9,
+AllData = AllData %>% dplyr::select(
+  geneID,
+  Chr,
+  ATAC_Start, 
+  ATAC_End,
+  ATAC_factor,
+  ATAC_direction,
   ATAC_Time,
   ATAC_Gd7,
   ATAC_Toll10b,
   ATAC_Toll9,
+  PRO_Time,
+  PRO_Gd7,
+  PRO_Toll10b,
+  PRO_Toll9,
   CBP_Gd7,
   CBP_Toll10b,
   CBP_Toll9,
+  K27ac_geneID,
   K27ac_Gd7,
   K27ac_Toll10b,
-  K27ac_Toll9
+  K27ac_Toll9,
+  enhancerID,
+  insituID
 )
+
+AllData_unique = unique(AllData)
 
 AllData.saved = AllData_test
 
@@ -507,7 +512,7 @@ AllData.saved = AllData_test
 
 ```{r save the data}
 write.table(
-  x = AllData,
+  x = AllData_unique,
   file = paste(params$workingDir, params$results_file , sep = "/"),
   quote = F,
   sep = "\t",
@@ -515,7 +520,7 @@ write.table(
   col.names = T
 )
 
-cleaned_AllData = AllData %>% dplyr::select(geneID, ATACseq_geneID, factor, direction)
+cleaned_AllData = AllData_unique %>% dplyr::select(geneID, Chr, ATAC_factor, ATAC_direction)
 
 write.table(
   x = cleaned_AllData,

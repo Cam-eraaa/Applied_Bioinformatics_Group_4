@@ -6,7 +6,12 @@ output: html_document
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  enhancer.data: results/altered_method/enhancers/enhancers.tsv
+  enhancer.data: results/altered_method/from_joint_peak/combined.AllData.withMetaData.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/without_enhancerInsitu.combined.AllData.withMetaData.tsv
+  resultsDir: results/altered_method/pairs/
+  resultsFile: EGP_PCA_filtering.tsv
+  #resultsFile: EGP_without_enhancerInsitu.tsv
+
 
   
 ---
@@ -34,7 +39,7 @@ our_enhancer_data = tibble::rowid_to_column(our_enhancer_data, "enhancer_row")
 our_enhancer_data= our_enhancer_data %>% dplyr::rename(
   "EnhancerID" = geneID)
 
-#This is the output from joint_peak_with_UMAP
+#This is the output from joint_peak
 ourEnhancerData = makeGRangesFromDataFrame(our_enhancer_data,
                                       seqnames.field = "Chr", 
                                       start.field = "start", 
@@ -88,7 +93,7 @@ joined$PRO_direction = gsub(pattern = "None", replacement = "Up", joined$Gene_Di
 joined$PROseq_Classification = paste(joined$Gene_Factor,joined$PRO_direction, sep = " " )
 joined$ATACseq_Classification = paste(joined$ATAC_factor,joined$ATAC_direction, sep = " " )
 
-enhancer_gene_pairs = joined %>% dplyr::select(EnhancerID, Chr, start, end, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, EnhancerDistance, PROseq_Classification, ATACseq_Classification)
+enhancer_gene_pairs = joined %>% dplyr::select(EnhancerID, Chr, ATAC_Start, ATAC_End, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, EnhancerDistance, PROseq_Classification, ATACseq_Classification)
 
 enhancer_gene_pairs_unique = unique(enhancer_gene_pairs)
 
@@ -174,5 +179,16 @@ Genes are divided based on PROseq analysis annotation
 
 ```
 
+```{r save the data}
+write.table(
+  x = enhancer_gene_pairs_unique_over_15kb,
+  file = paste(params$workingDir, params$resultsDir, params$resultsFile, sep = ""),
+  quote = F,
+  sep = "\t",
+  row.names = F,
+  col.names = T
+)
+
+```
 
 

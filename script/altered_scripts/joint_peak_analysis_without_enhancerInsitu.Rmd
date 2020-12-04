@@ -1,7 +1,7 @@
 ---
 title: "Identifying the enhancer gene pairs"
-author: "Elin Antonsson"
-date: "12/03/2020"
+author: "Jenny Jakobsson"
+date: "11/19/2020"
 output: html_document
 
 params:
@@ -19,8 +19,8 @@ params:
   Toll9enhancer: data_johan/results/cleaned/enhancers/h3k27ac_Tollrm910_csaw_intersect.bed
   enhancerResult: results/altered_method/enhancers/enhancers.tsv
   Regions: results/altered_method/enhancers/regions_id.tsv
-  results_file: results/altered_method/all.combined.AllData.withMetaData.txt
-  results_file_cleaned: results/altered_method/all.AllData_cleaned.txt
+  results_file: results/altered_method/from_joint_peak/without_enhancerInsitu.combined.AllData.withMetaData.tsv
+  results_file_cleaned: results/altered_method/from_joint_peak/without_enhancerInsitu.AllData_cleaned.tsv
   
 ---
 
@@ -150,6 +150,74 @@ PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, St
 
 ```
 
+```{r Load the Insitu data files}
+# # Load in the inSitu data
+# inSituFile = paste(params$workingDir, params$inSitu.data, sep = "")
+# inSitu.Data = read.table(
+#   file = inSituFile,
+#   header = T,
+#   sep = "\t",
+#   quote = "",
+#   stringsAsFactors = F
+# )
+# 
+# # Need to transform the columns to match our data
+# inSitu.Data = inSitu.Data %>% dplyr::select(seqnames, start, end, stg4_6) %>% separate_rows(stg4_6, sep = "\\|") %>%
+#   separate(stg4_6, into = c("Location", "score"), sep = ";")
+# inSitu.Data = inSitu.Data %>% replace_na(list(score = 0, Location = "None"))
+# inSitu.Data$insituID = paste("region", 1:nrow(inSitu.Data))
+# 
+# # Rename the columns
+# inSituInfo = inSitu.Data %>% dplyr::select(insituID , Location, score) %>% dplyr::rename(inSituLocation = Location, inSituScore = score)
+```
+
+```{r Load the enhancer data files}
+# Load the enhancer data for all mutants to compare the data to
+# GD7enhancersFile = paste(params$workingDir, params$GD7enhancer, sep = "")
+# GD7enhancers = read.table(
+#   file = GD7enhancersFile,
+#   header = F,
+#   sep = "\t",
+#   quote = "",
+#   stringsAsFactors = F
+# )
+# GD7enhancers = GD7enhancers[, 1:3]
+# 
+# Toll10BenhancersFile = paste(params$workingDir, params$Toll10Benhancer, sep = "/")
+# Toll10Benhancers = read.table(
+#   file = Toll10BenhancersFile,
+#   header = F,
+#   sep = "\t",
+#   quote = "",
+#   stringsAsFactors = F
+# )
+# Toll10Benhancers = Toll10Benhancers[, 1:3]
+# 
+# Toll9enhancersFile = paste(params$workingDir, params$Toll9enhancer, sep = "/")
+# Toll9enhancers = read.table(
+#   file = Toll9enhancersFile,
+#   header = F,
+#   sep = "\t",
+#   quote = "",
+#   stringsAsFactors = F
+# )
+# Toll9enhancers = Toll9enhancers[, 1:3]
+# 
+# # Rename columns
+# colnames(GD7enhancers) = c("Chr", "Start", "End")
+# GD7enhancers$Genotype = "Gd7"
+# colnames(Toll10Benhancers) = c("Chr", "Start", "End")
+# Toll10Benhancers$Genotype = "Toll10b"
+# colnames(Toll9enhancers) = c("Chr", "Start", "End")
+# Toll9enhancers$Genotype = "Toll9"
+# 
+# # Combine all enhancer data into one dataframe
+# Enhancers = rbind(GD7enhancers,Toll10Benhancers,Toll9enhancers)
+# Enhancers$Strand = "."
+# Enhancers$Chr = paste("chr",Enhancers$Chr, sep = "")
+# Enhancers$enhancerID = paste("region",1:nrow(Enhancers))
+# rownames(Enhancers) = Enhancers$enhancerID
+```
 
 ```{r convert into genomic ranges}
 # Convert dataframe to a genomic range
@@ -172,6 +240,14 @@ names(PRO_genes_peakData) = PROseqGeneInfo$geneID
 # Kanske kan använda detta till att joina PROoch ATAC seq???
 #test = data.frame(distanceToNearest(ATAC_peakData,PRO_genes_peakData,  ignore.strand=TRUE))
 
+# inSitu_peakData = makeGRangesFromDataFrame(inSitu.Data,
+#                                       seqnames.field = c("Chr","seqnames"), 
+#                                       start.field = c("Start","start"), 
+#                                       end.field = c("End","end"), 
+#                                       strand.field = "Strand", 
+#                                       keep.extra.columns = TRUE)
+# names(inSitu_peakData) = inSitu.Data$insituID
+
 
 ATAC_peakData = makeGRangesFromDataFrame(ATACseqInfo,
                                       seqnames.field = "Chr", 
@@ -180,6 +256,19 @@ ATAC_peakData = makeGRangesFromDataFrame(ATACseqInfo,
                                       strand.field = "Strand")
 names(ATAC_peakData) = ATACseqInfo$geneID
 
+
+# EnhancersInfo = Enhancers %>% 
+#   dplyr::select(Genotype,enhancerID) %>%  
+#   dplyr::rename(enhancerGenotype = Genotype)
+#  
+# 
+# EnhancersPeakData = makeGRangesFromDataFrame(Enhancers,
+#                                       seqnames.field = "Chr", 
+#                                       start.field = "Start", 
+#                                       end.field = "End", 
+#                                       strand.field = "Strand", 
+#                                       keep.extra.columns = TRUE)
+# names(EnhancersPeakData) = EnhancersPeakData$enhancerID
 
 ```
 
@@ -200,20 +289,62 @@ overlap_ATAC_K27ac = overlap_ATAC_K27ac %>% dplyr::select(K27ac_geneID,geneID )
 CBPpeak.ATAC.PRO.CBP  = inner_join(CBPpeak.ATAC.PRO.CBP,  overlap_ATAC_K27ac)
 CBPpeak.ATAC.PRO.CBP.K27ac =  inner_join(CBPpeak.ATAC.PRO.CBP,  K27acInfo, by="K27ac_geneID")
 
-CBPpeak.ATAC.PRO.CBP.K27ac$geneID_unique = make.names(CBPpeak.ATAC.PRO.CBP.K27ac$geneID, unique = TRUE)
+
+# overlap_CBP_enhancers = data.frame(findOverlaps(ATAC_peakData,EnhancersPeakData, maxgap = 0))
+# overlap_CBP_enhancers$enhancerID = EnhancersPeakData$enhancerID[overlap_CBP_enhancers$subjectHits]
+# overlap_CBP_enhancers$geneID = names(ATAC_peakData)[overlap_CBP_enhancers$queryHits]
+# overlap_CBP_enhancers = overlap_CBP_enhancers %>% dplyr::select(enhancerID,geneID )
+# 
+# 
+# CBPpeak.ATAC.PRO.CBP.K27ac.enhancer = left_join(CBPpeak.ATAC.PRO.CBP.K27ac, overlap_CBP_enhancers)
+# 
+# CBPpeak.ATAC.PRO.CBP.K27ac.enhancer = left_join(CBPpeak.ATAC.PRO.CBP.K27ac.enhancer, EnhancersInfo)
+# 
+# 
+# 
+# overlap_CBP_inSitu = data.frame(findOverlaps(ATAC_peakData,inSitu_peakData, maxgap = 0))
+# overlap_CBP_inSitu$insituID = inSitu_peakData$insituID[overlap_CBP_inSitu$subjectHits]
+# overlap_CBP_inSitu$geneID = names(ATAC_peakData)[overlap_CBP_inSitu$queryHits]
+# overlap_CBP_inSitu = overlap_CBP_inSitu %>% dplyr::select(insituID,geneID )
+# 
+# 
+# CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu = left_join(CBPpeak.ATAC.PRO.CBP.K27ac.enhancer, overlap_CBP_inSitu)
+# 
+# CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu = left_join(CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu, inSituInfo)
+
+```
+
+```{r adding annotation as 0 and 1, include=FALSE}
 
 
+EnhancerInfo = CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu
+EnhancerInfo$geneID_unique = make.names(EnhancerInfo$geneID, unique = TRUE)
+
+
+
+EnhancerInfo$enhancer=1
+EnhancerInfo$enhancer[is.na(EnhancerInfo$enhancerGenotype)]  = 0 
+
+EnhancerInfo$inSitu=0
+EnhancerInfo$inSitu[EnhancerInfo$inSituLocation %in% c("dorsal_ectoderm_AISN_broad", "mesoderm_AISN", "ventral_ectoderm_AISN")] = 1
+
+PE =  EnhancerInfo%>% filter(enhancer == 1) %>% ggplot(aes(PRO_Toll9, PRO_Toll10b, color = enhancerGenotype)) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(PRO_Toll9, PRO_Toll10b), color= "grey")
+PI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(PRO_Toll9, PRO_Toll10b, color = inSituLocation )) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(PRO_Toll9, PRO_Toll10b), color= "grey")
+AE =  EnhancerInfo%>% filter(enhancer == 1) %>% ggplot(aes(ATAC_Toll9, ATAC_Toll10b, color = enhancerGenotype)) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(ATAC_Toll9, ATAC_Toll10b), color= "grey")
+AI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(ATAC_Toll9, ATAC_Toll10b, color = inSituLocation )) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(ATAC_Toll9, ATAC_Toll10b), color= "grey")
+CE =  EnhancerInfo%>% filter(enhancer == 1) %>% ggplot(aes(CBP_Toll9, CBP_Toll10b, color = enhancerGenotype)) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(CBP_Toll9, CBP_Toll10b), color= "grey") 
+CI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(CBP_Toll9, CBP_Toll10b, color = inSituLocation )) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(CBP_Toll9, CBP_Toll10b), color= "grey")
+KE =  EnhancerInfo%>% filter(enhancer == 1) %>% ggplot(aes(K27ac_Toll9, K27ac_Toll10b, color = enhancerGenotype)) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(K27ac_Toll9, K27ac_Toll10b), color= "grey")
+KI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(K27ac_Toll9, K27ac_Toll10b, color = inSituLocation )) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(K27ac_Toll9, K27ac_Toll10b), color= "grey")
 
 ```
 
 
-
 ```{r PCA analysis, include=FALSE}
 
-allEnhancerInfo2 = CBPpeak.ATAC.PRO.CBP.K27ac %>% dplyr::select(-geneID,-K27ac_geneID, -Chr, -Strand, -Length, -ATAC_direction, -ATAC_factor, -ATAC_Start, -ATAC_End, -K27ac_Strand, -K27ac_Start, -K27ac_End, -K27ac_Length, -K27ac_direction, -K27ac_factor, -K27ac_Chr, -geneID_unique)
+allEnhancerInfo2 = EnhancerInfo %>% dplyr::select(-geneID,-enhancerID,-enhancerGenotype,-insituID,-inSituLocation,-inSituScore,-enhancer,-inSitu,-K27ac_geneID, -Chr, -Strand, -Length, -ATAC_direction, -ATAC_factor, -ATAC_Start, -ATAC_End, -K27ac_Strand, -K27ac_Start, -K27ac_End, -K27ac_Length, -K27ac_direction, -K27ac_factor, -K27ac_Chr, -geneID_unique, -Factor, -Direction)
 
-rownames(allEnhancerInfo2) = CBPpeak.ATAC.PRO.CBP.K27ac$geneID_unique
-allEnhancerInfo2 = as.numeric(as.factor(allEnhancerInfo2))
+rownames(allEnhancerInfo2) = EnhancerInfo$geneID_unique
 
 mir.pca <- prcomp(allEnhancerInfo2, center = TRUE, scale = FALSE) 
 e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
@@ -283,8 +414,6 @@ ROCplotSummary = rbind(d1ROCi$Youden, d2ROCi$Youden, d3ROCi$Youden,d4ROCi$Youden
 
 ```{r plot ROC}
 
-ROCplotSummary
-
 qplot(PC, Variance, data=e.var, geom = c("point")
       , ylim = c(0,max(e.var$Variance)+5)
       ,ylab = "Variance (%)")
@@ -303,21 +432,23 @@ ggplot(ROCplotInfo, mapping =  aes(x = FPR, y = TPR, color = score))+
 Based on ROC statistics  it is best if we include all five PC  
 
 ```{r plot classification }
-scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance5")
-
-AllData.enhancers = AllData %>% filter(distance5 > scores$YoudenCutoff)
-
-AllData.enhancers = AllData.enhancers %>% replace_na(list(enhancerID = "None", enhancerGenotype = "None",insituID = "None",inSituLocation = "None", inSituScore = -1 ))
 
 
-peakInfo = data.frame(ATAC_peakData)
-peakInfo$geneID = names(ATAC_peakData)
+# scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance5")
+# 
+# AllData.enhancers = AllData %>% filter(distance5 > scores$YoudenCutoff)
 
-AllData.enhancers = AllData.enhancers %>% dplyr::select(-geneID_unique)
-AllData.enhancers = inner_join(peakInfo, AllData.enhancers, by = "geneID")
-AllData.enhancers_cleaned = AllData.enhancers %>% dplyr::select(geneID, -seqnames, Chr, start, end, -width, -strand, -ATAC_Start, -ATAC_End, -Strand, Length, ATAC_factor, ATAC_direction, ATAC_Gd7,  ATAC_Toll10b, ATAC_Toll9, ATAC_Time, PRO_Gd7, PRO_Toll10b, PRO_Toll9, PRO_Time, CBP_Gd7,  CBP_Toll10b, CBP_Toll9, K27ac_geneID, -K27ac_Chr, -K27ac_Start, -K27ac_End, -K27ac_Strand, -K27ac_Length,  -K27ac_factor, -K27ac_direction, K27ac_Gd7, K27ac_Toll10b, K27ac_Toll9, enhancerID, enhancerGenotype, insituID, inSituLocation, inSituScore, enhancer, inSitu, PC1, PC2, PC3, PC4, PC5, distance1, distance2, distance3, distance4, distance5)
+#AllData.enhancers = AllData.enhancers %>% replace_na(list(enhancerID = "None", enhancerGenotype = "None",insituID = "None",inSituLocation = "None", inSituScore = -1 ))
 
-fileName = paste(params$workingDir, params$enhancerResult, sep = "")
+
+# peakInfo = data.frame(ATAC_peakData)
+# peakInfo$geneID = names(ATAC_peakData)
+# 
+# AllData.enhancers = AllData.enhancers %>% dplyr::select(-geneID_unique)
+# AllData.enhancers = inner_join(peakInfo, AllData.enhancers, by = "geneID")
+# AllData.enhancers_cleaned = AllData.enhancers %>% dplyr::select(geneID, -seqnames, Chr, start, end, -width, -strand, -ATAC_Start, -ATAC_End, -Strand, Length, ATAC_factor, ATAC_direction, ATAC_Gd7,  ATAC_Toll10b, ATAC_Toll9, ATAC_Time, PRO_Gd7, PRO_Toll10b, PRO_Toll9, PRO_Time, CBP_Gd7,  CBP_Toll10b, CBP_Toll9, K27ac_geneID, -K27ac_Chr, -K27ac_Start, -K27ac_End, -K27ac_Strand, -K27ac_Length,  -K27ac_factor, -K27ac_direction, K27ac_Gd7, K27ac_Toll10b, K27ac_Toll9, enhancerID, enhancerGenotype, insituID, inSituLocation, inSituScore, enhancer, inSitu, PC1, PC2, PC3, PC4, PC5, distance1, distance2, distance3, distance4, distance5)
+# 
+# fileName = paste(params$workingDir, params$enhancerResult, sep = "")
 
 #write.table(x = AllData.enhancers_cleaned, file = fileName, sep = "\t", quote = F, row.names = F, col.names = T )
 
@@ -328,45 +459,54 @@ fileName = paste(params$workingDir, params$enhancerResult, sep = "")
 ## Taken from combining_all_data
 
 ```{r merge all the data }
-AllData_test = CBPpeak.ATAC.PRO.CBP.K27ac %>% mutate(Enhancer_Gd7 =  ATAC_Gd7 + CBP_Gd7 + K27ac_Gd7)
-AllData_test = AllData_test %>% mutate(Enhancer_Toll10b =  ATAC_Toll10b + CBP_Toll10b + K27ac_Toll10b)
-AllData_test = AllData_test %>% mutate(Enhancer_Toll9 =  ATAC_Toll9 + CBP_Toll9 + K27ac_Toll9)
+# AllData_test = All %>% mutate(Enhancer_Gd7 =  ATAC_Gd7 + CBP_Gd7 + K27ac_Gd7)
+# AllData_test = AllData_test %>% mutate(Enhancer_Toll10b =  ATAC_Toll10b + CBP_Toll10b + K27ac_Toll10b)
+# AllData_test = AllData_test %>% mutate(Enhancer_Toll9 =  ATAC_Toll9 + CBP_Toll9 + K27ac_Toll9)
+# 
+# PRO_ATAC_CHiP_data = AllData_test %>%
+#   group_by(ATAC_factor, ATAC_direction) %>%
+#   summarise(
+#     PRO_Time = mean(PRO_Time),
+#     PRO_Gd7 = mean(PRO_Gd7),
+#     PRO_Toll10b = mean(PRO_Toll10b),
+#     PRO_Toll9 = mean(PRO_Toll9),
+#     ATAC_Time = mean(ATAC_Time),
+#     ATAC_Gd7 = mean(ATAC_Gd7),
+#     ATAC_Toll10b = mean(ATAC_Toll10b),
+#     ATAC_Toll9 = mean(ATAC_Toll9),
+#     K27ac_Gd7 = mean(K27ac_Gd7),
+#     K27ac_Toll10b = mean(K27ac_Toll10b),
+#     K27ac_Toll9 = mean(K27ac_Toll9),
+#     CBP_Gd7 = mean(CBP_Gd7),
+#     CBP_Toll10b = mean(CBP_Toll10b),
+#     CBP_Toll9 = mean(CBP_Toll9)
+#   )
 
-PRO_ATAC_CHiP_data = AllData_test %>%
-  group_by(ATAC_factor, ATAC_direction) %>%
-  summarise(
-    PRO_Time = mean(PRO_Time),
-    PRO_Gd7 = mean(PRO_Gd7),
-    PRO_Toll10b = mean(PRO_Toll10b),
-    PRO_Toll9 = mean(PRO_Toll9),
-    ATAC_Time = mean(ATAC_Time),
-    ATAC_Gd7 = mean(ATAC_Gd7),
-    ATAC_Toll10b = mean(ATAC_Toll10b),
-    ATAC_Toll9 = mean(ATAC_Toll9),
-    K27ac_Gd7 = mean(K27ac_Gd7),
-    K27ac_Toll10b = mean(K27ac_Toll10b),
-    K27ac_Toll9 = mean(K27ac_Toll9),
-    CBP_Gd7 = mean(CBP_Gd7),
-    CBP_Toll10b = mean(CBP_Toll10b),
-    CBP_Toll9 = mean(CBP_Toll9)
-  )
-
-AllData = AllData_test %>% dplyr::select(
-  PRO_Time,
-  PRO_Gd7,
-  PRO_Toll10b,
-  PRO_Toll9,
+AllData = CBPpeak.ATAC.PRO.CBP.K27ac %>% dplyr::select(
+  geneID,
+  Chr,
+  ATAC_Start, 
+  ATAC_End,
+  ATAC_factor,
+  ATAC_direction,
   ATAC_Time,
   ATAC_Gd7,
   ATAC_Toll10b,
   ATAC_Toll9,
+  PRO_Time,
+  PRO_Gd7,
+  PRO_Toll10b,
+  PRO_Toll9,
   CBP_Gd7,
   CBP_Toll10b,
   CBP_Toll9,
+  K27ac_geneID,
   K27ac_Gd7,
   K27ac_Toll10b,
   K27ac_Toll9
 )
+
+AllData_unique = unique(AllData)
 
 AllData.saved = AllData_test
 
@@ -374,7 +514,7 @@ AllData.saved = AllData_test
 
 ```{r save the data}
 write.table(
-  x = AllData,
+  x = AllData_unique,
   file = paste(params$workingDir, params$results_file , sep = "/"),
   quote = F,
   sep = "\t",
@@ -382,7 +522,7 @@ write.table(
   col.names = T
 )
 
-cleaned_AllData = AllData %>% dplyr::select(geneID, ATACseq_geneID, factor, direction)
+cleaned_AllData = AllData_unique %>% dplyr::select(geneID, Chr, ATAC_factor, ATAC_direction)
 
 write.table(
   x = cleaned_AllData,
@@ -394,7 +534,6 @@ write.table(
 )
 
 ```
-
 
 
 
