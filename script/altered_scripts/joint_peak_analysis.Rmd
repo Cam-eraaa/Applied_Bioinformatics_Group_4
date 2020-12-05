@@ -19,8 +19,9 @@ params:
   Toll9enhancer: data_johan/results/cleaned/enhancers/h3k27ac_Tollrm910_csaw_intersect.bed
   enhancerResult: results/altered_method/enhancers/enhancers.tsv
   Regions: results/altered_method/enhancers/regions_id.tsv
-  results_file: results/altered_method/from_joint_peak/combined.AllData.withMetaData.tsv
-  results_file_cleaned: results/altered_method/from_joint_peak/AllData_cleaned.tsv
+  results_file: results/altered_method/from_joint_peak/enhancers.tsv
+  results_file_no_filtering: results/altered_method/from_joint_peak/enhancers_no_filtering.tsv
+  
   
 ---
 
@@ -138,7 +139,6 @@ PROseq.gene.data = read.table(
   header = TRUE,
   stringsAsFactors = F
 )
-
 
 PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, Strand) %>% dplyr::rename(
   "Gene_geneID" = geneID,
@@ -478,7 +478,7 @@ PRO_ATAC_CHiP_data = AllData_test %>%
     CBP_Toll9 = mean(CBP_Toll9)
   )
 
-AllData = AllData %>% dplyr::select(
+enhancers.filtering = AllData.enhancers %>% dplyr::select(
   geneID,
   Chr,
   ATAC_Start, 
@@ -504,7 +504,34 @@ AllData = AllData %>% dplyr::select(
   insituID
 )
 
-AllData_unique = unique(AllData)
+enhancers.no.filtering = AllData %>% dplyr::select(
+  geneID,
+  Chr,
+  ATAC_Start, 
+  ATAC_End,
+  ATAC_factor,
+  ATAC_direction,
+  ATAC_Time,
+  ATAC_Gd7,
+  ATAC_Toll10b,
+  ATAC_Toll9,
+  PRO_Time,
+  PRO_Gd7,
+  PRO_Toll10b,
+  PRO_Toll9,
+  CBP_Gd7,
+  CBP_Toll10b,
+  CBP_Toll9,
+  K27ac_geneID,
+  K27ac_Gd7,
+  K27ac_Toll10b,
+  K27ac_Toll9,
+  enhancerID,
+  insituID
+)
+
+enhancers.filtering.unique = unique(enhancers.filtering)
+enhancers.no.filtering.unique = unique(enhancers.no.filtering)
 
 AllData.saved = AllData_test
 
@@ -512,7 +539,7 @@ AllData.saved = AllData_test
 
 ```{r save the data}
 write.table(
-  x = AllData_unique,
+  x = enhancers.filtering.unique,
   file = paste(params$workingDir, params$results_file , sep = "/"),
   quote = F,
   sep = "\t",
@@ -520,11 +547,11 @@ write.table(
   col.names = T
 )
 
-cleaned_AllData = AllData_unique %>% dplyr::select(geneID, Chr, ATAC_factor, ATAC_direction)
+#cleaned_AllData = AllData_unique %>% dplyr::select(geneID, Chr, ATAC_factor, ATAC_direction)
 
 write.table(
-  x = cleaned_AllData,
-  file = paste(params$workingDir, params$results_file_cleaned , sep = "/"),
+  x = enhancers.no.filtering.unique,
+  file = paste(params$workingDir, params$results_file_no_filtering, sep = "/"),
   quote = F,
   sep = "\t",
   row.names = F,

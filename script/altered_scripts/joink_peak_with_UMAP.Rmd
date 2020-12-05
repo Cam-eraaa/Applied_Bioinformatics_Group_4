@@ -7,7 +7,6 @@ params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   RscriptsDir: script/original_scripts/
   inSitu.data: data_johan/results/cleaned/inSitu/inSitu.Stark.dm6.tsv
-  #PROseq.data: data_johan/results/cleaned/PROseq/PROseq.CBP.peak.tsv #this was fine
   PROseq.data: results/altered_method/PROseq/PROseq.CBP.data.tsv #this was not
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
   ChIPseqDir: results/original_method/ChIPseq/
@@ -18,11 +17,8 @@ params:
   Toll10Benhancer: data_johan/results/cleaned/enhancers/h3k27ac_Toll10B_csaw_intersect.bed
   Toll9enhancer: data_johan/results/cleaned/enhancers/h3k27ac_Tollrm910_csaw_intersect.bed
   enhancerResult: results/altered_method/enhancers/enhancers.tsv
-  Regions: results/altered_method/enhancers/regions_id.tsv
-
-  results_file: results/altered_method/UMAP_combined.AllData.withMetaData.txt
-  results_file_cleaned: results/altered_method/UMAP_AllData_cleaned.txt
   
+  results_file: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
 ---
 
 ```{r setup, include=FALSE}
@@ -412,8 +408,6 @@ ggplot(ROCplotInfo, mapping =  aes(x = FPR, y = TPR, color = score))+
 Based on ROC statistics  it is best if we include both UMAP1 and UMAP2 and that we look at the enhancer data 
 
 ```{r plot classification }
-
-
 scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance2")
 
 AllData.enhancers = AllData %>% filter(distance2 > scores$YoudenCutoff)
@@ -427,10 +421,6 @@ peakInfo$geneID = names(ATAC_peakData)
 AllData.enhancers = AllData.enhancers %>% dplyr::select(-geneID_unique)
 AllData.enhancers = inner_join(peakInfo, AllData.enhancers, by = "geneID")
 AllData.enhancers_cleaned = AllData.enhancers %>% dplyr::select(geneID, -seqnames, Chr, start, end, -width, -strand, -ATAC_Start, -ATAC_End, -Strand, Length, ATAC_factor, ATAC_direction, ATAC_Gd7,  ATAC_Toll10b, ATAC_Toll9, ATAC_Time, PRO_Gd7, PRO_Toll10b, PRO_Toll9, PRO_Time, CBP_Gd7,  CBP_Toll10b, CBP_Toll9, K27ac_geneID, -K27ac_Chr, -K27ac_Start, -K27ac_End, -K27ac_Strand, -K27ac_Length,  -K27ac_factor, -K27ac_direction, K27ac_Gd7, K27ac_Toll10b, K27ac_Toll9, enhancerID, enhancerGenotype, insituID, inSituLocation, inSituScore, enhancer, inSitu, UMAP1, UMAP2, distance1, distance2)
-
-fileName = paste(params$workingDir, params$enhancerResult, sep = "")
-
-#write.table(x = AllData.enhancers_cleaned, file = fileName, sep = "\t", quote = F, row.names = F, col.names = T )
 
 
 ```
@@ -462,43 +452,44 @@ PRO_ATAC_CHiP_data = AllData_test %>%
     CBP_Toll9 = mean(CBP_Toll9)
   )
 
-AllData = AllData_test %>% dplyr::select(
-  PRO_Time,
-  PRO_Gd7,
-  PRO_Toll10b,
-  PRO_Toll9,
+enhancers.filtering = AllData.enhancers %>% dplyr::select(
+  geneID,
+  Chr,
+  ATAC_Start, 
+  ATAC_End,
+  ATAC_factor,
+  ATAC_direction,
   ATAC_Time,
   ATAC_Gd7,
   ATAC_Toll10b,
   ATAC_Toll9,
+  PRO_Time,
+  PRO_Gd7,
+  PRO_Toll10b,
+  PRO_Toll9,
   CBP_Gd7,
   CBP_Toll10b,
   CBP_Toll9,
+  K27ac_geneID,
   K27ac_Gd7,
   K27ac_Toll10b,
-  K27ac_Toll9
+  K27ac_Toll9,
+  enhancerID,
+  insituID
 )
 
+enhancers.filtering.unique = unique(enhancers.filtering)
+
 AllData.saved = AllData_test
+
 
 ```
 
 
 ```{r save the data}
 write.table(
-  x = AllData,
+  x = enhancers.filtering.unique,
   file = paste(params$workingDir, params$results_file , sep = "/"),
-  quote = F,
-  sep = "\t",
-  row.names = F,
-  col.names = T
-)
-
-cleaned_AllData = AllData %>% dplyr::select(geneID, ATACseq_geneID, factor, direction)
-
-write.table(
-  x = cleaned_AllData,
-  file = paste(params$workingDir, params$results_file_cleaned , sep = "/"),
   quote = F,
   sep = "\t",
   row.names = F,

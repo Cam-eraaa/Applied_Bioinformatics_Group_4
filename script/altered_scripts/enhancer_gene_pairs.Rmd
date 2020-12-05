@@ -6,18 +6,23 @@ output: html_document
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  enhancer.data: results/altered_method/from_joint_peak/combined.AllData.withMetaData.tsv
-  #enhancer.data: results/altered_method/from_joint_peak/without_enhancerInsitu.combined.AllData.withMetaData.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/enhancers_no_filtering.tsv
+  enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
   resultsDir: results/altered_method/pairs/
-  resultsFile: EGP_PCA_filtering.tsv
-  #resultsFile: EGP_without_enhancerInsitu.tsv
-
-
+  #resultsFile: EGP_PCA_filtering.tsv
+  #resultsFile: EGP_no_filtering.tsv
+  resultsFile: EGP_UMAP.tsv
+  
+  functionAnnotation: hgTables.txt
+  pairsFile: results/altered_method/combined.AllData.withMetaData.txt
   
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(GenomicRanges)
 ```
 
 
@@ -44,8 +49,6 @@ ourEnhancerData = makeGRangesFromDataFrame(our_enhancer_data,
                                       seqnames.field = "Chr", 
                                       start.field = "start", 
                                       end.field = "end")
-
-
 
 PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
 
@@ -77,14 +80,8 @@ PROData = makeGRangesFromDataFrame(PROseqGeneInfo,
                                       start.field = "Gene_Start", 
                                       end.field = "Gene_End")
 
-
-
 test_pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand=TRUE))
 colnames(test_pairs) = c("enhancer_row","gene_row","EnhancerDistance")
-
-#test_pairs$K27ac_geneID = names(PROseqGeneInfo)[test_pairs$subjectHits]
-#test_pairs$geneID = names(our_enhancer_data)[test_pairs$queryHits]
-#test_pairs = test_pairs %>% dplyr::select(K27ac_geneID,geneID)
 
 joined = inner_join(PROseqGeneInfo, test_pairs)
 joined = inner_join(our_enhancer_data, joined)
@@ -100,84 +97,10 @@ enhancer_gene_pairs_unique = unique(enhancer_gene_pairs)
 ```
 
 ```{r Filtering}
-enhancer_gene_pairs_unique_0kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance == 0 )  
-
-enhancer_gene_pairs_unique_ambiguous = enhancer_gene_pairs_unique %>% filter(EnhancerDistance == 0 & EnhancerDistance < 1500 )  
-enhancer_gene_pairs_unique_over_15kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance > 1500 )  
+enhancer_gene_pairs_unique_ambiguous = enhancer_gene_pairs_unique %>% filter(EnhancerDistance >= 0 & EnhancerDistance < 1500 )  
+enhancer_gene_pairs_unique_over_15kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance > 1500)  
 ```
 
-```{r Filtering visualization}
-
-
-confusion_matrix <- as.data.frame(table(enhancer_gene_pairs_over_15kb$PROseq_Classification, enhancer_gene_pairs_over_15kb$ATACseq_Classification))
-colnames(confusion_matrix) = c("PROseq classification", "ATACseq classification", "Freq")
-ggplot(data = confusion_matrix,
-       mapping = aes(x = `PROseq classification`,
-                     y = `ATACseq classification`)) + 
-  geom_tile(aes(fill = Freq)) +
-  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
-  scale_fill_gradient(low = "blue",
-                      high = "red",
-                      trans = "log")+ 
-  labs(title = "ATACseq peak and PROseq Gene correlation ",
-              subtitle = "15 - 100 kb up- or downstream of gene",
-              caption = "Gene is subset of genes that where identified using PROseq data
-Genes are divided based on PROseq analysis annotation
-         Peak is 15 - 100 kb up- or downstream of gene") 
-#ggsave(filename = paste(params$workingDir,params$ATACSeqDir, "ATAC_PROseqCorrelation_100kb.pdf", sep="/"), width = 8)
-
-ggplot(joined, mapping = aes(x =ATAC_factor , fill = ATAC_direction ))+ 
-  geom_bar() + 
-  facet_grid( cols = vars(Gene_Factor,Gene_Direction))+ 
-  labs(title = "ATACseq peak and PROseq Gene correlation ",
-              subtitle = "15 -100 kb up- or downstream of gene",
-              caption = "Gene is subset of genes that where identified using PROseq data
-Genes are divided based on PROseq analysis annotation
-         Peak is 15 -100 kb up- or downstream of gene") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
-#ggsave(filename = paste(params$workingDir,params$ATACSeqDir, "ATAC_PROseqCorrelation_100kb.barplot.pdf", sep="/"), width = 8)
-
-```
-
-
-```{r Visualising correlation  background}
-
-Both_data  = joined %>% filter(ATAC_factor != "Time")
-
-
-ggplot(Both_data, aes(x= log10(EnhancerDistance+1 )))+ geom_histogram()
-ggsave(filename = paste(params$workingDir,params$ATACSeqDir, "ATAC_PROseqCorrelation_distance.pdf", sep="/"), width = 8)
-
-confusion_matrix <- as.data.frame(table(Both_data$PROseq_Classification, Both_data$ATACseq_Classification))
-colnames(confusion_matrix) = c("PROseq classification", "ATACseq classification", "Freq")
-ggplot(data = confusion_matrix,
-       mapping = aes(x = `PROseq classification`,
-                     y = `ATACseq classification`)) + 
-  geom_tile(aes(fill = Freq)) +
-  geom_text(aes(label = sprintf("%1.0f", Freq)), vjust = 1) +
-  scale_fill_gradient(low = "blue",
-                      high = "red",
-                      trans = "log")+ 
-  labs(title = "ATACseq peak and PROseq Gene correlation ",
-              subtitle = "All closest peak and gene",
-              caption = "Gene is subset of genes that where identified using PROseq data
-Genes are divided based on PROseq analysis annotation
-         Peak is all distances  up- or downstream of gene") 
-
-
-
-ggplot(Both_data, mapping = aes(x =ATAC_factor , fill = ATAC_direction ))+ 
-  geom_bar() + 
-  facet_grid( cols = vars(Gene_Factor,Gene_Direction))+ 
-  labs(title = "ATACseq peak and PROseq Gene correlation ",
-              subtitle = "All closest peak and gene",
-              caption = "Gene is subset of genes that where identified using PROseq data
-Genes are divided based on PROseq analysis annotation
-         Peak is all distances  up- or downstream of gene")+
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
-
-
-
-```
 
 ```{r save the data}
 write.table(
@@ -191,4 +114,37 @@ write.table(
 
 ```
 
+```{r }
+# Load the ATAC seq loading scores
+annotation_data = read.table(
+  file = paste(params$workingDir, params$functionAnnotation, sep = ""),
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+pairs = read.table(
+  file = paste(params$workingDir, params$pairsFile, sep = ""),
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+
+pairs_cleaned = pairs %>% dplyr::select(Chr, ATAC_Start, ATAC_End, K27ac_Chr, K27ac_Start, K27ac_End)
+pairs_cleaned = pairs_cleaned %>% dplyr::rename()
+
+colnames(annotation_data)
+
+annotation_data_cleaned = annotation_data %>% dplyr::select(chrom, name, score, geneName)
+
+#write.table(
+#  x = AllData,
+#  file = paste(params$workingDir, params$results , sep = "/"),
+#  quote = F,
+#  sep = "\t",
+#  row.names = F,
+#  col.names = T
+#)
+```
 
