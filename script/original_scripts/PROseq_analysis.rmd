@@ -16,10 +16,7 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-# The command below is needed to be able to knit a file
-knitr::opts_chunk$set(echo = TRUE)
-
-# Install required packages
+# Install required packages (Only needs to be run the first time)
 #BiocManager::install("DESeq2")
 #install.packages("RColorBrewer")
 #BiocManager::install("clusterProfiler")
@@ -34,12 +31,13 @@ library(clusterProfiler)
 library(org.Dm.eg.db)
 library(DESeq2)
 library("tidyverse")
-library(dplyr)
-library(tidyr)
 library(knitr)
 library(kableExtra)
 library(gplots)
 library("viridis")
+
+# The command below is needed to be able to knit a file
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # PROseq data analysis
@@ -136,15 +134,14 @@ for (end_row in 1:rows) {
 positions_fixed = inner_join(positions, start, by = "Geneid")
 positions_fixed = inner_join(positions_fixed, end, by = "Geneid")
 positions_fixed = positions_fixed %>% dplyr::select(Geneid, chr, start_min, end_max, strand, Length)
-positions_fixed = positions_fixed %>% dplyr::rename(
+# Rename the columns to the universal names
+geneInfo = positions_fixed %>% dplyr::rename(
   geneID = Geneid,
   Chr = chr,
   Start = start_min,
   End = end_max,
   Strand = strand
 )
-# Rename it to clarify the content
-geneInfo = positions_fixed
 ```
 
 ## Create sample information
@@ -183,7 +180,7 @@ sampleInfo = sampleInfo %>% dplyr::select(sampleName, mutant, time, replicate, b
 
 ## Expression filtering
 
-Remove all genes that is not expressed in any sample and start adding known information about the genes. This is done by only keeing the genes with total counts larger than 0.
+Remove all genes that is not expressed in any sample and start adding known information about the genes. This is done by only keeping the genes with total counts larger than 0.
 
 ```{r remove genes with no expression, include=FALSE}
 # Derive the logarithm of the counts
@@ -198,7 +195,6 @@ countData.QC =  countData[geneInfo.QC$geneID, ]
 ```
 
 ## Add information about genes involved in the differentiation of the tissues.
-
 A file with gene information has been downloaded from the FlyBase database. The gene IDs are compared to the geneIDs in the expression data.
 
 ```{r script to check the known genes , include=FALSE}
@@ -299,7 +295,7 @@ From the graph below we can see that a lot of the log2 fold change data is above
 ```{r filters out genes dependent on log fold change}
 
 # Summarizes statistical information in geneInfo.
-geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
+geneInfo.QC2 = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
   dplyr::group_by (geneID) %>%
   dplyr::summarize (
     min = min(rlog),
@@ -311,8 +307,8 @@ geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
   )
 
 # Requires the gene has at least 2 counts that have a log fold change over 5
-geneInfo.QC2 = geneInfo %>% filter(overQC > 2)
-normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)
+geneInfo.QC3 = geneInfo.QC2 %>% filter(overQC > 2)
+normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC3$geneID)
 ggplot(normExpressionDF.QC, aes(
   x = rlog,
   color = mutant,

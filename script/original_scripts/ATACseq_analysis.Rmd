@@ -21,7 +21,7 @@ params:
 # The command below is needed to be able to knit a file
 knitr::opts_chunk$set(echo = TRUE)
 
-# Install required packages
+# Install required packages (Only needs to be run the first time)
 #install.packages("kableExtra")
 #install.packages("tidyverse")
 #install.packages("RColorBrewer")

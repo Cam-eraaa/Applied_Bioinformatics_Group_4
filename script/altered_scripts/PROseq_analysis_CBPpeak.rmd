@@ -16,9 +16,6 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-# The command below is needed to be able to knit a file
-knitr::opts_chunk$set(echo = TRUE)
-
 # Install required packages (Only needs to be run the first time)
 #BiocManager::install("DESeq2")
 #install.packages("RColorBrewer")
@@ -30,16 +27,15 @@ knitr::opts_chunk$set(echo = TRUE)
 source(paste(params$workingDir, params$RscriptsDir,"ExpressionAnalysisFunctions.r", sep = "/"))
 
 # Load the installed packages
-library(clusterProfiler)
-library(org.Dm.eg.db)
 library(DESeq2)
 library("tidyverse")
-#library(dplyr)
-library(tidyr)
 library(knitr)
 library(kableExtra)
 library(gplots)
 library("viridis")
+
+# The command below is needed to be able to knit a file
+knitr::opts_chunk$set(echo = TRUE)
 
 ```
 # PROseq data analysis
