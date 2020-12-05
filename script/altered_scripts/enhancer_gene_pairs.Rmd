@@ -16,8 +16,13 @@ params:
   
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  resultsAnnotated15kb: annotated_results15kb.txt
-  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb.txt
+  #resultsAnnotated15kb: annotated_results15kb_PCA_filtering.txt
+  #resultsAnnotated15kb: annotated_results15kb_no_filtering.txt
+  resultsAnnotated15kb: annotated_results15kb_UMAP.txt
+  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.txt
+  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_no_filtering.txt
+  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_UMAP.txt
+
   
 ---
 
@@ -25,6 +30,8 @@ params:
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(GenomicRanges)
+library(clusterProfiler)
+library(org.Dm.eg.db)
 ```
 
 
@@ -116,6 +123,7 @@ write.table(
 
 ```
 
+## Add annotation for the genes
 ```{r from annotation.Rmd}
 # Load the ATAC seq loading scores
 annotation_data = read.table(
@@ -192,4 +200,5 @@ write.table(
 )
 
 ```
+
 

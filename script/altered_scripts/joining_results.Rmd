@@ -1,0 +1,58 @@
+---
+title: "Joining the final results"
+output: html_document
+
+params: 
+  workingDir: ~/Applied_Bioinformatics_Group_4/
+
+  EGP_PCA: results/altered_method/pairs/EGP_PCA_filtering.tsv
+  EGP_no_filtering: results/altered_method/pairs/EGP_no_filtering.tsv
+  EGP_UMAP: results/altered_method/pairs/EGP_UMAP.tsv
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r Loading files}
+PCA_filtering_file = paste(params$workingDir, params$EGP_PCA, sep = "")
+
+PCA_filtering_data = read.table(
+  file = PCA_filtering_file ,
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+
+no_filtering_file = paste(params$workingDir, params$EGP_no_filtering, sep = "")
+
+no_filtering_data = read.table(
+  file = no_filtering_file ,
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+
+UMAP_file = paste(params$workingDir, params$EGP_UMAP, sep = "")
+
+UMAP_data = read.table(
+  file = UMAP_file ,
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+
+```
+
+
+```{r joining}
+
+joined = inner_join(PCA_filtering_data, UMAP_data)
+
+```
+
