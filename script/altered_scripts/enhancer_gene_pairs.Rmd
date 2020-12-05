@@ -14,8 +14,10 @@ params:
   #resultsFile: EGP_no_filtering.tsv
   resultsFile: EGP_UMAP.tsv
   
+  resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  pairsFile: results/altered_method/combined.AllData.withMetaData.txt
+  resultsAnnotated15kb: annotated_results15kb.txt
+  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb.txt
   
 ---
 
@@ -114,7 +116,7 @@ write.table(
 
 ```
 
-```{r }
+```{r from annotation.Rmd}
 # Load the ATAC seq loading scores
 annotation_data = read.table(
   file = paste(params$workingDir, params$functionAnnotation, sep = ""),
@@ -123,28 +125,71 @@ annotation_data = read.table(
   header = TRUE,
   stringsAsFactors = F
 )
-pairs = read.table(
-  file = paste(params$workingDir, params$pairsFile, sep = ""),
-  quote = "",
+pairs = enhancer_gene_pairs_unique_over_15kb
+annotation_data_cleaned = annotation_data %>% dplyr::select(acc, protFullNames, score, geneName, functionText)
+annotation_data_cleaned = annotation_data_cleaned %>% dplyr::rename(name = acc,
+                                                                    geneFunc = protFullNames,
+                                                                    geneFuncFullText = functionText)
+
+# Needs a name to match the annotation files
+pairs_cleaned = pairs %>% dplyr::select(EnhancerID, Gene_geneID)
+universe <- bitr(
+  unique(pairs_cleaned$Gene_geneID),
+  fromType = "ENSEMBL",
+  toType = c("UNIPROT"),
+  OrgDb = org.Dm.eg.db
+)
+universe  =  universe %>% dplyr::rename(Gene_geneID = ENSEMBL, name = UNIPROT)
+
+# Join the uniprot names with the Ensembl IDs
+pairs_uniprotID = inner_join(pairs, universe, by = "Gene_geneID")
+# Now join the pairs with the annotation from SwissProtUniprot
+AllData = inner_join(pairs_uniprotID, annotation_data_cleaned, by = "name")
+
+# Make the results cleaner for output. One file with less information for easier overview
+AllData_renamed = AllData %>% dplyr::rename(
+  UNIPROTname = name,
+  Enhancer_Chr = Chr,
+  Enhancer_Start = ATAC_Start,
+  Enhancer_End = ATAC_End
+)
+AllData_cleaned = AllData_renamed %>% dplyr::select(
+  EnhancerID,
+  Gene_geneID,
+  EnhancerDistance,
+  PROseq_Classification,
+  ATACseq_Classification,
+  UNIPROTname,
+  geneFunc,
+  geneName,
+  geneFuncFullText
+)
+# The more complete result file
+results = paste(params$workingDir,
+                params$resultsDirAnno,
+                params$resultsAnnotated15kb ,
+                sep = "")
+write.table(
+  x = AllData,
+  file = results,
+  quote = F,
   sep = "\t",
-  header = TRUE,
-  stringsAsFactors = F
+  row.names = F,
+  col.names = T
+)
+# The result file with better overview
+results_cleaned = paste(params$workingDir,
+                               params$resultsDirAnno,
+                               params$resultsAnnotatedCleaned15kb ,
+                               sep = "")
+write.table(
+  x = AllData_cleaned,
+  file = results_cleaned,
+  quote = F,
+  sep = "\t",
+  row.names = F,
+  col.names = T
 )
 
-pairs_cleaned = pairs %>% dplyr::select(Chr, ATAC_Start, ATAC_End, K27ac_Chr, K27ac_Start, K27ac_End)
-pairs_cleaned = pairs_cleaned %>% dplyr::rename()
-
-colnames(annotation_data)
-
-annotation_data_cleaned = annotation_data %>% dplyr::select(chrom, name, score, geneName)
-
-#write.table(
-#  x = AllData,
-#  file = paste(params$workingDir, params$results , sep = "/"),
-#  quote = F,
-#  sep = "\t",
-#  row.names = F,
-#  col.names = T
-#)
 ```
 
