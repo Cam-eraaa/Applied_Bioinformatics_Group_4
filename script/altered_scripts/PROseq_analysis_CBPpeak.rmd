@@ -42,14 +42,14 @@ library(gplots)
 library("viridis")
 
 ```
-
-Analysis of the differential expression between the samples. The evaluation is done by the output from PROseq which is read counts per gene
+# PROseq data analysis
+Analysis of the differential expression between the samples. The evaluation is done by the output from PROseq which is read counts per CBP peak region.
 
 ## Loading data
 We load the count table of the expressed genes counted per CBP peak. This is the reads from PROseq. The countdata is converted into a dataframe with the columns 
 
 ```{r loading the data, include=FALSE}
-# Loading the count tsv file that contains the read count for each gene
+# Loading the count tsv file that contains info and the read count for each gene
 featureCountFile = paste(params$workingDir, params$dataDir, params$CountData, sep = "/")
 FCdata = read.table(
   file = featureCountFile,
@@ -75,8 +75,8 @@ rownames(countData) = geneInfo$geneID
 Extracting the information from the sample name so it is more easily accessible in a data frame. The sample information is samplename, mutant, time, replicate and bamfile name.
 
 ```{r Create meta data table for samples , include=FALSE}
-#Extract the information about the samples from the sampleName.
-#Save sampleName, mutant, time, replicate and name of the bam file.
+# Extract the information about the samples from the sampleName. The info is saved in the same columns so it needs to be seperated.
+# Save sampleName, mutant, time, replicate and name of the bam file.
 sampleInfo = data.frame(bamFile =  colnames(countData))
 sampleInfo = sampleInfo %>% separate(
   col = bamFile,
@@ -105,12 +105,12 @@ rownames(sampleInfo) = sampleInfo$sampleName
 sampleInfo = sampleInfo %>% dplyr::select(sampleName, mutant, time, replicate, bamFile)
 ```
 
-## Create gene info
+## Expression filtering
 
-Remove all genes that is not expressed in any sample and start adding known information about the genes. This is done by only keeing the logarithmized values with a value larger than 1.
+Remove all genes that is not expressed in any sample and start adding known information about the genes. This is done by only keeping the regions with a total count above 0.
 
 ```{r remove genes with no expression, include=FALSE}
-# Logaritmize the counts
+# Derive the logarithm of the counts
 geneExpression = log(rowSums(countData))
 geneInfo$logExpression = log(rowSums(countData))
 

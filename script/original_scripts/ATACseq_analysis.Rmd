@@ -8,7 +8,6 @@ params:
     workingDir: ~/Applied_Bioinformatics_Group_4
     dataDir: data_johan/data/ATACseq
     RscriptsDir: script/original_scripts
-    proSeqDir: results/original_method/PRO-seq
     ATACresultsDir: results/original_method/ATACseq
     sampleInfo: data_johan/information/cleaned/ChIP_ATAC_sampleInfo.tab.txt
     count_ATAC: ATAC.CBP.peak.featureCount.count.tab.txt
@@ -16,12 +15,12 @@ params:
     normalisedATACpeakData: ATAC.CBP.peak.featureCount.rlog.tab.txt
     ATACSeq.data: ATACseq.data.tsv
     Method: ATAC-Seq
-    PROseq.data: results/original_method/PROseq/PROseq.data.tsv
-    
 ---
 
 ```{r setup, include=FALSE}
+# The command below is needed to be able to knit a file
 knitr::opts_chunk$set(echo = TRUE)
+
 # Install required packages
 #install.packages("kableExtra")
 #install.packages("tidyverse")
@@ -29,19 +28,23 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Include the functions from the expression analysis script
 source(paste(params$workingDir, params$RscriptsDir,"ExpressionAnalysisFunctions.r", sep = "/"))
+
+# Load the installed packages
 library(tidyverse)
 library(gplots)
 library(kableExtra)
 library(DESeq2)
 library("viridis")
 ```
+# ATACseq data analysis
+Analysis of the differential expression between the samples. The evaluation is done by the output from ATACseq which is read counts per CBP peak region.
 
 ## Loading the data
 ### Loading the count data
 Loads the count data and extracts the interesting information. Also changes column names to more understandable headers.
 
 ```{r Adding the first analysis of the data ,message=FALSE ,warning = FALSE}
-# Read in the ATACseq count data
+# Loading the count tsv file that contains info and the read count for each gene
 featureCountFile = paste(params$workingDir, params$dataDir,params$count_ATAC, sep = "/")
 FCdata = read.table( file = featureCountFile, header = TRUE, sep = "\t", quote = "", stringsAsFactors = FALSE)
 # Save the columns with info in peak info
@@ -60,10 +63,6 @@ sampleInfo = read.table(
   quote = "",
   stringsAsFactors = FALSE
 )
-
-# Load the PROseq data
-proseq_file = paste(params$workingDir, params$PROseq.data, sep ="/")
-PROseq.data = read.table(file = proseq_file, header = TRUE, sep="\t", quote="", stringsAsFactors = FALSE)
 ```
 
 ### Loading the sample info

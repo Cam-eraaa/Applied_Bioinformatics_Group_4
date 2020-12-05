@@ -40,16 +40,16 @@ library(knitr)
 library(kableExtra)
 library(gplots)
 library("viridis")
-
 ```
 
+# PROseq data analysis
 Analysis of the differential expression between the samples. The evaluation is done by the output from PROseq which is read counts per gene
 
 ## Loading data
 We load the count table of the expressed genes counted per CBP peak. This is the reads from PROseq. The countdata is converted into a dataframe with the columns 
 
 ```{r loading the data, include=FALSE}
-# Loading the count tsv file that contains the read count for each gene
+# Loading the count tsv file that contains info and the read count for each gene
 featureCountFile = paste(params$workingDir, params$dataDir, params$CountData, sep = "/")
 FCdata = read.table(
   file = featureCountFile,
@@ -59,73 +59,83 @@ FCdata = read.table(
   stringsAsFactors = FALSE
 )
 
-# Creating matrix with geneID(1) and gene length(2)
-positions = FCdata[, 1:5]
-chr = positions %>% dplyr::select(Chr) %>% separate(
+# Saving the info about the genes;geneID, chr, start, end, strand and gene length
+positions = FCdata[, 1:6]
+# The columns chr, start, end and strand have multiple values for chr and strand it is enough to just take the first value since all values are the same
+chr = positions %>% dplyr::select(Geneid, Chr)
+chr = chr  %>% separate(
   col = Chr,
   into = c("chr"),
   sep = ";",
   remove = TRUE
 )
-strand = positions %>% dplyr::select(Strand) %>% separate(
+strand = positions %>% dplyr::select(Geneid, Strand)
+strand = strand %>% separate(
   col = Strand,
   into = c("strand"),
   sep = ";",
   remove = TRUE
 )
-geneInfo  = FCdata [, 1:6]
-geneInfo  = geneInfo[, c(1, 6)]
-geneInfo = geneInfo %>% rename(geneID = Geneid)
+positions = inner_join(positions, chr, by="Geneid")
+positions = inner_join(positions, strand, by="Geneid")
 
 # Creating matrix for the countdata, geneID and count for each sample
 countData = FCdata[,-1:-6]
-rownames(countData) = geneInfo$geneID
+FCgeneID = FCdata[,1]
+rownames(countData) = FCgeneID
 ```
 
+### Extracting the positions of the genes
+The columns start and end from the count data have multiple values. To include as big of a region as possible the earliest start and the latest end is extracted. min(start), max(end)
+
 ```{r fixing start and stop to a single positions}
-# Ran loops to find the the max number of values for stop is 1723
+# Ran iterative loops to get the max number of values for start and stop is 1723 and therefore the number of columns = 1723
+# Create the starting variables for the loop
 start_matrix = matrix(NA, nrow = 13947, ncol = 1723)
 vector = c()
 start = positions %>% dplyr::select(Start, Geneid)
 num_rows = dim(start)[1]
 start$start_min = NA
 
-rownames(start)[start$Geneid == "FBgn0024277"]
-start_row = 3523
-# Splitting the values for each row
+# Splitting the values for each row(gene)
 for (start_row in 1:num_rows) {
   vector = str_split(start[[1]][start_row], ";")
   num_cols = length(vector[[1]])
   for (start_col in 1:num_cols) {
+    # Saving each value in a separate column
     start_matrix[start_row, start_col] = vector[[1]][start_col]
   }
+  # Find the minimum value of all the start values for each gene
   min_col = which.min(start_matrix[start_row,])
+  # Extract the start position and save it in a new column called start_min
   start$start_min[start$Geneid == start[[2]][start_row]] = start_matrix[start_row, min_col]
 }
 
-# Ran loops to find the the max number of values for stop is 1723
+# Create the starting variables for the loop
 end_matrix = matrix(NA, nrow = 13948, ncol = 1723)
 vector = c()
 end = positions %>% dplyr::select(End, Geneid)
 rows = dim(end)[1]
 end$end_max = NA
 
-# Splitting the values for each row
+# Splitting the values for each row(gene)
 for (end_row in 1:rows) {
   vector = str_split(end[[1]][end_row], ";")
   cols = length(vector[[1]])
   for (end_col in 1:cols) {
+    # Saving each value in a separate column
     end_matrix[end_row, end_col] = vector[[1]][end_col]
   }
+  # Find the maximum value of all the end values for each gene
   max_col = which.max(end_matrix[end_row,])
+  # Extract the end position and save it in a new column called end_max
   end$end_max[end$Geneid == end[[2]][end_row]] = end_matrix[end_row, max_col]
 }
 
-positions_fixed = data.frame(positions$Geneid, chr, strand)
-positions_fixed = positions_fixed %>% dplyr::rename(Geneid = positions.Geneid)
-positions_fixed = inner_join(positions_fixed, start)
-positions_fixed = inner_join(positions_fixed, end)
-positions_fixed = positions_fixed %>% dplyr::select(Geneid, chr, start_min, end_max, strand)
+# Need to connect the correct start and end with the correct gene and therefore the data is joined on geneID
+positions_fixed = inner_join(positions, start, by = "Geneid")
+positions_fixed = inner_join(positions_fixed, end, by = "Geneid")
+positions_fixed = positions_fixed %>% dplyr::select(Geneid, chr, start_min, end_max, strand, Length)
 positions_fixed = positions_fixed %>% dplyr::rename(
   geneID = Geneid,
   Chr = chr,
@@ -133,7 +143,8 @@ positions_fixed = positions_fixed %>% dplyr::rename(
   End = end_max,
   Strand = strand
 )
-geneInfo = inner_join(positions_fixed, geneInfo)
+# Rename it to clarify the content
+geneInfo = positions_fixed
 ```
 
 ## Create sample information
@@ -141,8 +152,8 @@ geneInfo = inner_join(positions_fixed, geneInfo)
 Extracting the information from the sample name so it is more easily accessible in a data frame. The sample information is samplename, mutant, time, replicate and bamfile name.
 
 ```{r Create meta data table for samples , include=FALSE}
-#Extract the information about the samples from the sampleName.
-#Save sampleName, mutant, time, replicate and name of the bam file.
+# Extract the information about the samples from the sampleName. The info is saved in the same columns so it needs to be seperated.
+# Save sampleName, mutant, time, replicate and name of the bam file.
 sampleInfo = data.frame(bamFile =  colnames(countData))
 sampleInfo = sampleInfo %>% separate(
   col = bamFile,
@@ -162,7 +173,7 @@ sampleInfo = sampleInfo %>% dplyr::select(bamFile, mutant, time, replicate)
 sampleInfo = sampleInfo %>% unite("sampleName", mutant:time:replicate, remove = FALSE)
 sampleInfo = sampleInfo %>% dplyr::select(bamFile, sampleName, mutant, time, replicate)
 
-# Create a table and set rownames as samplename and rows as samplename, mutant, time, replicate and bamfile name.
+# Save the sample info. It will include name, mutant, time, replicate and bamfile name.
 rownames(sampleInfo) = sampleInfo$bamFile
 sampleInfo = sampleInfo[colnames(countData), ]
 colnames(countData) = sampleInfo$sampleName
@@ -170,12 +181,12 @@ rownames(sampleInfo) = sampleInfo$sampleName
 sampleInfo = sampleInfo %>% dplyr::select(sampleName, mutant, time, replicate, bamFile)
 ```
 
-## Create gene info
+## Expression filtering
 
-Remove all genes that is not expressed in any sample and start adding known information about the genes. This is done by only keeing the logarithmized values with a value larger than 1.
+Remove all genes that is not expressed in any sample and start adding known information about the genes. This is done by only keeing the genes with total counts larger than 0.
 
 ```{r remove genes with no expression, include=FALSE}
-# Logaritmize the counts
+# Derive the logarithm of the counts
 geneExpression = log(rowSums(countData))
 geneInfo$logExpression = log(rowSums(countData))
 
