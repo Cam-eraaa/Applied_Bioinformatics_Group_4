@@ -194,6 +194,34 @@ geneInfo.QC = geneInfo %>% filter(logExpression > 1)
 countData.QC =  countData[geneInfo.QC$geneID, ]
 ```
 
+## Add information about genes involved in the differentiation of the tissues.
+
+A file with gene information has been downloaded from the FlyBase database. The gene IDs are compared to the geneIDs in the expression data.
+
+```{r script to check the known genes , include=FALSE}
+# Load the geneIDs from the Flybase genes
+knownGenes = read.table(
+  file = paste(
+    params$workingDir,
+    params$informationDir,
+    "FlyBase_IDs.txt",
+    sep = "/"
+  ),
+  sep = "\t",
+  header = F,
+  quote = "",
+  stringsAsFactors = F
+)
+# Add name for the columns since the header was removed in the previous command
+colnames(knownGenes) = c("Submitted ID", "Current ID", "Converted ID", "Related record")
+
+# Set default value for the known gene as no
+geneInfo.QC$knownGene = "No"
+
+# Change value to yes if the geneID exist in the FlyBase database
+geneInfo.QC$knownGene[geneInfo.QC$geneID %in% knownGenes$`Current ID`] = "Yes"
+```
+
 ### Identifying that two samples that have wrong lables and needs to be switched.
 
 So it turns out that there was a label switch in the samples.. After going back to the lab-book we could identify the switch and therefore we make the change. Still we keep the information which bamfile belongs to which sample.
