@@ -74,12 +74,12 @@ strand = strand %>% separate(
   sep = ";",
   remove = TRUE
 )
-positions = inner_join(positions, chr, by="Geneid")
-positions = inner_join(positions, strand, by="Geneid")
+positions = inner_join(positions, chr, by = "Geneid")
+positions = inner_join(positions, strand, by = "Geneid")
 
 # Creating matrix for the countdata, geneID and count for each sample
-countData = FCdata[,-1:-6]
-FCgeneID = FCdata[,1]
+countData = FCdata[, -1:-6]
+FCgeneID = FCdata[, 1]
 rownames(countData) = FCgeneID
 ```
 
@@ -267,7 +267,7 @@ From the graph below we can see that a lot of the log2 fold change data is above
 
 ```{r filters out genes dependent on log fold change}
 
-# Summarizes statistical information in geneInfo.
+# Summarizes statistical information in geneInfo per gene.
 geneInfo.QC2 = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
   dplyr::group_by (geneID) %>%
   dplyr::summarize (
@@ -275,21 +275,27 @@ geneInfo.QC2 = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
     max = max(rlog),
     mean = mean(rlog),
     sd = sd(rlog),
-    #Creates a column which tells you how many counts(reads) are above 5 per geneID.
+    #Creates a column which tells you how many counts(reads) are above 5 per gene.
     overQC = length(which(rlog > 5))
   )
 
 # Requires the gene has at least 2 counts that have a log fold change over 5
 geneInfo.QC3 = geneInfo.QC2 %>% filter(overQC > 2)
 normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC3$geneID)
+
+# Plot the density of the log fold change
 ggplot(normExpressionDF.QC, aes(
   x = rlog,
   color = mutant,
   linetype = time
 )) + geom_density()
+
+# We are only interested in the log values since we want to normalize them
 normExpression.QC = normExpressionDF.QC %>%
   dplyr::select(geneID, sampleName, rlog) %>%
   spread(key = sampleName, value = rlog)
+
+#Replace the column with geneIDs since the PCA only can handle numeric values
 rownames(normExpression.QC) = normExpression.QC$geneID
 normExpression.QC = normExpression.QC[,-1]
 ```
@@ -300,13 +306,13 @@ normExpression.QC = normExpression.QC[,-1]
 # This is a function defined in ExpressionAnalysisFunctions.r
 plotSample2SampleDistance(normExpression.QC)
 #'  __Figure 1 Plotting sample to sample distance__ .
-
+#' Can see that the samples can be group by both mutant and time  .
 ```
 
 ### PCA analysis with normalised counts
 
 ```{r PCA analysis}
-# A PC analysis on the mergred information from the DESeq2 analysis
+# A principal component analysis on the merged information from the DESeq2 analysis, i.i the log fold change
 mir.pca <-
   prcomp(t(normExpression.QC), center = TRUE, scale = FALSE)
 
@@ -319,8 +325,10 @@ e.var$CumulativeVariance = cumsum(e.var$Variance)
 
 # Creates a data frame with the loading scores
 pctable = as.data.frame(mir.pca$x)[, 1:6]
+# Join with the meta info to know which genes have which values
 pctable$sampleName = rownames(pctable)
-pctable = inner_join(pctable, metaInfo)
+pctable = inner_join(pctable, metaInfo, by="sampleName")
+
 # Plot a summary of the PCA that shows PC1-5 and the varibles(time and mutants)
 pca  = plotPCAplot(
   PCAinfo = pctable,
@@ -344,18 +352,18 @@ meantime = pctable %>% dplyr::select(PC1, PC2, PC3, time) %>%
   dplyr::summarise(PC1 = mean(PC1) ,
                    PC2 = mean(PC2),
                    PC3 = mean(PC3))
-# Create a vector plot with the values (-mean, origo, mean)
+# Create a vector plot with the values (-mean, origo, mean) for each variable, mutants and time
 origo = data.frame(PC1 = 0, PC2 = 0, PC3 = 0)
-line.gd7 = rbind(mean[1, 2:4], origo, -mean[1, 2:4])
+line.gd7 = rbind(mean[1, 2:4], origo,-mean[1, 2:4])
 line.gd7$factor = "Gd7"
-line.toll10b = rbind(mean[2, 2:4], origo, -mean[2, 2:4])
+line.toll10b = rbind(mean[2, 2:4], origo,-mean[2, 2:4])
 line.toll10b$factor = "Toll10b"
-line.toll9 = rbind(mean[3, 2:4], origo, -mean[3, 2:4])
+line.toll9 = rbind(mean[3, 2:4], origo,-mean[3, 2:4])
 line.toll9$factor = "Toll9"
 line.time = rbind(meantime[2, 2:4], origo, meantime[1, 2:4])
 line.time$factor = "Time"
 
-# Create a matric with the mean vectors of all mutants
+# Does not include time here since we only want to plot the mutants
 line = rbind(line.gd7, line.toll10b, line.toll9)
 
 # Create a column in the pctable for the mutants and rename them to the previously used names
@@ -367,14 +375,13 @@ pctable$factor =  recode(pctable$factor, toll10b = "Toll10b")
 
 
 ```{r Plot the variance and principal components }
+# We want to see how much variance each principal component contains
 qplot(
   PC,
   Variance,
   data = e.var,
-  geom = c("point")
-  ,
-  ylim = c(0, max(e.var$Variance) + 5)
-  ,
+  geom = c("point"),
+  ylim = c(0, max(e.var$Variance) + 5),
   ylab = "Variance (%)"
 )
 #'  __Figure 2 Plotting PCA variance__.
@@ -409,21 +416,55 @@ Saving the sampleInfo, geneInfo, Countdata and logarithmized countdata into file
 
 ```{r save the files}
 # Save the converted countdata as well as the sampleInfo
-sampleInfoFile = paste(params$workingDir, params$resultsDir,"sampleInfo.QC.tab.txt", sep = "/")
-write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F,col.names = T)
-geneTableFile = paste(params$workingDir, params$resultsDir,"gene.QC.tab.txt", sep = "/")
-write.table(x = geneInfo.QC, file = geneTableFile, quote = F, sep =  "\t", row.names = F, col.names = T)
-countTableFile = paste(params$workingDir, params$resultsDir,"counts.QC.tab.txt", sep = "/")
-write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
-rlogTableFile = paste(params$workingDir, params$resultsDir,"rlog.QC.tab.txt", sep = "/")
-write.table(x = normExpression.QC, file = rlogTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
+sampleInfoFile = paste(params$workingDir,
+                       params$resultsDir,
+                       "sampleInfo.QC.tab.txt",
+                       sep = "/")
+write.table(
+  x = sampleInfo.QC,
+  file = sampleInfoFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+geneTableFile = paste(params$workingDir, params$resultsDir, "gene.QC.tab.txt", sep = "/")
+write.table(
+  x = geneInfo.QC,
+  file = geneTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+countTableFile = paste(params$workingDir,
+                       params$resultsDir,
+                       "counts.QC.tab.txt",
+                       sep = "/")
+write.table(
+  x = countData.QC,
+  file = countTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
+rlogTableFile = paste(params$workingDir, params$resultsDir, "rlog.QC.tab.txt", sep = "/")
+write.table(
+  x = normExpression.QC,
+  file = rlogTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
 ```
 
 
 ###  Gene scores
 
 ```{r convert loadings to the factor Scores}
-# Saves the loading scores for PC1-PC3
+# Saves the loading scores for PC1-PC3 for the mutants and time
 line = rbind(line.gd7, line.toll10b, line.toll9, line.time)
 loadings = mir.pca$rotation[, 1:3]
 
@@ -431,22 +472,22 @@ loadings = mir.pca$rotation[, 1:3]
 loadings_norm = as.data.frame(t((t(loadings) - colMeans(loadings)) / colSds(loadings)))
 loadings_norm$geneID = rownames(loadings)
 
-# We calculate the distance of each sample and mutant in the 3D space of PC1-3. The mean is seen as the "normal" expression and the distance is a measure of how large of a differential expression. 
+# We calculate the distance of each sample and mutant in the 3D space of PC1-3. The mean is seen as the "normal" expression and the distance is a measure of how large of a differential expression.
 loadings_new = loadings_norm
 for (j in unique(line$factor)) {
   loadings_new[[j]] = 0
   for (i in 1:nrow(loadings_norm)) {
     line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1, PC2, PC3)
     loadings_new[i, j] = dist3d(
-      b = as.numeric(line1[1, ]),
-      c = as.numeric(line1[3, ]),
+      b = as.numeric(line1[1,]),
+      c = as.numeric(line1[3,]),
       point = as.numeric(loadings_norm[i, 1:3])
     )
   }
 }
 
 # Gather all of the new distances in a data frame for plotting
-loadingsDF = gather(loadings_new, key = PC, value = Loading,-geneID)
+loadingsDF = gather(loadings_new, key = PC, value = Loading, -geneID)
 ggplot(loadingsDF, mapping = aes(x = Loading, color = PC)) + geom_density()
 
 # Recreates the same data from as loadings_new but in another column order
@@ -458,7 +499,7 @@ tmp$distance =  ((tmp$PC1 ^ 2 + tmp$PC2 ^ 2 + tmp$PC3 ^ 2) ^ 0.5)
 loadingsDF.all = tmp
 loadingsDF.all.factorDistance = loadingsDF.all %>% gather(key = factor, value = distance2Factor, Time, Gd7, Toll10b, Toll9)
 
-# Calculates the distance by taking the distance for the loading scores to the distance to the factor(mutants or time). The bigger difference the more it is deviating form the norm. This means there will be one distance for each CBP Peak. (e.g. region 100 will have 4 column (time and mutants)) 
+# Calculates the distance by taking the distance for the loading scores to the distance to the factor(mutants or time). The bigger difference the more it is deviating form the norm. This means there will be one distance for each CBP Peak. (e.g. region 100 will have 4 column (time and mutants))
 loadingsDF.all.factorDistance$distanceFactor = sqrt(
   loadingsDF.all.factorDistance$distance ^ 2 -
     loadingsDF.all.factorDistance$distance2Factor ^ 2
@@ -474,7 +515,7 @@ line$Dir = rep(c("Up", "origo", "Down"), 4)
 
 # Now we loop through all values and evaluate if it is up or down regulated with respect for each variable (time and mutants)
 for (i in 1:nrow(loadingsDF.all.factorDistance)) {
-  factor2 = loadingsDF.all.factorDistance[i, ]$factor
+  factor2 = loadingsDF.all.factorDistance[i,]$factor
   UpPoint = line %>% dplyr::filter(factor == factor2 &
                                      Dir == "Up") %>% dplyr::select(PC1, PC2, PC3)
   DownPoint = line %>% dplyr::filter(factor == factor2 &
@@ -496,12 +537,12 @@ loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select
 
 # The max value is the biggest value of the distanceFactor for each geneID
 loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(geneID)
-loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance.max%>% summarise(max = max(abs(distanceFactor)))
+loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance.max %>% summarise(max = max(abs(distanceFactor)))
 loadingsDF.all.factorDistance$max = abs(loadingsDF.all.factorDistance$distanceFactor)
 
 # Add the max column to the rest of the data frame
 loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,
-                                               loadingsDF.all.factorDistance.max) %>% dplyr::select(geneID, factor, direction)
+                                               loadingsDF.all.factorDistance.max, by=c("geneID", "max")) %>% dplyr::select(geneID, factor, direction)
 
 # Add the sample info
 loadingsDF.all.factorDistance.max.peakInfo = inner_join (normExpressionDF.QC, loadingsDF.all.factorDistance.max)
@@ -513,12 +554,12 @@ loadingsDF.all.factorDistance.max.peakInfo = inner_join(loadingsDF.all.factorDis
 ```
 
 ```{r write to file}
-# Remove the PC values
+# Remove the PC values and save it in a tsv file
 loadingsDF.all.factorDistance.max.peakInfo2 =
   loadingsDF.all.factorDistance.max.peakInfo %>%
-  dplyr::select(-PC1, -PC2,-PC3,-distance)
+  dplyr::select(-PC1,-PC2, -PC3, -distance)
 
-output = inner_join(geneInfo.QC, loadingsDF.all.factorDistance.max.peakInfo2)
+output = inner_join(geneInfo.QC, loadingsDF.all.factorDistance.max.peakInfo2, by="geneID")
 
 fileNamePROseq = paste(params$workingDir,
                        params$resultsDir,
