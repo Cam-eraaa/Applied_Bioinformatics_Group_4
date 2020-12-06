@@ -44,7 +44,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Analysis of the differential expression between the samples. The evaluation is done by the output from PROseq which is read counts per gene
 
 ## Loading data
-We load the count table of the expressed genes counted per CBP peak. This is the reads from PROseq. The countdata is converted into a dataframe with the columns 
+We load the count table of the expressed genes counted per gene. This is the reads from PROseq
 
 ```{r loading the data, include=FALSE}
 # Loading the count tsv file that contains info and the read count for each gene
@@ -146,7 +146,7 @@ geneInfo = positions_fixed %>% dplyr::rename(
 
 ## Create sample information
 
-Extracting the information from the sample name so it is more easily accessible in a data frame. The sample information is samplename, mutant, time, replicate and bamfile name.
+Extracting the information from the sample name so it is more easily accessible in a data frame. The sample information is sample name, mutant, time, replicate and bam file name.
 
 ```{r Create meta data table for samples , include=FALSE}
 # Extract the information about the samples from the sampleName. The info is saved in the same columns so it needs to be seperated.
@@ -271,7 +271,7 @@ rld <- rlog(dds)
 
 ### Merging information and investigating log fold change distribution
 
-Here the expression data was merged with annotation data. The expression density, i.e. how many counts at what log fold change value, was than plotted. This was done by the geom_density() function which is basically a histogram for continous data.
+Here the expression data was merged with annotation data. The expression density, i.e. how many counts at what log fold change value, was than plotted. This was done by the geom_density() function which is basically a histogram for continuous data.
 
 ```{r merging information and plotting log fold change, include=FALSE}
 # Merging the information of the log fold changes and the meta data

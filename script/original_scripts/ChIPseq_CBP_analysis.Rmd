@@ -16,9 +16,7 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
-# Install required packages
+# Install required packages (Only needs to be run once)
 #install.packages("kableExtra")
 #install.packages("tidyverse")
 #install.packages("RColorBrewer")
@@ -42,14 +40,17 @@ library(RColorBrewer)
 library(DESeq2)
 library(edgeR)
 library("pheatmap")
+
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Reads mapping for ChIPseq done on CBP
-
-
+# ChIPseq CBP data analysis
 ## Comparing mapping pattern between the samples
+The evaluation is done by the output from PROseq which is read counts per CBP peak region
 
-### Using feature count to get the difference between the samples
+## Loading data
+We load the count table of the potential enhancers per CBP peak. This is the reads from PROseq. The countdata is converted into a dataframe with the columns 
+
 ```{r Adding the first analysis of the data ,message=FALSE ,warning = FALSE}
 #Load in the path to the CBP featureCount file
 featureCountFile = paste(params$workingDir, params$dataDir, params$chipSeqData, sep = "/")
@@ -67,6 +68,9 @@ countData = FCdata[,-1:-6]
 rownames(countData) = peakInfo$geneID
 ```
 
+## Create sample information
+
+Extracting the information from the sample name so it is more easily accessible in a data frame. The sample information is sample name, mutant, time, replicate and bam file name.
 
 ```{r sample info ,message=FALSE ,warning = FALSE}
 #Rename the labels for the labels in countData so that they just have the mutant name and replicate and input/CBP
@@ -347,29 +351,74 @@ write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameChIP
 ### Print ChIPseq data to file
 
 ```{r save the files ,message=FALSE ,warning = FALSE}
-sampleInfoFile = paste(params$workingDir, params$resultsDir,params$Antibody, "CBP.CBP.sampleInfo.QC.tab.txt", sep = "/")
+sampleInfoFile = paste(
+  params$workingDir,
+  params$resultsDir,
+  params$Antibody,
+  "CBP.CBP.sampleInfo.QC.tab.txt",
+  sep = "/"
+)
 sampleInfo.QC = sampleInfo %>%
   filter (Input == params$Antibody) %>%
   select(sampleInfo, sampleID, Genotype, Replicate, Input)
+write.table(
+  x = sampleInfo.QC,
+  file = sampleInfoFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
 
-write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F, col.names = T)
+peakTableFile = paste(
+  params$workingDir,
+  params$resultsDir,
+  params$Antibody,
+  "CBP.CBP.peak.QC.tab.txt",
+  sep = "/"
+)
+write.table(
+  x = peakInfo.QC,
+  file = peakTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
 
+countData.QC = countData[peakInfo.QC$geneID, sampleInfo.QC$sampleID]
+countTableFile = paste(
+  params$workingDir,
+  params$resultsDir,
+  params$Antibody,
+  "CBP.CBP.counts.QC.tab.txt",
+  sep = "/"
+)
+write.table(
+  x = countData.QC,
+  file = countTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
 
-peakTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "CBP.CBP.peak.QC.tab.txt", sep = "/")
-write.table(x = peakInfo.QC, file = peakTableFile, quote = F, sep =  "\t", row.names = F, col.names = T)
-
-
-countData.QC = countData[peakInfo.QC$geneID,sampleInfo.QC$sampleID]
-countTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "CBP.CBP.counts.QC.tab.txt", sep = "/")
-write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
-
-
-
-rlogTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "CBP.CBP.rlog.QC.tab.txt", sep = "/")
-rlogExpression.QC = normExpression[peakInfo.QC$geneID,sampleInfo.QC$sampleID]
-write.table(x = rlogExpression.QC, file = rlogTableFile, quote = F,  sep =  "\t", row.names = T, col.names = T)
-
-
+rlogTableFile = paste(
+  params$workingDir,
+  params$resultsDir,
+  params$Antibody,
+  "CBP.CBP.rlog.QC.tab.txt",
+  sep = "/"
+)
+rlogExpression.QC = normExpression[peakInfo.QC$geneID, sampleInfo.QC$sampleID]
+write.table(
+  x = rlogExpression.QC,
+  file = rlogTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
 ```
 
 

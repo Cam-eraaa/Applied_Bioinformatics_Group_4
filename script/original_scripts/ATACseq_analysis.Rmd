@@ -70,7 +70,7 @@ Load the sample info and merge the information with the count data
 
 ```{r handle the samples ,message=FALSE ,warning = FALSE}
 
-#Change the names of bamFiles2 so that they make more sense
+# Change the names of bamFiles2 so that they make more sense
 sampleInfo$bamFiles2  =  gsub(pattern = "/",
                               replacement = ".",
                               x = sampleInfo$bamFiles)
@@ -78,7 +78,7 @@ sampleInfo$bamFiles2  =  gsub(pattern = "-",
                               replacement = ".",
                               x = sampleInfo$bamFiles2)
 
-# Rename the mutants in sampledata so that the names are universal for the data
+# Rename the mutants in sample data so that the names are universal for the data
 sampleInfo$Genotype = recode(sampleInfo$Genotype, Toll910 = "Toll9")
 sampleInfo$Genotype = recode(sampleInfo$Genotype, `Toll9/10` = "Toll9")
 sampleInfo$Genotype = recode(sampleInfo$Genotype, gd7 = "Gd7")
@@ -202,9 +202,8 @@ write.table(
 
 ## Saving peakInfo File
 #Create the table peakInfo_QC and save in the file ATAC.CBP.peaks.QC.tab.txt
-peakInfo_QC = peakInfo %>%
-  dplyr::rename(geneID = Geneid) %>%
-  inner_join(geneInfo.QC2)
+peakInfo_QC = peakInfo %>% dplyr::rename(geneID = Geneid)
+peakInfo_QC = inner_join(peakInfo_QC , geneInfo.QC2, by = "geneID")
 
 peakTableFile = paste(params$workingDir,
                       params$ATACresultsDir,
@@ -259,9 +258,9 @@ write.table(
 
 ```
 
-```{r heatmap and PCA ,message=FALSE ,warning = FALSE}
+### Heat map
 
-
+```{r heatmap,message=FALSE ,warning = FALSE}
 plotSample2SampleDistance(normExpression.QC)
 
 #'  __Figure 1 Plotting sample to sample distance__ .
@@ -270,14 +269,17 @@ plotSample2SampleDistance(normExpression.QC)
 #'
 #' Samples do not cluster according to pre an post op. Most likely more due to difference in mapping (technical problem)
 #'
-#' #### PCA analysis
-#' Running PCA on the samples and plotting the different variables to see which of the parameterrs that fit the different components the best.
-#'
-#' First checking how much the different PC contribute.
 
+```
 
-mir.pca <-
-  prcomp(t(normExpression.QC), center = TRUE, scale = FALSE)
+### PCA analysis
+Running PCA on the samples and plotting the different variables to see which of the parameters that fit the different components the best.
+
+```{r PCA}
+# First checking how much the different PC contribute.
+mir.pca <- prcomp(t(normExpression.QC), center = TRUE, scale = FALSE)
+
+# Calculate the variance
 e.var = (mir.pca[['sdev']] ^ 2 / sum(mir.pca[['sdev']] ^ 2))
 e.var = as.data.frame(e.var)
 e.var$PC = as.factor(1:nrow(e.var))
@@ -300,9 +302,12 @@ qplot(
 #'
 #'
 
+# Creates a data frame with the loading scores
 pctable = as.data.frame(mir.pca$x)[, 1:5]
+# Join with the meta info to know which genes have which values
 pctable = cbind(pctable, sampleInfo_Mutants)
 
+# Plot a summary of the PCA that shows PC1-5 and the varibles(time and mutants)
 pca  = plotPCAplot(
   PCAinfo = pctable,
   n.comp = 4,
@@ -310,20 +315,23 @@ pca  = plotPCAplot(
   colorComponent = "Genotype",
   pchComponent = "Time"
 )
+# Actually run the command so it outputs the plot
 pca
 
+# Calculate the mean of the PC to plot lines with respect to mutants
 mean = pctable %>% dplyr::select(PC1, PC2, PC3, Genotype) %>%
   dplyr::group_by(Genotype) %>%
   dplyr::summarise(PC1 = mean(PC1) ,
                    PC2 = mean(PC2),
                    PC3 = mean(PC3))
+# Same with time
 meantime = pctable %>% dplyr::select(PC1, PC2, PC3, Time) %>%
   dplyr::group_by(Time) %>%
   dplyr::summarise(PC1 = mean(PC1) ,
                    PC2 = mean(PC2),
                    PC3 = mean(PC3))
 
-# Extracting distances from PC1, PC2 and PC3
+# Create a vector plot with the values (-mean, origo, mean) for each variable, mutants and time
 origo = data.frame(PC1 = 0, PC2 = 0, PC3 = 0)
 line.gd7 = rbind(mean[1, 2:4], origo, -mean[1, 2:4])
 line.gd7$factor = "Gd7"
@@ -334,6 +342,7 @@ line.toll9$factor = "Toll9"
 line.time = rbind(-meantime[1, 2:4], origo, meantime[1, 2:4])
 line.time$factor = "Time"
 
+# Does not include time here since we only want to plot the mutants
 line = rbind(line.gd7, line.toll10b, line.toll9)
 
 ggplot(line, mapping = aes(x = PC2, y = PC3, color = factor)) + geom_line() + geom_point(data = pctable,
@@ -351,19 +360,11 @@ ggplot(line, mapping = aes(x = PC1, y = PC2, color = factor)) + geom_line() + ge
                                                                                            color = Genotype,
                                                                                            shape = Time
                                                                                          ))
-
-ggplot(line, mapping = aes(x = PC1, y = PC3, color = factor)) + geom_line() + geom_point(data = pctable,
-                                                                                         mapping = aes(
-                                                                                           x = PC1,
-                                                                                           y = PC3,
-                                                                                           color = Genotype,
-                                                                                           shape = Time
-                                                                                         ))
 ```
 ###  Gene scores
 
 ```{r convert loadings to the factor Scores}
-# Saves the loading scores for PC1-PC3
+# After plotting we include the time scores as well. Saves the loading scores for PC1-PC3
 line = rbind(line.gd7, line.toll10b, line.toll9, line.time)
 loadings = mir.pca$rotation[, 1:3]
 
@@ -371,6 +372,7 @@ loadings = mir.pca$rotation[, 1:3]
 loadings_norm = as.data.frame(t((t(loadings) - colMeans(loadings)) / colSds(loadings)))
 loadings_norm$Geneid = rownames(loadings)
 
+# We calculate the distance of each sample and mutant in the 3D space of PC1-3. The mean is seen as the "normal" expression and the distance is a measure of how large of a differential expression.
 loadings_new = loadings_norm
 for (j in unique(line$factor)) {
   loadings_new[[j]] = 0
@@ -384,30 +386,34 @@ for (j in unique(line$factor)) {
   }
 }
 
-
+# Gather all of the new distances in a data frame for plotting
 loadingsDF = gather(loadings_new, key = PC, value = Loading,-Geneid)
-
 ggplot(loadingsDF, mapping = aes(x = Loading, color = PC)) + geom_density()
 
 # Recreates the same data fram as loadings_new but in another column order
 loadingsDF.all = loadingsDF %>%  spread(key = PC, value = Loading)
 
+# Take the absolute value of the distance of the PC, to be able to compare them to each other and add it as a column to a new data frame
 tmp = loadingsDF.all
 tmp$distance =  ((tmp$PC1 ^ 2 + tmp$PC2 ^ 2 + tmp$PC3 ^ 2) ^ 0.5)
 loadingsDF.all = tmp
-
 loadingsDF.all.factorDistance = loadingsDF.all %>% gather(key = factor, value = distance2Factor, Time, Gd7, Toll10b, Toll9)
+
+# Calculates the distance by taking the distance for the loading scores to the distance to the factor(mutants or time). The bigger difference the more it is deviating form the norm. This means there will be one distance for each CBP Peak. (e.g. region 100 will have 4 column (time and mutants))
 loadingsDF.all.factorDistance$distanceFactor = sqrt(
   loadingsDF.all.factorDistance$distance ^ 2 -
     loadingsDF.all.factorDistance$distance2Factor ^
     2
 )
+# To be able to calculate correctly the NA values are converted to 0 instead
 loadingsDF.all.factorDistance$distanceFactor[is.na(loadingsDF.all.factorDistance$distanceFactor)] = 0
 
+# Set the default value to down regulated
 loadingsDF.all.factorDistance$direction = "Down"
+# The mean is seen as up regulated, and down regulated as the negative value of the mean
 line$Dir = rep(c("Up", "origo", "Down"), 4)
 
-
+# Now we loop through all values and evaluate if it is up or down regulated with respect for each variable (time and mutants)
 for (i in 1:nrow(loadingsDF.all.factorDistance)) {
   factor2 = loadingsDF.all.factorDistance[i, ]$factor
   UpPoint = line %>% dplyr::filter(factor == factor2 &
@@ -426,18 +432,27 @@ for (i in 1:nrow(loadingsDF.all.factorDistance)) {
   }
 }
 
+# Collect all of the distances to the factors and have them in one column. Now there will be one distance per region
 loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select(Geneid, PC1, PC2, PC3, distance, factor, distanceFactor) %>% spread(key = factor, value = distanceFactor)
 
-
+# The max value is the biggest value of the distanceFactor for each geneID
 loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(Geneid) %>% summarise(max = max(abs(distanceFactor)))
 loadingsDF.all.factorDistance$max = abs(loadingsDF.all.factorDistance$distanceFactor)
+# Add the max column to the rest of the data frame
 loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,
                                                loadingsDF.all.factorDistance.max) %>%
   dplyr::select(Geneid, factor, direction)
+
+# Add sample info
 loadingsDF.all.factorDistance.max.peakInfo = inner_join (peakInfo, loadingsDF.all.factorDistance.max)
+# Add loading scores
 loadingsDF.all.factorDistance.max.peakInfo = inner_join(loadingsDF.all.factorDistance.max.peakInfo,
                                                         loadingsDF.all.factorDistance2)
 
+```
+
+```{r write to file}
+# Remove the PC values and save it in a tsv file
 loadingsDF.all.factorDistance.max.peakInfo2 =
   loadingsDF.all.factorDistance.max.peakInfo %>%
   dplyr::select(-PC1,-PC2, -PC3, -distance)
@@ -456,7 +471,6 @@ write.table(
   col.names = T,
   row.names = F
 ) 
-
 
 ```
 

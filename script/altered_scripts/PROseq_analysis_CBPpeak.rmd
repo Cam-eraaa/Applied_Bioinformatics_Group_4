@@ -146,7 +146,7 @@ sampleInfo.QC %>%
 The data is analyzed with deseq2 to normalize the counts and do a differential expression analysis. The differential expression is investigated through the log2 fold change. Genes with total counts less then 100 were filtered out.
 
 ```{r differential gene expression analysis, include=FALSE}
-#Save the corrected count data and sample info
+# Save the corrected count data and sample info
 exp.data = countData.QC
 metaInfo = sampleInfo.QC
 metaInfo$mutant = as.factor(metaInfo$mutant)
@@ -166,13 +166,13 @@ rld <- rlog(dds)
 
 ### Merging information and investigating log fold change distribution
 
-Here the expression data was merged with annotation data. The expression density, i.e. how many counts at what log fold change value, was than plotted. This was done by the geom_density() function which is basically a histogram for continous data.
+Here the expression data was merged with annotation data. The expression density, i.e. how many counts at what log fold change value, was than plotted. This was done by the geom_density() function which is basically a histogram for continuous data.
 
 ```{r merging information and plotting log fold change, include=FALSE}
 # Merging the information of the log fold changes and the meta data
 normExpression = as.data.frame(assay(rld))
 normExpression$geneID = rownames(normExpression)
-normExpressionDF  = normExpression %>% gather(key = sampleName, value = rlog,-geneID)
+normExpressionDF  = normExpression %>% gather(key = sampleName, value = rlog, -geneID)
 normExpressionDF = inner_join(normExpressionDF, sampleInfo.QC, by = "sampleName")
 
 # Plotting the density(how many genes) of the rlog values.
@@ -189,7 +189,6 @@ ggplot(normExpressionDF,
 From the graph below we can see that a lot of the log2 fold change data is above the value 5. This was chosen as a threshold. The genes with at least 2 counts above the threshold was selected, the rest was filtered out.
 
 ```{r filters out genes dependent on log fold change}
-
 # Summarizes statistical information in geneInfo.
 geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
   dplyr::group_by (geneID) %>%
@@ -214,7 +213,7 @@ normExpression.QC = normExpressionDF.QC %>%
   dplyr::select(geneID, sampleName, rlog) %>%
   spread(key = sampleName, value = rlog)
 rownames(normExpression.QC) = normExpression.QC$geneID
-normExpression.QC = normExpression.QC[,-1]
+normExpression.QC = normExpression.QC[, -1]
 ```
 
 ### Visualising the data
@@ -229,7 +228,7 @@ plotSample2SampleDistance(normExpression.QC)
 ### PCA analysis with normalised counts
 
 ```{r PCA analysis}
-# A PC analysis on the mergred information from the DESeq2 analysis
+# A principal component analysis on the merged information from the DESeq2 analysis
 mir.pca <-
   prcomp(t(normExpression.QC), center = TRUE, scale = FALSE)
 
@@ -277,8 +276,7 @@ line.toll9 = rbind(mean[3, 2:4], origo, -mean[3, 2:4])
 line.toll9$factor = "Toll9"
 line.time = rbind(meantime[2, 2:4], origo, meantime[1, 2:4])
 line.time$factor = "Time"
-
-# Create a matric with the mean vectors of all mutants
+# Does not include time here since we only want to plot the mutants
 line = rbind(line.gd7, line.toll10b, line.toll9)
 
 # Create a column in the pctable for the mutants and rename them to the previously used names
@@ -290,14 +288,13 @@ pctable$factor =  recode(pctable$factor, toll10b = "Toll10b")
 
 
 ```{r Plot the variance and principal components }
+# We want to see how much variance each principal component contains
 qplot(
   PC,
   Variance,
   data = e.var,
-  geom = c("point")
-  ,
-  ylim = c(0, max(e.var$Variance) + 5)
-  ,
+  geom = c("point"),
+  ylim = c(0, max(e.var$Variance) + 5),
   ylab = "Variance (%)"
 )
 #'  __Figure 2 Plotting PCA variance__.
@@ -328,18 +325,52 @@ ggplot(line, mapping = aes(x = PC2, y = PC3, color = factor)) + geom_line() + ge
 
 
 ### Print PROseq data to file
-Saving the sampleInfo, geneInfo, Countdata and logarithmized countdata into files
+Saving the sampleInfo, geneInfo, count data and lof fold change into files
 
 ```{r save the files}
 # Save the converted countdata as well as the sampleInfo
-sampleInfoFile = paste(params$workingDir, params$resultsDir,"sampleInfo.QC.tab.txt", sep = "/")
-write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F,col.names = T)
-geneTableFile = paste(params$workingDir, params$resultsDir,"gene.QC.tab.txt", sep = "/")
-write.table(x = geneInfo.QC, file = geneTableFile, quote = F, sep =  "\t", row.names = F, col.names = T)
-countTableFile = paste(params$workingDir, params$resultsDir,"counts.QC.tab.txt", sep = "/")
-write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
-rlogTableFile = paste(params$workingDir, params$resultsDir,"rlog.QC.tab.txt", sep = "/")
-write.table(x = normExpression.QC, file = rlogTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
+sampleInfoFile = paste(params$workingDir,
+                       params$resultsDir,
+                       "sampleInfo.QC.tab.txt",
+                       sep = "/")
+write.table(
+  x = sampleInfo.QC,
+  file = sampleInfoFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+geneTableFile = paste(params$workingDir, params$resultsDir, "gene.QC.tab.txt", sep = "/")
+write.table(
+  x = geneInfo.QC,
+  file = geneTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+countTableFile = paste(params$workingDir,
+                       params$resultsDir,
+                       "counts.QC.tab.txt",
+                       sep = "/")
+write.table(
+  x = countData.QC,
+  file = countTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
+rlogTableFile = paste(params$workingDir, params$resultsDir, "rlog.QC.tab.txt", sep = "/")
+write.table(
+  x = normExpression.QC,
+  file = rlogTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
 ```
 
 
@@ -436,10 +467,10 @@ loadingsDF.all.factorDistance.max.peakInfo = inner_join(loadingsDF.all.factorDis
 ```
 
 ```{r write to file}
-# Remove the PC values
+# Remove the PC values and save it in a tsv file
 loadingsDF.all.factorDistance.max.peakInfo2 =
   loadingsDF.all.factorDistance.max.peakInfo %>%
-  dplyr::select(-PC1, -PC2,-PC3,-distance)
+  dplyr::select(-PC1,-PC2, -PC3, -distance)
 
 fileNamePROseq = paste(params$workingDir,
                        params$resultsDir,
