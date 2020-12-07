@@ -16,12 +16,12 @@ params:
   
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  #resultsAnnotated15kb: annotated_results15kb_PCA_filtering.txt
-  #resultsAnnotated15kb: annotated_results15kb_no_filtering.txt
-  resultsAnnotated15kb: annotated_results15kb_UMAP.txt
-  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.txt
-  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_no_filtering.txt
-  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_UMAP.txt
+  #resultsAnnotated15kb: annotated_results15kb_PCA_filtering.tsv
+  #resultsAnnotated15kb: annotated_results15kb_no_filtering.tsv
+  resultsAnnotated15kb: annotated_results15kb_UMAP.tsv
+  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.tsv
+  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_no_filtering.tsv
+  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_UMAP.tsv
 
   
 ---
