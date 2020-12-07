@@ -14,6 +14,7 @@ params:
     count_ATAC_QC: ATAC.CBP.peak.featureCount.count.QC.tab.txt
     normalisedATACpeakData: ATAC.CBP.peak.featureCount.rlog.tab.txt
     ATACSeq.data: ATACseq.data.tsv
+    ATACSeq.data.raw: ATACseq.raw.data.tsv
     Method: ATAC-Seq
 ---
 
@@ -111,10 +112,12 @@ countData_mutants = countData[, sampleInfo_Mutants$SampleInfo]
 ```
 
 
-## Filtering
+## Differential expression analysis and filtering
+
+The data is analyzed with deseq2 to normalize the counts and do a differential expression analysis. The differential expression is investigated through the log2 fold change. Genes with total counts less then 100 were filtered out.
 
 ```{r differential gene expression analysis ,message=FALSE ,warning = FALSE}
-#Cretae expression data and meta data and fix rownames
+#Create expression data and meta data and fix row names
 exp.data = countData_mutants
 metaInfo = sampleInfo_Mutants
 rownames(metaInfo) = sampleInfo_Mutants$SampleInfo
@@ -125,14 +128,12 @@ metaInfo$Genotype = as.factor(metaInfo$Genotype)
 
 #Create a DESeq data set from exp.data and metaInfo
 dds <- DESeqDataSetFromMatrix(countData = exp.data,
-                               colData = metaInfo,
-                               design = ~Genotype )
+                              colData = metaInfo,
+                              design = ~ Genotype)
 
 
 #Remove rows with low counts and normalize samples for visualization
-dds <- dds[ rowSums(counts(dds)) > 100, ]
-
-dim(dds)
+dds <- dds[rowSums(counts(dds)) > 100,]
 
 #Transform the count data in the DESeq data frame to the log2 scale which minimizes differences between samples for rows with small counts, and which normalizes with respect to library size
 rld <- rlog(dds)
@@ -142,27 +143,26 @@ normExpression = as.data.frame(assay(rld))
 
 #Create a normalized expression data frame
 normExpression$geneID = rownames(normExpression)
-normExpressionDF  = normExpression %>% gather( key = sampleName, value = rlog, -geneID)
+normExpressionDF  = normExpression %>% gather(key = sampleName, value = rlog,-geneID)
 
-#normExpressionDF = inner_join(normExpressionDF, sampleInfo)
-
-#Plot and color by sampleName
+# Plot and color by sampleName
 ggplot(normExpressionDF, aes(x = rlog, color = sampleName)) + geom_density()
 
-# What does 
-geneInfo = normExpressionDF %>% 
-  dplyr::select(geneID, rlog, sampleName) %>% 
+# Find statisical information about the samples and log fold change
+geneInfo = normExpressionDF %>%
+  dplyr::select(geneID, rlog, sampleName) %>%
   dplyr::group_by (geneID) %>%
-  dplyr::summarize ( min = min(rlog), 
-                     max = max(rlog), 
-                     mean = mean(rlog), 
-                     sd = sd(rlog), 
-                     overQC = length(which(rlog > 5))
-                     ) 
+  dplyr::summarize (
+    min = min(rlog),
+    max = max(rlog),
+    mean = mean(rlog),
+    sd = sd(rlog),
+    overQC = length(which(rlog > 5))
+  )
 
 
-#Filter out overQC values under 2
-geneInfo.QC2 = geneInfo %>% 
+# Filter out overQC values under 2. Meaning filter out all regions that do not have at least 2 samples with a rlog value over 5
+geneInfo.QC2 = geneInfo %>%
   filter(overQC > 2)
 normExpressionDF.QC = normExpressionDF %>%
   filter(geneID %in% geneInfo.QC2$geneID)
@@ -170,14 +170,13 @@ normExpressionDF.QC = normExpressionDF %>%
 #Plot again after filtering
 ggplot(normExpressionDF.QC, aes(x = rlog, color = sampleName)) + geom_density()
 
-
 #Create normExpression.QC with samples as columns and rows by geneID and values or rlog
 normExpression.QC = normExpressionDF.QC %>%
-  dplyr::select(geneID, sampleName, rlog) %>% 
+  dplyr::select(geneID, sampleName, rlog) %>%
   spread(key = sampleName, value = rlog)
 
 rownames(normExpression.QC) = normExpression.QC$geneID
-normExpression.QC = normExpression.QC[, -1]
+normExpression.QC = normExpression.QC[,-1]
 
 ```
 
@@ -185,7 +184,6 @@ normExpression.QC = normExpression.QC[, -1]
 
 ```{r save the files ,message=FALSE ,warning = FALSE}
 ## Saving sampleInfo File
-
 #Load ATAC.sampleInfo.QC.tab.txt into a table named sampleInfo_Mutants
 sampleInfoFile = paste(params$workingDir,
                        params$ATACresultsDir,
@@ -461,7 +459,7 @@ fileNameATACseq = paste(params$workingDir,
                         params$ATACresultsDir,
                         params$ATACSeq.data,
                         sep = "/")
-loadingsDF.all.factorDistance.max.peakInfo2 = loadingsDF.all.factorDistance.max.peakInfo2 %>% rename(geneID = Geneid)
+loadingsDF.all.factorDistance.max.peakInfo2 = loadingsDF.all.factorDistance.max.peakInfo2 %>% dplyr::rename(geneID = Geneid)
 
 write.table(
   x = loadingsDF.all.factorDistance.max.peakInfo2,
@@ -471,6 +469,19 @@ write.table(
   col.names = T,
   row.names = F
 ) 
+
+fileNameATACseq.raw = paste(params$workingDir,
+                        params$ATACresultsDir,
+                        params$ATACSeq.data.raw,
+                        sep = "/")
+write.table(
+  x = loadingsDF.all.factorDistance.max.peakInfo,
+  file = fileNameATACseq.raw,
+  quote = F,
+  sep = "\t",
+  col.names = T,
+  row.names = F
+)
 
 ```
 
