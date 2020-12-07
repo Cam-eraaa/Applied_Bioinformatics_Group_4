@@ -246,7 +246,7 @@ sampleInfo.QC %>%
   kable_styling()
 ```
 
-## Differential expression analysis
+## Differential expression analysis and filtering
 
 The data is analyzed with deseq2 to normalize the counts and do a differential expression analysis. The differential expression is investigated through the log2 fold change. Genes with total counts less then 100 were filtered out.
 
@@ -337,9 +337,9 @@ plotSample2SampleDistance(normExpression.QC)
 #' Can see that the samples can be group by both mutant and time  .
 ```
 
-### PCA analysis with normalised counts
+### Principal components analysis with normalised counts
 
-```{r PCA analysis}
+```{r pca}
 # A principal component analysis on the merged information from the DESeq2 analysis, i.i the log fold change
 mir.pca <-
   prcomp(t(normExpression.QC), center = TRUE, scale = FALSE)
@@ -401,6 +401,7 @@ pctable$factor =  recode(pctable$factor, toll9 = "Toll9")
 pctable$factor =  recode(pctable$factor, toll10b = "Toll10b")
 ```
 
+### Plotting
 
 ```{r Plot the variance and principal components }
 # We want to see how much variance each principal component contains
@@ -423,8 +424,7 @@ ggplot(line, mapping = aes(x = PC1, y = PC2, color = factor)) + geom_line() + ge
                                                                                            y = PC2,
                                                                                            color = factor,
                                                                                            shape = time
-                                                                                         )) +
-  scale_color_viridis(discrete = TRUE, option = "D")
+                                                                                         )) + scale_color_viridis(discrete = TRUE, option = "D")
 
 ggplot(line, mapping = aes(x = PC2, y = PC3, color = factor)) + geom_line() + geom_point(data = pctable,
                                                                                          mapping = aes(
@@ -437,59 +437,8 @@ ggplot(line, mapping = aes(x = PC2, y = PC3, color = factor)) + geom_line() + ge
 
 ```
 
-
-
-### Print PROseq data to file
-Saving the sampleInfo, geneInfo, Countdata and logarithmized countdata into files
-
-```{r save the files}
-# Save the converted countdata as well as the sampleInfo
-sampleInfoFile = paste(params$workingDir,
-                       params$resultsDir,
-                       "sampleInfo.QC.tab.txt",
-                       sep = "/")
-write.table(
-  x = sampleInfo.QC,
-  file = sampleInfoFile,
-  quote = F,
-  sep =  "\t",
-  row.names = F,
-  col.names = T
-)
-geneTableFile = paste(params$workingDir, params$resultsDir, "gene.QC.tab.txt", sep = "/")
-write.table(
-  x = geneInfo.QC,
-  file = geneTableFile,
-  quote = F,
-  sep =  "\t",
-  row.names = F,
-  col.names = T
-)
-countTableFile = paste(params$workingDir,
-                       params$resultsDir,
-                       "counts.QC.tab.txt",
-                       sep = "/")
-write.table(
-  x = countData.QC,
-  file = countTableFile,
-  quote = F,
-  sep =  "\t",
-  row.names = T,
-  col.names = T
-)
-rlogTableFile = paste(params$workingDir, params$resultsDir, "rlog.QC.tab.txt", sep = "/")
-write.table(
-  x = normExpression.QC,
-  file = rlogTableFile,
-  quote = F,
-  sep =  "\t",
-  row.names = T,
-  col.names = T
-)
-```
-
-
 ###  Gene scores
+The sequencing data has a lot of dimension, time and the different mutants. We want to reduce the number of dimensions to a single score. This is done by the loading scores found by PCA. The loading scores are used as a distance. The distance will then tell us how much variance is found, i.e. the bigger the distance the more it is different. We can e.g. from the scores say if a sample is up-regulated with respect to time
 
 ```{r convert loadings to the factor Scores}
 # Saves the loading scores for PC1-PC3 for the mutants and time
@@ -581,7 +530,54 @@ loadingsDF.all.factorDistance.max.peakInfo = inner_join(loadingsDF.all.factorDis
 
 ```
 
-```{r write to file}
+### Print PROseq data to file
+Saving the sampleInfo, geneInfo, Countdata and logarithmized countdata into files
+
+```{r save the files}
+# Save the converted countdata as well as the sampleInfo
+sampleInfoFile = paste(params$workingDir,
+                       params$resultsDir,
+                       "sampleInfo.QC.tab.txt",
+                       sep = "/")
+write.table(
+  x = sampleInfo.QC,
+  file = sampleInfoFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+geneTableFile = paste(params$workingDir, params$resultsDir, "gene.QC.tab.txt", sep = "/")
+write.table(
+  x = geneInfo.QC,
+  file = geneTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+countTableFile = paste(params$workingDir,
+                       params$resultsDir,
+                       "counts.QC.tab.txt",
+                       sep = "/")
+write.table(
+  x = countData.QC,
+  file = countTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
+rlogTableFile = paste(params$workingDir, params$resultsDir, "rlog.QC.tab.txt", sep = "/")
+write.table(
+  x = normExpression.QC,
+  file = rlogTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
+
 # Remove the PC values and save it in a tsv file
 loadingsDF.all.factorDistance.max.peakInfo2 =
   loadingsDF.all.factorDistance.max.peakInfo %>%
@@ -603,3 +599,5 @@ write.table(
 )
 
 ```
+
+
