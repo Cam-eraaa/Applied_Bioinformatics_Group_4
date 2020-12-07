@@ -6,22 +6,22 @@ output: html_document
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  #enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
+  enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
   #enhancer.data: results/altered_method/from_joint_peak/enhancers_no_filtering.tsv
-  enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
   resultsDir: results/altered_method/pairs/
-  #resultsFile: EGP_PCA_filtering.tsv
+  resultsFile: EGP_PCA_filtering.tsv
   #resultsFile: EGP_no_filtering.tsv
-  resultsFile: EGP_UMAP.tsv
+  #resultsFile: EGP_UMAP.tsv
   
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  #resultsAnnotated15kb: annotated_results15kb_PCA_filtering.tsv
+  resultsAnnotated15kb: annotated_results15kb_PCA_filtering.tsv
   #resultsAnnotated15kb: annotated_results15kb_no_filtering.tsv
-  resultsAnnotated15kb: annotated_results15kb_UMAP.tsv
-  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.tsv
+  #resultsAnnotated15kb: annotated_results15kb_UMAP.tsv
+  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.tsv
   #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_no_filtering.tsv
-  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_UMAP.tsv
+  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_UMAP.tsv
 
   
 ---
@@ -51,7 +51,9 @@ our_enhancer_data = read.table(
 our_enhancer_data = tibble::rowid_to_column(our_enhancer_data, "enhancer_row")
 
 our_enhancer_data= our_enhancer_data %>% dplyr::rename(
-  "EnhancerID" = geneID)
+  "Enhancer_ID" = geneID, 
+  "Enhancer_Start" = ATAC_Start, 
+  "Enhancer_End" = ATAC_End)
 
 #This is the output from joint_peak
 ourEnhancerData = makeGRangesFromDataFrame(our_enhancer_data,
@@ -99,7 +101,7 @@ joined$PRO_direction = gsub(pattern = "None", replacement = "Up", joined$Gene_Di
 joined$PROseq_Classification = paste(joined$Gene_Factor,joined$PRO_direction, sep = " " )
 joined$ATACseq_Classification = paste(joined$ATAC_factor,joined$ATAC_direction, sep = " " )
 
-enhancer_gene_pairs = joined %>% dplyr::select(EnhancerID, Chr, ATAC_Start, ATAC_End, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, EnhancerDistance, PROseq_Classification, ATACseq_Classification)
+enhancer_gene_pairs = joined %>% dplyr::select(Enhancer_ID, Chr, Enhancer_Start, Enhancer_End, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, EnhancerDistance, PROseq_Classification, ATACseq_Classification)
 
 enhancer_gene_pairs_unique = unique(enhancer_gene_pairs)
 
@@ -140,7 +142,7 @@ annotation_data_cleaned = annotation_data_cleaned %>% dplyr::rename(name = acc,
                                                                     geneFuncFullText = functionText)
 
 # Needs a name to match the annotation files
-pairs_cleaned = pairs %>% dplyr::select(EnhancerID, Gene_geneID)
+pairs_cleaned = pairs %>% dplyr::select(Enhancer_ID, Gene_geneID)
 universe <- bitr(
   unique(pairs_cleaned$Gene_geneID),
   fromType = "ENSEMBL",
@@ -158,11 +160,11 @@ AllData = inner_join(pairs_uniprotID, annotation_data_cleaned, by = "name")
 AllData_renamed = AllData %>% dplyr::rename(
   UNIPROTname = name,
   Enhancer_Chr = Chr,
-  Enhancer_Start = ATAC_Start,
-  Enhancer_End = ATAC_End
+  Enhancer_Start = Enhancer_Start,
+  Enhancer_End = Enhancer_End
 )
 AllData_cleaned = AllData_renamed %>% dplyr::select(
-  EnhancerID,
+  Enhancer_ID,
   Gene_geneID,
   EnhancerDistance,
   PROseq_Classification,
