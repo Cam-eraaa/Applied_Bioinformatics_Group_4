@@ -16,10 +16,7 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-# The command below is needed to be able to knit a file
-knitr::opts_chunk$set(echo = TRUE)
-
-# Install required packages
+# Install required packages (Only needs to be run the first time)
 #BiocManager::install("DESeq2")
 #install.packages("RColorBrewer")
 #BiocManager::install("clusterProfiler")
@@ -34,22 +31,23 @@ library(clusterProfiler)
 library(org.Dm.eg.db)
 library(DESeq2)
 library("tidyverse")
-library(dplyr)
-library(tidyr)
 library(knitr)
 library(kableExtra)
 library(gplots)
 library("viridis")
 
+# The command below is needed to be able to knit a file
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# PROseq data analysis
 Analysis of the differential expression between the samples. The evaluation is done by the output from PROseq which is read counts per gene
 
 ## Loading data
-We load the count table of the expressed genes counted per CBP peak. This is the reads from PROseq. The countdata is converted into a dataframe with the columns 
+We load the count table of the expressed genes counted per gene. This is the reads from PROseq
 
 ```{r loading the data, include=FALSE}
-# Loading the count tsv file that contains the read count for each gene
+# Loading the count tsv file that contains info and the read count for each gene
 featureCountFile = paste(params$workingDir, params$dataDir, params$CountData, sep = "/")
 FCdata = read.table(
   file = featureCountFile,
@@ -59,90 +57,100 @@ FCdata = read.table(
   stringsAsFactors = FALSE
 )
 
-# Creating matrix with geneID(1) and gene length(2)
-positions = FCdata[, 1:5]
-chr = positions %>% dplyr::select(Chr) %>% separate(
+# Saving the info about the genes;geneID, chr, start, end, strand and gene length
+positions = FCdata[, 1:6]
+# The columns chr, start, end and strand have multiple values for chr and strand it is enough to just take the first value since all values are the same
+chr = positions %>% dplyr::select(Geneid, Chr)
+chr = chr  %>% separate(
   col = Chr,
   into = c("chr"),
   sep = ";",
   remove = TRUE
 )
-strand = positions %>% dplyr::select(Strand) %>% separate(
+strand = positions %>% dplyr::select(Geneid, Strand)
+strand = strand %>% separate(
   col = Strand,
   into = c("strand"),
   sep = ";",
   remove = TRUE
 )
-geneInfo  = FCdata [, 1:6]
-geneInfo  = geneInfo[, c(1, 6)]
-geneInfo = geneInfo %>% rename(geneID = Geneid)
+positions = inner_join(positions, chr, by = "Geneid")
+positions = inner_join(positions, strand, by = "Geneid")
 
 # Creating matrix for the countdata, geneID and count for each sample
-countData = FCdata[,-1:-6]
-rownames(countData) = geneInfo$geneID
+countData = FCdata[, -1:-6]
+FCgeneID = FCdata[, 1]
+rownames(countData) = FCgeneID
 ```
 
+### Extracting the positions of the genes
+The columns start and end from the count data have multiple values. To include as big of a region as possible the earliest start and the latest end is extracted. min(start), max(end)
+
 ```{r fixing start and stop to a single positions}
-# Ran loops to find the the max number of values for stop is 1723
+# Ran iterative loops to get the max number of values for start and stop is 1723 and therefore the number of columns = 1723
+# Create the starting variables for the loop
 start_matrix = matrix(NA, nrow = 13947, ncol = 1723)
 vector = c()
 start = positions %>% dplyr::select(Start, Geneid)
 num_rows = dim(start)[1]
 start$start_min = NA
 
-rownames(start)[start$Geneid == "FBgn0024277"]
-start_row = 3523
-# Splitting the values for each row
+# Splitting the values for each row(gene)
 for (start_row in 1:num_rows) {
   vector = str_split(start[[1]][start_row], ";")
   num_cols = length(vector[[1]])
   for (start_col in 1:num_cols) {
+    # Saving each value in a separate column
     start_matrix[start_row, start_col] = vector[[1]][start_col]
   }
+  # Find the minimum value of all the start values for each gene
   min_col = which.min(start_matrix[start_row,])
+  # Extract the start position and save it in a new column called start_min
   start$start_min[start$Geneid == start[[2]][start_row]] = start_matrix[start_row, min_col]
 }
 
-# Ran loops to find the the max number of values for stop is 1723
+# Create the starting variables for the loop
 end_matrix = matrix(NA, nrow = 13948, ncol = 1723)
 vector = c()
 end = positions %>% dplyr::select(End, Geneid)
 rows = dim(end)[1]
 end$end_max = NA
 
-# Splitting the values for each row
+# Splitting the values for each row(gene)
 for (end_row in 1:rows) {
   vector = str_split(end[[1]][end_row], ";")
   cols = length(vector[[1]])
   for (end_col in 1:cols) {
+    # Saving each value in a separate column
     end_matrix[end_row, end_col] = vector[[1]][end_col]
   }
+  # Find the maximum value of all the end values for each gene
   max_col = which.max(end_matrix[end_row,])
+  # Extract the end position and save it in a new column called end_max
   end$end_max[end$Geneid == end[[2]][end_row]] = end_matrix[end_row, max_col]
 }
 
-positions_fixed = data.frame(positions$Geneid, chr, strand)
-positions_fixed = positions_fixed %>% dplyr::rename(Geneid = positions.Geneid)
-positions_fixed = inner_join(positions_fixed, start)
-positions_fixed = inner_join(positions_fixed, end)
-positions_fixed = positions_fixed %>% dplyr::select(Geneid, chr, start_min, end_max, strand)
-positions_fixed = positions_fixed %>% dplyr::rename(
+# Need to connect the correct start and end with the correct gene and therefore the data is joined on geneID
+positions_fixed = inner_join(positions, start, by = "Geneid")
+positions_fixed = inner_join(positions_fixed, end, by = "Geneid")
+positions_fixed = positions_fixed %>% dplyr::select(Geneid, chr, start_min, end_max, strand, Length)
+# Rename the columns to the universal names
+geneInfo = positions_fixed %>% dplyr::rename(
   geneID = Geneid,
   Chr = chr,
   Start = start_min,
   End = end_max,
   Strand = strand
 )
-geneInfo = inner_join(positions_fixed, geneInfo)
 ```
 
 ## Create sample information
 
-Extracting the information from the sample name so it is more easily accessible in a data frame. The sample information is samplename, mutant, time, replicate and bamfile name.
+Extracting the information from the sample name so it is more easily accessible in a data frame. The sample information is sample name, mutant, time, replicate and bam file name.
 
 ```{r Create meta data table for samples , include=FALSE}
-#Extract the information about the samples from the sampleName.
-#Save sampleName, mutant, time, replicate and name of the bam file.
+# Extract the information about the samples from the sampleName. The info is saved in the same columns so it needs to be seperated.
+# Save sampleName, mutant, time, replicate and name of the bam file.
 sampleInfo = data.frame(bamFile =  colnames(countData))
 sampleInfo = sampleInfo %>% separate(
   col = bamFile,
@@ -162,7 +170,7 @@ sampleInfo = sampleInfo %>% dplyr::select(bamFile, mutant, time, replicate)
 sampleInfo = sampleInfo %>% unite("sampleName", mutant:time:replicate, remove = FALSE)
 sampleInfo = sampleInfo %>% dplyr::select(bamFile, sampleName, mutant, time, replicate)
 
-# Create a table and set rownames as samplename and rows as samplename, mutant, time, replicate and bamfile name.
+# Save the sample info. It will include name, mutant, time, replicate and bamfile name.
 rownames(sampleInfo) = sampleInfo$bamFile
 sampleInfo = sampleInfo[colnames(countData), ]
 colnames(countData) = sampleInfo$sampleName
@@ -170,12 +178,12 @@ rownames(sampleInfo) = sampleInfo$sampleName
 sampleInfo = sampleInfo %>% dplyr::select(sampleName, mutant, time, replicate, bamFile)
 ```
 
-## Create gene info
+## Expression filtering
 
-Remove all genes that is not expressed in any sample and start adding known information about the genes. This is done by only keeing the logarithmized values with a value larger than 1.
+Remove all genes that is not expressed in any sample and start adding known information about the genes. This is done by only keeping the genes with total counts larger than 0.
 
 ```{r remove genes with no expression, include=FALSE}
-# Logaritmize the counts
+# Derive the logarithm of the counts
 geneExpression = log(rowSums(countData))
 geneInfo$logExpression = log(rowSums(countData))
 
@@ -238,7 +246,7 @@ sampleInfo.QC %>%
   kable_styling()
 ```
 
-## Differential expression analysis
+## Differential expression analysis and filtering
 
 The data is analyzed with deseq2 to normalize the counts and do a differential expression analysis. The differential expression is investigated through the log2 fold change. Genes with total counts less then 100 were filtered out.
 
@@ -263,7 +271,7 @@ rld <- rlog(dds)
 
 ### Merging information and investigating log fold change distribution
 
-Here the expression data was merged with annotation data. The expression density, i.e. how many counts at what log fold change value, was than plotted. This was done by the geom_density() function which is basically a histogram for continous data.
+Here the expression data was merged with annotation data. The expression density, i.e. how many counts at what log fold change value, was than plotted. This was done by the geom_density() function which is basically a histogram for continuous data.
 
 ```{r merging information and plotting log fold change, include=FALSE}
 # Merging the information of the log fold changes and the meta data
@@ -287,29 +295,35 @@ From the graph below we can see that a lot of the log2 fold change data is above
 
 ```{r filters out genes dependent on log fold change}
 
-# Summarizes statistical information in geneInfo.
-geneInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
+# Summarizes statistical information in geneInfo per gene.
+geneInfo.QC2 = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>%
   dplyr::group_by (geneID) %>%
   dplyr::summarize (
     min = min(rlog),
     max = max(rlog),
     mean = mean(rlog),
     sd = sd(rlog),
-    #Creates a column which tells you how many counts(reads) are above 5 per geneID.
+    #Creates a column which tells you how many counts(reads) are above 5 per gene.
     overQC = length(which(rlog > 5))
   )
 
 # Requires the gene has at least 2 counts that have a log fold change over 5
-geneInfo.QC2 = geneInfo %>% filter(overQC > 2)
-normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC2$geneID)
+geneInfo.QC3 = geneInfo.QC2 %>% filter(overQC > 2)
+normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% geneInfo.QC3$geneID)
+
+# Plot the density of the log fold change
 ggplot(normExpressionDF.QC, aes(
   x = rlog,
   color = mutant,
   linetype = time
 )) + geom_density()
+
+# We are only interested in the log values since we want to normalize them
 normExpression.QC = normExpressionDF.QC %>%
   dplyr::select(geneID, sampleName, rlog) %>%
   spread(key = sampleName, value = rlog)
+
+#Replace the column with geneIDs since the PCA only can handle numeric values
 rownames(normExpression.QC) = normExpression.QC$geneID
 normExpression.QC = normExpression.QC[,-1]
 ```
@@ -320,13 +334,13 @@ normExpression.QC = normExpression.QC[,-1]
 # This is a function defined in ExpressionAnalysisFunctions.r
 plotSample2SampleDistance(normExpression.QC)
 #'  __Figure 1 Plotting sample to sample distance__ .
-
+#' Can see that the samples can be group by both mutant and time  .
 ```
 
-### PCA analysis with normalised counts
+### Principal components analysis with normalised counts
 
-```{r PCA analysis}
-# A PC analysis on the mergred information from the DESeq2 analysis
+```{r pca}
+# A principal component analysis on the merged information from the DESeq2 analysis, i.i the log fold change
 mir.pca <-
   prcomp(t(normExpression.QC), center = TRUE, scale = FALSE)
 
@@ -339,8 +353,10 @@ e.var$CumulativeVariance = cumsum(e.var$Variance)
 
 # Creates a data frame with the loading scores
 pctable = as.data.frame(mir.pca$x)[, 1:6]
+# Join with the meta info to know which genes have which values
 pctable$sampleName = rownames(pctable)
-pctable = inner_join(pctable, metaInfo)
+pctable = inner_join(pctable, metaInfo, by="sampleName")
+
 # Plot a summary of the PCA that shows PC1-5 and the varibles(time and mutants)
 pca  = plotPCAplot(
   PCAinfo = pctable,
@@ -364,18 +380,18 @@ meantime = pctable %>% dplyr::select(PC1, PC2, PC3, time) %>%
   dplyr::summarise(PC1 = mean(PC1) ,
                    PC2 = mean(PC2),
                    PC3 = mean(PC3))
-# Create a vector plot with the values (-mean, origo, mean)
+# Create a vector plot with the values (-mean, origo, mean) for each variable, mutants and time
 origo = data.frame(PC1 = 0, PC2 = 0, PC3 = 0)
-line.gd7 = rbind(mean[1, 2:4], origo, -mean[1, 2:4])
+line.gd7 = rbind(mean[1, 2:4], origo,-mean[1, 2:4])
 line.gd7$factor = "Gd7"
-line.toll10b = rbind(mean[2, 2:4], origo, -mean[2, 2:4])
+line.toll10b = rbind(mean[2, 2:4], origo,-mean[2, 2:4])
 line.toll10b$factor = "Toll10b"
-line.toll9 = rbind(mean[3, 2:4], origo, -mean[3, 2:4])
+line.toll9 = rbind(mean[3, 2:4], origo,-mean[3, 2:4])
 line.toll9$factor = "Toll9"
 line.time = rbind(meantime[2, 2:4], origo, meantime[1, 2:4])
 line.time$factor = "Time"
 
-# Create a matric with the mean vectors of all mutants
+# Does not include time here since we only want to plot the mutants
 line = rbind(line.gd7, line.toll10b, line.toll9)
 
 # Create a column in the pctable for the mutants and rename them to the previously used names
@@ -385,16 +401,16 @@ pctable$factor =  recode(pctable$factor, toll9 = "Toll9")
 pctable$factor =  recode(pctable$factor, toll10b = "Toll10b")
 ```
 
+### Plotting
 
 ```{r Plot the variance and principal components }
+# We want to see how much variance each principal component contains
 qplot(
   PC,
   Variance,
   data = e.var,
-  geom = c("point")
-  ,
-  ylim = c(0, max(e.var$Variance) + 5)
-  ,
+  geom = c("point"),
+  ylim = c(0, max(e.var$Variance) + 5),
   ylab = "Variance (%)"
 )
 #'  __Figure 2 Plotting PCA variance__.
@@ -408,8 +424,7 @@ ggplot(line, mapping = aes(x = PC1, y = PC2, color = factor)) + geom_line() + ge
                                                                                            y = PC2,
                                                                                            color = factor,
                                                                                            shape = time
-                                                                                         )) +
-  scale_color_viridis(discrete = TRUE, option = "D")
+                                                                                         )) + scale_color_viridis(discrete = TRUE, option = "D")
 
 ggplot(line, mapping = aes(x = PC2, y = PC3, color = factor)) + geom_line() + geom_point(data = pctable,
                                                                                          mapping = aes(
@@ -422,28 +437,11 @@ ggplot(line, mapping = aes(x = PC2, y = PC3, color = factor)) + geom_line() + ge
 
 ```
 
-
-
-### Print PROseq data to file
-Saving the sampleInfo, geneInfo, Countdata and logarithmized countdata into files
-
-```{r save the files}
-# Save the converted countdata as well as the sampleInfo
-sampleInfoFile = paste(params$workingDir, params$resultsDir,"sampleInfo.QC.tab.txt", sep = "/")
-write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F,col.names = T)
-geneTableFile = paste(params$workingDir, params$resultsDir,"gene.QC.tab.txt", sep = "/")
-write.table(x = geneInfo.QC, file = geneTableFile, quote = F, sep =  "\t", row.names = F, col.names = T)
-countTableFile = paste(params$workingDir, params$resultsDir,"counts.QC.tab.txt", sep = "/")
-write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
-rlogTableFile = paste(params$workingDir, params$resultsDir,"rlog.QC.tab.txt", sep = "/")
-write.table(x = normExpression.QC, file = rlogTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
-```
-
-
 ###  Gene scores
+The sequencing data has a lot of dimension, time and the different mutants. We want to reduce the number of dimensions to a single score. This is done by the loading scores found by PCA. The loading scores are used as a distance. The distance will then tell us how much variance is found, i.e. the bigger the distance the more it is different. We can e.g. from the scores say if a sample is up-regulated with respect to time
 
 ```{r convert loadings to the factor Scores}
-# Saves the loading scores for PC1-PC3
+# Saves the loading scores for PC1-PC3 for the mutants and time
 line = rbind(line.gd7, line.toll10b, line.toll9, line.time)
 loadings = mir.pca$rotation[, 1:3]
 
@@ -451,22 +449,22 @@ loadings = mir.pca$rotation[, 1:3]
 loadings_norm = as.data.frame(t((t(loadings) - colMeans(loadings)) / colSds(loadings)))
 loadings_norm$geneID = rownames(loadings)
 
-# We calculate the distance of each sample and mutant in the 3D space of PC1-3. The mean is seen as the "normal" expression and the distance is a measure of how large of a differential expression. 
+# We calculate the distance of each sample and mutant in the 3D space of PC1-3. The mean is seen as the "normal" expression and the distance is a measure of how large of a differential expression.
 loadings_new = loadings_norm
 for (j in unique(line$factor)) {
   loadings_new[[j]] = 0
   for (i in 1:nrow(loadings_norm)) {
     line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1, PC2, PC3)
     loadings_new[i, j] = dist3d(
-      b = as.numeric(line1[1, ]),
-      c = as.numeric(line1[3, ]),
+      b = as.numeric(line1[1,]),
+      c = as.numeric(line1[3,]),
       point = as.numeric(loadings_norm[i, 1:3])
     )
   }
 }
 
 # Gather all of the new distances in a data frame for plotting
-loadingsDF = gather(loadings_new, key = PC, value = Loading,-geneID)
+loadingsDF = gather(loadings_new, key = PC, value = Loading, -geneID)
 ggplot(loadingsDF, mapping = aes(x = Loading, color = PC)) + geom_density()
 
 # Recreates the same data from as loadings_new but in another column order
@@ -478,7 +476,7 @@ tmp$distance =  ((tmp$PC1 ^ 2 + tmp$PC2 ^ 2 + tmp$PC3 ^ 2) ^ 0.5)
 loadingsDF.all = tmp
 loadingsDF.all.factorDistance = loadingsDF.all %>% gather(key = factor, value = distance2Factor, Time, Gd7, Toll10b, Toll9)
 
-# Calculates the distance by taking the distance for the loading scores to the distance to the factor(mutants or time). The bigger difference the more it is deviating form the norm. This means there will be one distance for each CBP Peak. (e.g. region 100 will have 4 column (time and mutants)) 
+# Calculates the distance by taking the distance for the loading scores to the distance to the factor(mutants or time). The bigger difference the more it is deviating form the norm. This means there will be one distance for each CBP Peak. (e.g. region 100 will have 4 column (time and mutants))
 loadingsDF.all.factorDistance$distanceFactor = sqrt(
   loadingsDF.all.factorDistance$distance ^ 2 -
     loadingsDF.all.factorDistance$distance2Factor ^ 2
@@ -494,7 +492,7 @@ line$Dir = rep(c("Up", "origo", "Down"), 4)
 
 # Now we loop through all values and evaluate if it is up or down regulated with respect for each variable (time and mutants)
 for (i in 1:nrow(loadingsDF.all.factorDistance)) {
-  factor2 = loadingsDF.all.factorDistance[i, ]$factor
+  factor2 = loadingsDF.all.factorDistance[i,]$factor
   UpPoint = line %>% dplyr::filter(factor == factor2 &
                                      Dir == "Up") %>% dplyr::select(PC1, PC2, PC3)
   DownPoint = line %>% dplyr::filter(factor == factor2 &
@@ -516,12 +514,12 @@ loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select
 
 # The max value is the biggest value of the distanceFactor for each geneID
 loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(geneID)
-loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance.max%>% summarise(max = max(abs(distanceFactor)))
+loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance.max %>% summarise(max = max(abs(distanceFactor)))
 loadingsDF.all.factorDistance$max = abs(loadingsDF.all.factorDistance$distanceFactor)
 
 # Add the max column to the rest of the data frame
 loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,
-                                               loadingsDF.all.factorDistance.max) %>% dplyr::select(geneID, factor, direction)
+                                               loadingsDF.all.factorDistance.max, by=c("geneID", "max")) %>% dplyr::select(geneID, factor, direction)
 
 # Add the sample info
 loadingsDF.all.factorDistance.max.peakInfo = inner_join (normExpressionDF.QC, loadingsDF.all.factorDistance.max)
@@ -532,13 +530,60 @@ loadingsDF.all.factorDistance.max.peakInfo = inner_join(loadingsDF.all.factorDis
 
 ```
 
-```{r write to file}
-# Remove the PC values
+### Print PROseq data to file
+Saving the sampleInfo, geneInfo, Countdata and logarithmized countdata into files
+
+```{r save the files}
+# Save the converted countdata as well as the sampleInfo
+sampleInfoFile = paste(params$workingDir,
+                       params$resultsDir,
+                       "sampleInfo.QC.tab.txt",
+                       sep = "/")
+write.table(
+  x = sampleInfo.QC,
+  file = sampleInfoFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+geneTableFile = paste(params$workingDir, params$resultsDir, "gene.QC.tab.txt", sep = "/")
+write.table(
+  x = geneInfo.QC,
+  file = geneTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
+countTableFile = paste(params$workingDir,
+                       params$resultsDir,
+                       "counts.QC.tab.txt",
+                       sep = "/")
+write.table(
+  x = countData.QC,
+  file = countTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
+rlogTableFile = paste(params$workingDir, params$resultsDir, "rlog.QC.tab.txt", sep = "/")
+write.table(
+  x = normExpression.QC,
+  file = rlogTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
+
+# Remove the PC values and save it in a tsv file
 loadingsDF.all.factorDistance.max.peakInfo2 =
   loadingsDF.all.factorDistance.max.peakInfo %>%
-  dplyr::select(-PC1, -PC2,-PC3,-distance)
+  dplyr::select(-PC1,-PC2, -PC3, -distance)
 
-output = inner_join(geneInfo.QC, loadingsDF.all.factorDistance.max.peakInfo2)
+output = inner_join(geneInfo.QC, loadingsDF.all.factorDistance.max.peakInfo2, by="geneID")
 
 fileNamePROseq = paste(params$workingDir,
                        params$resultsDir,
@@ -554,3 +599,5 @@ write.table(
 )
 
 ```
+
+

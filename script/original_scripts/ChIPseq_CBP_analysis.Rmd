@@ -16,9 +16,7 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
-# Install required packages
+# Install required packages (Only needs to be run once)
 #install.packages("kableExtra")
 #install.packages("tidyverse")
 #install.packages("RColorBrewer")
@@ -42,14 +40,17 @@ library(RColorBrewer)
 library(DESeq2)
 library(edgeR)
 library("pheatmap")
+
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Reads mapping for ChIPseq done on CBP
-
-
+# ChIPseq CBP data analysis
 ## Comparing mapping pattern between the samples
+The evaluation is done by the output from PROseq which is read counts per CBP peak region
 
-### Using feature count to get the difference between the samples
+## Loading data
+We load the count table of the potential enhancers per CBP peak. This is the reads from PROseq. The countdata is converted into a dataframe with the columns 
+
 ```{r Adding the first analysis of the data ,message=FALSE ,warning = FALSE}
 #Load in the path to the CBP featureCount file
 featureCountFile = paste(params$workingDir, params$dataDir, params$chipSeqData, sep = "/")
@@ -67,6 +68,9 @@ countData = FCdata[,-1:-6]
 rownames(countData) = peakInfo$geneID
 ```
 
+## Create sample information
+
+Extracting the information from the sample name so it is more easily accessible in a data frame. The sample information is sample name, mutant, time, replicate and bam file name.
 
 ```{r sample info ,message=FALSE ,warning = FALSE}
 #Rename the labels for the labels in countData so that they just have the mutant name and replicate and input/CBP
@@ -88,7 +92,9 @@ countData = countData[,sampleInfo$sampleName]
 colnames(countData) = sampleInfo$sampleID
 ```
 
-## Filtering
+## Differential expression analysis and filtering
+
+The data is analyzed with deseq2 to normalize the counts and do a differential expression analysis. The differential expression is investigated through the log2 fold change. Genes with total counts less then 100 were filtered out.
 
 
 ```{r differential gene expression analysis ,message=FALSE ,warning = FALSE}
@@ -109,16 +115,8 @@ dds <- DESeqDataSetFromMatrix(countData = exp.data,
                                colData = metaInfo, ~1)
 
 #Remove rows with low counts and normalize samples for visualization
-dds <- dds[ rowSums(counts(dds)) > 100, ] #This was 100
+dds <- dds[ rowSums(counts(dds)) > 100, ] 
 
-#Look at the dimension of the data set. 
-dim(dds)
-
-#Calculate the reads per kilobase million from the count data. 
-test2 = rpkm(countData, gene.length = peakInfo$Length)
-
-#Use a function from ExpressionAnalysisFucntions.r that plots a heat map. 
-plotSample2SampleDistance(test2)
 
 #Transform the count data in the DESeq data frame to the log2 scale which minimizes differences between samples for rows with small counts, and which normalizes with respect to library size
 rld <- rlog(dds)
@@ -157,39 +155,46 @@ normExpression.QC = normExpressionDF.QC.CBP %>%
 
 rownames(normExpression.QC) = normExpression.QC$geneID
 normExpression.QC = normExpression.QC[, -1]
-
-
-
 ```
 
+### Visualizing the data
 
-
-```{R  check the normalised data  ,message=FALSE ,warning = FALSE}
+```{r  check the normalised data  ,message=FALSE ,warning = FALSE}
 
 #Plot a new heat map with only CBP 
 plotSample2SampleDistance(normExpression.QC)
+```
 
+### Principal components analysis with normalised counts 
+
+```{r pca}
 #Do a PCA analysis
-mir.pca <- prcomp(t(normExpression.QC), center = TRUE, scale = FALSE) 
+mir.pca <-
+  prcomp(t(normExpression.QC), center = TRUE, scale = FALSE)
 #Calculate evar from the PCA output
-e.var = (mir.pca[['sdev']]^2 / sum(mir.pca[['sdev']]^2))
+e.var = (mir.pca[['sdev']] ^ 2 / sum(mir.pca[['sdev']] ^ 2))
 #Make e.var to a data frame
-e.var = as.data.frame( e.var )
-#Add column named PC 
+e.var = as.data.frame(e.var)
+#Add column named PC
 e.var$PC = as.factor(1:nrow(e.var))
 #Add column with the varience
-e.var$Variance = e.var$e.var*100
+e.var$Variance = e.var$e.var * 100
 #Add column with CumulativeVariance
 e.var$CumulativeVariance = cumsum(e.var$Variance)
-#Plot each PC component and its varience. 
-qplot(PC, Variance, data=e.var, geom = c("point")
-      , ylim = c(0,max(e.var$Variance)+5) 
-      ,ylab = "Variance (%)")
+#Plot each PC component and its varience.
+qplot(
+  PC,
+  Variance,
+  data = e.var,
+  geom = c("point")
+  ,
+  ylim = c(0, max(e.var$Variance) + 5)
+  ,
+  ylab = "Variance (%)"
+)
 
 
-
-
-#Make the first 5 PCA output to a data frame. 
+#Make the first 5 PCA output to a data frame.
 pctable = as.data.frame(mir.pca$x)[, 1:5]
 #Add column with sample name
 pctable$sampleName = rownames(pctable)
@@ -197,179 +202,231 @@ pctable$sampleName = rownames(pctable)
 pctable = inner_join(pctable, metaInfo)
 
 #Plot using a function in ExpressionAnalysisFucntions
-test  = plotPCAplot(PCAinfo = pctable, n.comp = 4,
-            varianceInfo = e.var, 
-            colorComponent = "Genotype",pchComponent = "Replicate"
-              
+pca  = plotPCAplot(
+  PCAinfo = pctable,
+  n.comp = 4,
+  varianceInfo = e.var,
+  colorComponent = "Genotype",
+  pchComponent = "Replicate"
+  
 )
+# Need to actually run the command to output plot
+pca
 
-test
-
-mean = pctable %>% dplyr::select(PC1,PC2,PC3,Genotype) %>%
+# Calculate the mean of the PC to plot lines with respect to mutants
+mean = pctable %>% dplyr::select(PC1, PC2, PC3, Genotype) %>%
   dplyr::group_by(Genotype) %>%
-  dplyr::summarise(PC1 = mean(PC1) ,PC2 = mean(PC2), PC3 = mean(PC3) )
+  dplyr::summarise(PC1 = mean(PC1) ,
+                   PC2 = mean(PC2),
+                   PC3 = mean(PC3))
+origo = data.frame(PC1 = 0, PC2 = 0, PC3 = 0)
 
-origo = data.frame(PC1=0, PC2=0, PC3 = 0)
-
-line.gd7 = rbind(mean[1,2:4],origo,-mean[1,2:4])
+# Create a vector plot with the values (-mean, origo, mean) for each mutant
+line.gd7 = rbind(mean[1, 2:4], origo, -mean[1, 2:4])
 line.gd7$factor = "Gd7"
-line.toll10b = rbind(mean[2,2:4],origo,-mean[2,2:4])
+line.toll10b = rbind(mean[2, 2:4], origo, -mean[2, 2:4])
 line.toll10b$factor = "Toll10b"
-line.toll9 = rbind(mean[3,2:4],origo,-mean[3,2:4])
+line.toll9 = rbind(mean[3, 2:4], origo, -mean[3, 2:4])
 line.toll9$factor = "Toll9"
-
-line = rbind(line.gd7,line.toll10b,line.toll9)
-
-ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC2,y = PC3, color = Genotype))
-
-ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC2, color = Genotype))
-
-ggplot(line, mapping = aes(x = PC1,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC3, color = Genotype))
-
+line = rbind(line.gd7, line.toll10b, line.toll9)
 ```
-##Try to use create loading scores and the tsv files we need
+
+### Plotting
+
+```{r plotting}
+ggplot(line, mapping = aes(x = PC2, y = PC3, color = factor)) + geom_line() + geom_point(data = pctable,
+                                                                                         mapping = aes(x = PC2, y = PC3, color = Genotype))
+
+ggplot(line, mapping = aes(x = PC1, y = PC2, color = factor)) + geom_line() + geom_point(data = pctable,
+                                                                                         mapping = aes(x = PC1, y = PC2, color = Genotype))
+
+ggplot(line, mapping = aes(x = PC1, y = PC3, color = factor)) + geom_line() + geom_point(data = pctable,
+                                                                                         mapping = aes(x = PC1, y = PC3, color = Genotype))
+```
+
+## Gene scores
+The sequencing data has a lot of dimension, time and the different mutants. We want to reduce the number of dimensions to a single score. This is done by the loading scores found by PCA. The loading scores are used as a distance. The distance will then tell us how much variance is found, i.e. the bigger the distance the more it is different. We can e.g. from the scores say if a sample is up-regulated with respect to gd7
 
 ```{r convert loadings to the factor Scores}
 # Saves the loading scores for PC1-PC3
-line = rbind(line.gd7,line.toll10b,line.toll9)
-loadings =mir.pca$rotation[,1:3]
+line = rbind(line.gd7, line.toll10b, line.toll9)
+loadings = mir.pca$rotation[, 1:3]
 
 # Converts the loading values by subtracting the column(PC) mean and dividing by the column(PC) standard deviation. The columns needs to be transposed to rows to calculate and are then transposed back to columns
-loadings_norm = as.data.frame(t((t(loadings)-colMeans(loadings))/colSds(loadings)))
+loadings_norm = as.data.frame(t((t(loadings) - colMeans(loadings)) / colSds(loadings)))
 loadings_norm$geneID = rownames(loadings)
 
-distance3d <- function(a,b){
-  v1 = a - b
-  
-  distance = ((v1[[1]]^2 + v1[[2]]^2 + v1[[3]]^2)^0.5)
-  return(distance)
-}
-
-dist3d <- function(point,b,c) {
-  v1 <- b - c
-  v2 <- point - b      
-  v3 <- cross3d_prod(v1,v2)
-  area <- sqrt(sum(v3*v3))/2
-  d <- 2*area/sqrt(sum(v1*v1))
-  return(d)
-}
-
-cross3d_prod <- function(v1,v2){
-  v3 <- vector()
-  v3[1] <- v1[2]*v2[3]-v1[3]*v2[2]
-  v3[2] <- v1[3]*v2[1]-v1[1]*v2[3]
-  v3[3] <- v1[1]*v2[2]-v1[2]*v2[1]
-  return(v3)
-}
-
+# We calculate the distance of each sample and mutant in the 3D space of PC1-3. The mean is seen as the "normal" regulation and the distance is a measure of how large of a variance.
 loadings_new = loadings_norm
-for(j in unique(line$factor)){
-  loadings_new[[j]]=0
-  for(i in 1:nrow(loadings_norm)){
-  line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1,PC2,PC3)
-  loadings_new[i,j] = dist3d(b =as.numeric(line1[1,]),
-                            c = as.numeric(line1[3,]),
-                            point = as.numeric(loadings_new[i,1:3]))
-
+for (j in unique(line$factor)) {
+  loadings_new[[j]] = 0
+  for (i in 1:nrow(loadings_norm)) {
+    line1 = line %>% dplyr::filter(factor == j) %>% dplyr::select(PC1, PC2, PC3)
+    loadings_new[i, j] = dist3d(
+      b = as.numeric(line1[1, ]),
+      c = as.numeric(line1[3, ]),
+      point = as.numeric(loadings_new[i, 1:3])
+    )
+    
   }
-
-}
-
   
-loadingsDF = gather(loadings_new, key = PC, value = Loading, -geneID )
-
-ggplot(loadingsDF, mapping = aes(x = Loading, color = PC )) + geom_density() 
+}
+# Gather all of the new distances in a data frame for plotting
+loadingsDF = gather(loadings_new, key = PC, value = Loading,-geneID)
+ggplot(loadingsDF, mapping = aes(x = Loading, color = PC)) + geom_density()
 
 # Recreates the same data fram as loadings_new but in another column order
 loadingsDF.all = loadingsDF %>%  spread(key = PC, value = Loading)
 
+# Take the absolute value of the distance of the PC, to be able to compare them to each other and add it as a column to a new data frame
 tmp = loadingsDF.all
-tmp$distance =  ((tmp$PC1^2 + tmp$PC2^2 + tmp$PC3^2)^0.5)
+tmp$distance =  ((tmp$PC1 ^ 2 + tmp$PC2 ^ 2 + tmp$PC3 ^ 2) ^ 0.5)
 loadingsDF.all = tmp
+loadingsDF.all.factorDistance = loadingsDF.all %>% gather(key = factor, value = distance2Factor, Gd7, Toll10b, Toll9)
 
-
-loadingsDF.all.factorDistance =loadingsDF.all %>% gather(key = factor, value = distance2Factor,Gd7,Toll10b,Toll9 )
-
-loadingsDF.all.factorDistance$distanceFactor = sqrt(loadingsDF.all.factorDistance$distance^2 -
-                                                   loadingsDF.all.factorDistance$distance2Factor^2)
-
+# Calculates the distance by taking the distance for the loading scores to the distance to the factor(mutants or time). The bigger difference the more it is deviating form the norm. This means there will be one distance for each CBP Peak. (e.g. region 100 will have 4 column (time and mutants))
+loadingsDF.all.factorDistance$distanceFactor = sqrt(
+  loadingsDF.all.factorDistance$distance ^ 2 -
+    loadingsDF.all.factorDistance$distance2Factor ^
+    2
+)
+# To be able to calculate correctly the NA values are converted to 0 instead
 loadingsDF.all.factorDistance$distanceFactor[is.na(loadingsDF.all.factorDistance$distanceFactor)] = 0
 
+# Set the default value to down regulated
 loadingsDF.all.factorDistance$direction = "Down"
-line$Dir = rep(c("Up","origo","Down"), 3)
+# The mean is seen as up regulated, and down regulated as the negative value of the mean
+line$Dir = rep(c("Up", "origo", "Down"), 3)
 
-
-for(i in 1:nrow(loadingsDF.all.factorDistance)){
-  factor2 = loadingsDF.all.factorDistance[i,]$factor
-  UpPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Up") %>% dplyr::select(PC1,PC2,PC3)
-  DownPoint = line %>% dplyr::filter(factor == factor2 & Dir == "Down") %>% dplyr::select(PC1,PC2,PC3)
-  point = loadingsDF.all.factorDistance[i,c("PC1","PC2","PC3")]
-  up = distance3d(as.numeric( UpPoint),as.numeric(point))
-  down = distance3d(as.numeric(DownPoint),as.numeric(point))
+# Now we loop through all values and evaluate if it is up or down regulated with respect for each mutant
+for (i in 1:nrow(loadingsDF.all.factorDistance)) {
+  factor2 = loadingsDF.all.factorDistance[i, ]$factor
+  UpPoint = line %>% dplyr::filter(factor == factor2 &
+                                     Dir == "Up") %>% dplyr::select(PC1, PC2, PC3)
+  DownPoint = line %>% dplyr::filter(factor == factor2 &
+                                       Dir == "Down") %>% dplyr::select(PC1, PC2, PC3)
+  point = loadingsDF.all.factorDistance[i, c("PC1", "PC2", "PC3")]
+  up = distance3d(as.numeric(UpPoint), as.numeric(point))
+  down = distance3d(as.numeric(DownPoint), as.numeric(point))
   
-  if(up < down){
-    loadingsDF.all.factorDistance[i,"direction"] = "Up"
-  }else{
-    loadingsDF.all.factorDistance[i,"distanceFactor"] = 
-      -loadingsDF.all.factorDistance[i,"distanceFactor"]
+  if (up < down) {
+    loadingsDF.all.factorDistance[i, "direction"] = "Up"
+  } else{
+    loadingsDF.all.factorDistance[i, "distanceFactor"] =
+      -loadingsDF.all.factorDistance[i, "distanceFactor"]
   }
 }
 
-loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select( geneID,PC1, PC2,PC3, distance, factor,distanceFactor) %>% spread( key = factor, value = distanceFactor)
+# Collect all of the distances to the factors and have them in one column. Now there will be one distance per region
+loadingsDF.all.factorDistance2 = loadingsDF.all.factorDistance %>% dplyr::select(geneID, PC1, PC2, PC3, distance, factor, distanceFactor) %>% spread(key = factor, value = distanceFactor)
 
-
+# The max value is the biggest value of the distanceFactor for each geneID
 loadingsDF.all.factorDistance.max = loadingsDF.all.factorDistance %>% group_by(geneID) %>% summarise(max = max(abs(distanceFactor)))
- 
-loadingsDF.all.factorDistance$max=abs(loadingsDF.all.factorDistance$distanceFactor) 
-
-loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,loadingsDF.all.factorDistance.max) %>%
+loadingsDF.all.factorDistance$max = abs(loadingsDF.all.factorDistance$distanceFactor)
+# Add the max column to the rest of the data frame
+loadingsDF.all.factorDistance.max = inner_join(loadingsDF.all.factorDistance,
+                                               loadingsDF.all.factorDistance.max) %>%
   dplyr::select(geneID, factor, direction)
 
-loadingsDF.all.factorDistance.max.peakInfo = inner_join (peakInfo,loadingsDF.all.factorDistance.max)
-
-loadingsDF.all.factorDistance.max.peakInfo = inner_join(
-  loadingsDF.all.factorDistance.max.peakInfo,
-  loadingsDF.all.factorDistance2
-)
-
-loadingsDF.all.factorDistance.max.peakInfo2 = 
-  loadingsDF.all.factorDistance.max.peakInfo %>%
-  dplyr::select(-PC1,-PC2,-PC3,-distance)
-
-
-fileNameChIPseq = paste( params$workingDir, params$ChIPresultsDir,  
-                        params$ChIPSeq.data,
-                             sep = "/")
-write.table(x = loadingsDF.all.factorDistance.max.peakInfo2, file = fileNameChIPseq,
-                  quote = F, sep = "\t", col.names = T, row.names = F) 
+# Add the sample info
+loadingsDF.all.factorDistance.max.peakInfo = inner_join (peakInfo, loadingsDF.all.factorDistance.max)
+# Add the loading scores
+loadingsDF.all.factorDistance.max.peakInfo = inner_join(loadingsDF.all.factorDistance.max.peakInfo,
+                                                        loadingsDF.all.factorDistance2)
 ```
 
-### Print ChIPseq data to file
+## Print ChIPseq data to file
 
 ```{r save the files ,message=FALSE ,warning = FALSE}
-sampleInfoFile = paste(params$workingDir, params$resultsDir,params$Antibody, "CBP.CBP.sampleInfo.QC.tab.txt", sep = "/")
+# Save sampleinfo
+sampleInfoFile = paste(
+  params$workingDir,
+  params$resultsDir,
+  params$Antibody,
+  "CBP.CBP.sampleInfo.QC.tab.txt",
+  sep = "/"
+)
 sampleInfo.QC = sampleInfo %>%
   filter (Input == params$Antibody) %>%
   select(sampleInfo, sampleID, Genotype, Replicate, Input)
+write.table(
+  x = sampleInfo.QC,
+  file = sampleInfoFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
 
-write.table(x = sampleInfo.QC, file = sampleInfoFile, quote = F, sep =  "\t", row.names = F, col.names = T)
+#Save peakinfo
+peakTableFile = paste(
+  params$workingDir,
+  params$resultsDir,
+  params$Antibody,
+  "CBP.CBP.peak.QC.tab.txt",
+  sep = "/"
+)
+write.table(
+  x = peakInfo.QC,
+  file = peakTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = F,
+  col.names = T
+)
 
+# Save the countdata
+countData.QC = countData[peakInfo.QC$geneID, sampleInfo.QC$sampleID]
+countTableFile = paste(
+  params$workingDir,
+  params$resultsDir,
+  params$Antibody,
+  "CBP.CBP.counts.QC.tab.txt",
+  sep = "/"
+)
+write.table(
+  x = countData.QC,
+  file = countTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
 
-peakTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "CBP.CBP.peak.QC.tab.txt", sep = "/")
-write.table(x = peakInfo.QC, file = peakTableFile, quote = F, sep =  "\t", row.names = F, col.names = T)
+# Save the rlog values
+rlogTableFile = paste(
+  params$workingDir,
+  params$resultsDir,
+  params$Antibody,
+  "CBP.CBP.rlog.QC.tab.txt",
+  sep = "/"
+)
+rlogExpression.QC = normExpression[peakInfo.QC$geneID, sampleInfo.QC$sampleID]
+write.table(
+  x = rlogExpression.QC,
+  file = rlogTableFile,
+  quote = F,
+  sep =  "\t",
+  row.names = T,
+  col.names = T
+)
 
-
-countData.QC = countData[peakInfo.QC$geneID,sampleInfo.QC$sampleID]
-countTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "CBP.CBP.counts.QC.tab.txt", sep = "/")
-write.table(x = countData.QC, file = countTableFile, quote = F, sep =  "\t", row.names = T, col.names = T)
-
-
-
-rlogTableFile = paste(params$workingDir, params$resultsDir, params$Antibody, "CBP.CBP.rlog.QC.tab.txt", sep = "/")
-rlogExpression.QC = normExpression[peakInfo.QC$geneID,sampleInfo.QC$sampleID]
-write.table(x = rlogExpression.QC, file = rlogTableFile, quote = F,  sep =  "\t", row.names = T, col.names = T)
-
-
+# Remove PC values and save the gene scores and additional infomration as a tsv file
+loadingsDF.all.factorDistance.max.peakInfo2 =
+  loadingsDF.all.factorDistance.max.peakInfo %>%
+  dplyr::select(-PC1,-PC2,-PC3,-distance)
+fileNameChIPseq = paste(params$workingDir,
+                        params$ChIPresultsDir,
+                        params$ChIPSeq.data,
+                        sep = "/")
+write.table(
+  x = loadingsDF.all.factorDistance.max.peakInfo2,
+  file = fileNameChIPseq,
+  quote = F,
+  sep = "\t",
+  col.names = T,
+  row.names = F
+) 
 ```
 
 
