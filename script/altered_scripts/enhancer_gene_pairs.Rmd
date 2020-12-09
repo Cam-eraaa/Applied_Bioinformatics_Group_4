@@ -6,21 +6,21 @@ output: html_document
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
-  #enhancer.data: results/altered_method/from_joint_peak/enhancers_no_filtering.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
+  enhancer.data: results/altered_method/from_joint_peak/enhancers_no_filtering.tsv
   #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
   resultsDir: results/altered_method/pairs/
-  resultsFile: EGP_PCA_filtering.tsv
-  #resultsFile: EGP_no_filtering.tsv
+  #resultsFile: EGP_PCA_filtering.tsv
+  resultsFile: EGP_no_filtering.tsv
   #resultsFile: EGP_UMAP.tsv
   
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  resultsAnnotated15kb: annotated_results15kb_PCA_filtering.tsv
-  #resultsAnnotated15kb: annotated_results15kb_no_filtering.tsv
+  #resultsAnnotated15kb: annotated_results15kb_PCA_filtering.tsv
+  resultsAnnotated15kb: annotated_results15kb_no_filtering.tsv
   #resultsAnnotated15kb: annotated_results15kb_UMAP.tsv
-  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.tsv
-  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_no_filtering.tsv
+  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.tsv
+  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_no_filtering.tsv
   #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_UMAP.tsv
 
   

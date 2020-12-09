@@ -1,4 +1,4 @@
-EnhancerID	Chr	ATAC_Start	ATAC_End	Gene_geneID	Gene_Chr	Gene_Start	Gene_End	EnhancerDistance	PROseq_Classification	ATACseq_Classification
+Enhancer_ID	Chr	Enhancer_Start	Enhancer_End	Gene_geneID	Gene_Chr	Gene_Start	Gene_End	EnhancerDistance	PROseq_Classification	ATACseq_Classification
 Region61	chr2L	91221	91973	FBgn0031216	chr2L	94852	101915	2878	Toll9 Down	Time Down
 Region74	chr2L	246472	247148	FBgn0283652	chr2L	251197	252317	4048	Toll9 Down	Toll9 Up
 Region75	chr2L	247430	247810	FBgn0283652	chr2L	251197	252317	3386	Toll9 Down	Time Down
