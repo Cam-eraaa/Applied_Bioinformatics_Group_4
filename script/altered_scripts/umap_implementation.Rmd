@@ -120,7 +120,7 @@ custom.config = umap.defaults
 custom.config$n_components = 5
 
 
-umap <- umap(all_enhancer.data)
+umap <- umap(all_enhancer.data, config=custom.config)
 
 df <- data.frame(x = umap$layout[,1],
                  y = umap$layout[,2],
