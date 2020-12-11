@@ -326,8 +326,8 @@ AllData = AllData %>% mutate(distance3 = (PC1^2+PC2^2+PC3^2)^0.5)
 AllData = AllData %>% mutate(distance2 = (PC1^2+PC2^2)^0.5)
 AllData = AllData %>% mutate(distance1 = abs(PC1))
 
-FE =  AllData %>% filter(enhancer == 1) %>% ggplot(aes(PC1, PC2, color = enhancerGenotype )) + geom_point()+ geom_density_2d(AllData,mapping = aes(PC1, PC2), color= "grey")
-FI =  AllData %>% filter(inSitu == 1) %>% ggplot(aes(PC1, PC2, color = inSituLocation )) + geom_point()+ geom_density_2d(AllData,mapping = aes(PC1, PC2), color= "grey")
+# FE =  AllData %>% filter(enhancer == 1) %>% ggplot(aes(PC1, PC2, color = enhancerGenotype )) + geom_point()+ geom_density_2d(AllData,mapping = aes(PC1, PC2), color= "grey")
+# FI =  AllData %>% filter(inSitu == 1) %>% ggplot(aes(PC1, PC2, color = inSituLocation )) + geom_point()+ geom_density_2d(AllData,mapping = aes(PC1, PC2), color= "grey")
 ```
 
 ```{r plot this steps }
@@ -386,19 +386,26 @@ ggplot(ROCplotInfo, mapping =  aes(x = FPR, y = TPR, color = score))+
 Based on ROC statistics  it is best if we include all five PC  
 
 ```{r plot classification }
-scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance5")
+scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" &
+                                            score == "distance5")
 AllData.enhancers = AllData
 AllData.enhancers$Background = "Yes"
 AllData.enhancers$Background[AllData$distance5 > scores$YoudenCutoff] = "No"
-
-AllData.enhancers = AllData.enhancers %>% replace_na(list(enhancerID = "None", enhancerGenotype = "None",insituID = "None",inSituLocation = "None", inSituScore = -1 ))
+AllData.enhancers = AllData.enhancers %>% replace_na(
+  list(
+    enhancerID = "None",
+    enhancerGenotype = "None",
+    insituID = "None",
+    inSituLocation = "None",
+    inSituScore = -1
+  )
+)
 
 peakInfo = data.frame(ATAC_peakData)
 peakInfo$geneID = names(ATAC_peakData)
 
 AllData.enhancers = AllData.enhancers %>% dplyr::select(-geneID_unique)
 AllData.enhancers = inner_join(peakInfo, AllData.enhancers, by = "geneID")
-
 ```
 
 
@@ -414,15 +421,15 @@ AllData_test = AllData_test %>% mutate(Enhancer_Time =  ATAC_Time + PRO_Time)
 enhancers.filtering = AllData_test %>% dplyr::select(
   geneID,
   Chr,
-  ATAC_Start, 
+  ATAC_Start,
   ATAC_End,
   ATAC_factor,
   ATAC_direction,
   enhancerID,
-  insituID, 
+  insituID,
   Enhancer_Gd7,
   Enhancer_Toll10b,
-  Enhancer_Toll9, 
+  Enhancer_Toll9,
   Enhancer_Time,
   Background
 )
@@ -432,20 +439,18 @@ AllData_test_no_filtering = AllData %>% mutate(Enhancer_Gd7 =  ATAC_Gd7 + CBP_Gd
 AllData_test_no_filtering = AllData_test_no_filtering %>% mutate(Enhancer_Toll10b =  ATAC_Toll10b + CBP_Toll10b + K27ac_Toll10b)
 AllData_test_no_filtering = AllData_test_no_filtering %>% mutate(Enhancer_Toll9 =  ATAC_Toll9 + CBP_Toll9 + K27ac_Toll9)
 AllData_test_no_filtering = AllData_test_no_filtering %>% mutate(Enhancer_Time =  ATAC_Time + PRO_Time)
-
-
 enhancers.no.filtering = AllData_test_no_filtering %>% dplyr::select(
   geneID,
   Chr,
-  ATAC_Start, 
+  ATAC_Start,
   ATAC_End,
   ATAC_factor,
   ATAC_direction,
   enhancerID,
-  insituID, 
+  insituID,
   Enhancer_Gd7,
   Enhancer_Toll10b,
-  Enhancer_Toll9, 
+  Enhancer_Toll9,
   Enhancer_Time
 )
 
