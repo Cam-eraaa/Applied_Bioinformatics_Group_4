@@ -48,7 +48,7 @@ our_enhancer_data = read.table(
   stringsAsFactors = F
 )
 
-our_enhancer_data = tibble::rowid_to_column(our_enhancer_data, "enhancer_row")
+our_enhancer_data = tibble::rowid_to_column(our_enhancer_data, "Enhancer_row")
 
 our_enhancer_data= our_enhancer_data %>% dplyr::rename(
   "Enhancer_ID" = geneID,
@@ -91,36 +91,18 @@ PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, St
 PROseqGeneInfo = PROseqGeneInfo %>% distinct()
 
 PROseqGeneInfo$Gene_Chr = paste("chr",PROseqGeneInfo$Gene_Chr, sep = "")
-PROseqGeneInfo = tibble::rowid_to_column(PROseqGeneInfo, "Gene_Row")
+PROseqGeneInfo = tibble::rowid_to_column(PROseqGeneInfo, "Gene_row")
 
 PROData = makeGRangesFromDataFrame(PROseqGeneInfo,
                                       seqnames.field = "Gene_Chr", 
                                       start.field = "Gene_Start", 
                                       end.field = "Gene_End")
 
-pairs = data_frame()
-
-for (i in 1:length(ourEnhancerData)){
-  trytry = data.frame(distance(ourEnhancerData[i], PROData, ignore.strand=TRUE))
-
-  colnames(trytry) = c("Distance")
-  trytry$gene_row = rownames(trytry)
-  new_trytry = trytry %>% filter(Distance>15000)
-  new_trytry$enhancer_row = i
-  
-  pairs <- rbind(new_trytry)
-  }
-
-joined = inner_join(PROseqGeneInfo, test_pairs)
-joined = inner_join(our_enhancer_data, joined)
-
-
-
 test_pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand=TRUE))
-colnames(test_pairs) = c("enhancer_row","gene_row","EnhancerDistance")
+colnames(test_pairs) = c("Enhancer_row","Gene_row","EnhancerDistance")
 
-joined = inner_join(PROseqGeneInfo, test_pairs)
-joined = inner_join(our_enhancer_data, joined)
+joined = inner_join(PROseqGeneInfo, test_pairs, by="Gene_row")
+joined = inner_join(our_enhancer_data, joined, by="Enhancer_row")
 
 joined$PROseq_Classification = paste(joined$Gene_Factor,joined$Gene_Direction, sep = " " )
 joined$ATACseq_Classification = paste(joined$Enhancer_Factor,joined$Enhancer_Direction, sep = " " )
@@ -132,9 +114,26 @@ joined = joined %>% mutate(pair_score_Time = Enhancer_Time+Gene_Time)
 
 pairs_filtered = joined %>% filter(PROseq_Classification == ATACseq_Classification)
 
-enhancer_gene_pairs = pairs_filtered %>% dplyr::select(Enhancer_ID, Enhancer_Chr, Enhancer_Start, Enhancer_End, Enhancer_Factor, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, Gene_Factor, pair_score_Gd7, pair_score_Toll10b, pair_score_Toll9, pair_score_Time, EnhancerDistance)
+#enhancer_gene_pairs = pairs_filtered %>% dplyr::select(Enhancer_ID, Enhancer_Chr, Enhancer_Start, Enhancer_End, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, PROseq_Classification, pair_score_Gd7, pair_score_Toll10b, pair_score_Toll9, pair_score_Time, EnhancerDistance)
+enhancer_gene_pairs = pairs_filtered
+enhancer_gene_pairs$pair_score = NA
+for (pair_row in 1:dim(enhancer_gene_pairs)[1]) {
+  factor = enhancer_gene_pairs[pair_row, ]$Gene_Factor
+  if (factor == "Gd7") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Gd7
+  }
+  else if (factor == "Toll9") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll9
+  }
+  else if (factor == "Toll10b") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll10b
+  }
+  else if (factor == "Time") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Time
+  }
+}
 
-enhancer_gene_pairs_unique = unique(enhancer_gene_pairs)
+enhancer_gene_pairs_unique = enhancer_gene_pairs %>% dplyr::select(-pair_score_Gd7, -pair_score_Time, -pair_score_Toll10b, -pair_score_Toll9) %>% unique()
 
 ```
 
@@ -145,15 +144,15 @@ enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique %>% filter(Enha
 
 
 ```{r save the data}
-# We are only interested in the pairs with distances over 15kb
-write.table(
-  x = enhancer_gene_pairs_unique_over_15kb,
-  file = paste(params$workingDir, params$resultsDir, params$resultsFile, sep = ""),
-  quote = F,
-  sep = "\t",
-  row.names = F,
-  col.names = T
-)
+# # We are only interested in the pairs with distances over 15kb
+# write.table(
+#   x = enhancer_gene_pairs_unique_over_15kb,
+#   file = paste(params$workingDir, params$resultsDir, params$resultsFile, sep = ""),
+#   quote = F,
+#   sep = "\t",
+#   row.names = F,
+#   col.names = T
+# )
 
 ```
 
@@ -167,7 +166,7 @@ annotation_data = read.table(
   header = TRUE,
   stringsAsFactors = F
 )
-pairs = enhancer_gene_pairs_unique_over_15kb
+pairs = enhancer_gene_pairs_unique_over_2kb
 annotation_data_cleaned = annotation_data %>% dplyr::select(acc, protFullNames, score, geneName, functionText)
 annotation_data_cleaned = annotation_data_cleaned %>% dplyr::rename(name = acc,
                                                                     geneFunc = protFullNames,
@@ -190,49 +189,51 @@ AllData = inner_join(pairs_uniprotID, annotation_data_cleaned, by = "name")
 
 # Make the results cleaner for output. One file with less information for easier overview
 AllData_renamed = AllData %>% dplyr::rename(
-  UNIPROTname = name,
-  Enhancer_Chr = Chr,
-  Enhancer_Start = Enhancer_Start,
-  Enhancer_End = Enhancer_End
+  UNIPROTname = name
 )
 AllData_cleaned = AllData_renamed %>% dplyr::select(
   Enhancer_ID,
   Gene_geneID,
   EnhancerDistance,
   PROseq_Classification,
-  ATACseq_Classification,
+  pair_score,
   UNIPROTname,
   geneFunc,
   geneName,
   geneFuncFullText
-)
-# The more complete result file
-results = paste(params$workingDir,
-                params$resultsDirAnno,
-                params$resultsAnnotated15kb ,
-                sep = "")
-write.table(
-  x = AllData,
-  file = results,
-  quote = F,
-  sep = "\t",
-  row.names = F,
-  col.names = T
-)
-# The result file with better overview
-results_cleaned = paste(params$workingDir,
-                               params$resultsDirAnno,
-                               params$resultsAnnotatedCleaned15kb ,
-                               sep = "")
-# Save the results file
-write.table(
-  x = AllData_cleaned,
-  file = results_cleaned,
-  quote = F,
-  sep = "\t",
-  row.names = F,
-  col.names = T
-)
+) %>% unique()
+
+
+```
+
+```{r write to file}
+# # The more complete result file
+# results = paste(params$workingDir,
+#                 params$resultsDirAnno,
+#                 params$resultsAnnotated15kb ,
+#                 sep = "")
+# write.table(
+#   x = AllData,
+#   file = results,
+#   quote = F,
+#   sep = "\t",
+#   row.names = F,
+#   col.names = T
+# )
+# # The result file with better overview
+# results_cleaned = paste(params$workingDir,
+#                                params$resultsDirAnno,
+#                                params$resultsAnnotatedCleaned15kb ,
+#                                sep = "")
+# # Save the results file
+# write.table(
+#   x = AllData_cleaned,
+#   file = results_cleaned,
+#   quote = F,
+#   sep = "\t",
+#   row.names = F,
+#   col.names = T
+# )
 
 ```
 
