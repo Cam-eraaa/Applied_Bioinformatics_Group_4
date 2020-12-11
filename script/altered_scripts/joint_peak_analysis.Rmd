@@ -387,8 +387,9 @@ Based on ROC statistics  it is best if we include all five PC
 
 ```{r plot classification }
 scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance5")
-
-AllData.enhancers = AllData %>% filter(distance5 > scores$YoudenCutoff)
+AllData.enhancers = AllData
+AllData.enhancers$Background = "Yes"
+AllData.enhancers$Background[AllData$distance5 > scores$YoudenCutoff] = "No"
 
 AllData.enhancers = AllData.enhancers %>% replace_na(list(enhancerID = "None", enhancerGenotype = "None",insituID = "None",inSituLocation = "None", inSituScore = -1 ))
 
@@ -422,7 +423,8 @@ enhancers.filtering = AllData_test %>% dplyr::select(
   Enhancer_Gd7,
   Enhancer_Toll10b,
   Enhancer_Toll9, 
-  Enhancer_Time
+  Enhancer_Time,
+  Background
 )
 
 
