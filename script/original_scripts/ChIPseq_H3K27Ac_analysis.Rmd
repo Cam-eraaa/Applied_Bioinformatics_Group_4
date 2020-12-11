@@ -235,7 +235,7 @@ The sequencing data has a lot of dimension, time and the different mutants. We w
 line = rbind(line.gd7, line.toll10b, line.toll9)
 loadings = mir.pca$rotation[, 1:3]
 
-# Converts the loading values by subtracting the column(PC) mean and dividing by the column(PC) standard deviation. The columns needs to be transposed to rows to calculate and are then transposed back to columns
+# Converts the loading values into z-values. A positive z-value ==> above average, negative ==> below average, 0 ==> average. 
 loadings_norm = as.data.frame(t((t(loadings) - colMeans(loadings)) / colSds(loadings)))
 
 loadings_norm$geneID = rownames(loadings)
