@@ -37,7 +37,7 @@ library(org.Dm.eg.db)
 
 ```{r from ATAC-CBP_seq_analysis}
 
-#This is just the output from PROseq_analysis
+#Load the output from PROseq_analysis
 our_enhancer_file = paste(params$workingDir, params$enhancer.data, sep = "")
 
 our_enhancer_data = read.table(
@@ -114,6 +114,7 @@ enhancer_gene_pairs_unique_over_15kb = enhancer_gene_pairs_unique %>% filter(Enh
 
 
 ```{r save the data}
+# We are only interested in the pairs with distances over 15kb
 write.table(
   x = enhancer_gene_pairs_unique_over_15kb,
   file = paste(params$workingDir, params$resultsDir, params$resultsFile, sep = ""),
@@ -192,6 +193,7 @@ results_cleaned = paste(params$workingDir,
                                params$resultsDirAnno,
                                params$resultsAnnotatedCleaned15kb ,
                                sep = "")
+# Save the results file
 write.table(
   x = AllData_cleaned,
   file = results_cleaned,

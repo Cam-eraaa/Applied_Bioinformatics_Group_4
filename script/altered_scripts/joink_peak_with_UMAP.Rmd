@@ -35,7 +35,7 @@ library(patchwork)
 library(ROCit)
 library(tidyverse)
 library(GenomicRanges)
-library(umapr)
+library(umap)
 ```
 # Combining the scores to predict enhancer gene pairs
 
@@ -279,7 +279,7 @@ CBPpeak.ATAC.PRO.CBP  = inner_join(CBPpeak.ATAC.PRO, CBPInfo, by = "geneID")
 
 
 ```{r find the overlap and adding annotation}
-# Parameter???
+# Overlap ATAC and K27 data
 overlap_ATAC_K27ac = data.frame(findOverlaps(ATAC_peakData,K27ac_peakData, maxgap = 0))
 overlap_ATAC_K27ac$K27ac_geneID = names(K27ac_peakData)[overlap_ATAC_K27ac$subjectHits]
 overlap_ATAC_K27ac$geneID = names(ATAC_peakData)[overlap_ATAC_K27ac$queryHits]
@@ -288,53 +288,36 @@ overlap_ATAC_K27ac = overlap_ATAC_K27ac %>% dplyr::select(K27ac_geneID,geneID )
 CBPpeak.ATAC.PRO.CBP  = inner_join(CBPpeak.ATAC.PRO.CBP,  overlap_ATAC_K27ac)
 CBPpeak.ATAC.PRO.CBP.K27ac =  inner_join(CBPpeak.ATAC.PRO.CBP,  K27acInfo, by="K27ac_geneID")
 
-
+#Add enhancer data
 overlap_CBP_enhancers = data.frame(findOverlaps(ATAC_peakData,EnhancersPeakData, maxgap = 0))
 overlap_CBP_enhancers$enhancerID = EnhancersPeakData$enhancerID[overlap_CBP_enhancers$subjectHits]
 overlap_CBP_enhancers$geneID = names(ATAC_peakData)[overlap_CBP_enhancers$queryHits]
 overlap_CBP_enhancers = overlap_CBP_enhancers %>% dplyr::select(enhancerID,geneID )
 
-
 CBPpeak.ATAC.PRO.CBP.K27ac.enhancer = left_join(CBPpeak.ATAC.PRO.CBP.K27ac, overlap_CBP_enhancers)
-
 CBPpeak.ATAC.PRO.CBP.K27ac.enhancer = left_join(CBPpeak.ATAC.PRO.CBP.K27ac.enhancer, EnhancersInfo)
 
-
-
+# Add inSitu data
 overlap_CBP_inSitu = data.frame(findOverlaps(ATAC_peakData,inSitu_peakData, maxgap = 0))
 overlap_CBP_inSitu$insituID = inSitu_peakData$insituID[overlap_CBP_inSitu$subjectHits]
 overlap_CBP_inSitu$geneID = names(ATAC_peakData)[overlap_CBP_inSitu$queryHits]
 overlap_CBP_inSitu = overlap_CBP_inSitu %>% dplyr::select(insituID,geneID )
 
-
 CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu = left_join(CBPpeak.ATAC.PRO.CBP.K27ac.enhancer, overlap_CBP_inSitu)
-
 CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu = left_join(CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu, inSituInfo)
 
 ```
 
 ```{r adding annotation as 0 and 1, include=FALSE}
 
-
 EnhancerInfo = CBPpeak.ATAC.PRO.CBP.K27ac.enhancer.inSitu
 EnhancerInfo$geneID_unique = make.names(EnhancerInfo$geneID, unique = TRUE)
-
-
 
 EnhancerInfo$enhancer=1
 EnhancerInfo$enhancer[is.na(EnhancerInfo$enhancerGenotype)]  = 0 
 
 EnhancerInfo$inSitu=0
 EnhancerInfo$inSitu[EnhancerInfo$inSituLocation %in% c("dorsal_ectoderm_AISN_broad", "mesoderm_AISN", "ventral_ectoderm_AISN")] = 1
-
-PE =  EnhancerInfo%>% filter(enhancer == 1) %>% ggplot(aes(PRO_Toll9, PRO_Toll10b, color = enhancerGenotype)) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(PRO_Toll9, PRO_Toll10b), color= "grey")
-PI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(PRO_Toll9, PRO_Toll10b, color = inSituLocation )) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(PRO_Toll9, PRO_Toll10b), color= "grey")
-AE =  EnhancerInfo%>% filter(enhancer == 1) %>% ggplot(aes(ATAC_Toll9, ATAC_Toll10b, color = enhancerGenotype)) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(ATAC_Toll9, ATAC_Toll10b), color= "grey")
-AI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(ATAC_Toll9, ATAC_Toll10b, color = inSituLocation )) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(ATAC_Toll9, ATAC_Toll10b), color= "grey")
-CE =  EnhancerInfo%>% filter(enhancer == 1) %>% ggplot(aes(CBP_Toll9, CBP_Toll10b, color = enhancerGenotype)) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(CBP_Toll9, CBP_Toll10b), color= "grey") 
-CI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(CBP_Toll9, CBP_Toll10b, color = inSituLocation )) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(CBP_Toll9, CBP_Toll10b), color= "grey")
-KE =  EnhancerInfo%>% filter(enhancer == 1) %>% ggplot(aes(K27ac_Toll9, K27ac_Toll10b, color = enhancerGenotype)) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(K27ac_Toll9, K27ac_Toll10b), color= "grey")
-KI =  EnhancerInfo %>% filter(inSitu == 1) %>% ggplot(aes(K27ac_Toll9, K27ac_Toll10b, color = inSituLocation )) + geom_point()+ geom_density_2d(EnhancerInfo,mapping = aes(K27ac_Toll9, K27ac_Toll10b), color= "grey")
 
 ```
 
@@ -346,13 +329,25 @@ all_enhancer.data = allEnhancerInfo2[, grep("ATAC|PRO|CBP|K27ac", colnames(allEn
 embedding <- umap(all_enhancer.data)
 new_embedding = left_join(EnhancerInfo,embedding)
 
-#I think it is best not to filter
-#new_embedding = new_embedding %>% filter(!is.na(enhancerGenotype))
+
+
+
+
+
+multidata.umap  = data.frame(embedding$layout)
+multidata.umap$SYMBOL_unique = paste("region", rownames(multidata.umap), sep = " ")
+colnames(multidata.umap) = c("umap1","umap2","SYMBOL_unique")
+
+
+new_embedding = left_join(EnhancerInfo,multidata.umap)
+
+
+
+
 
 new_embedding %>% 
   mutate(Species = new_embedding$enhancerGenotype) %>%
   ggplot(aes(UMAP1, UMAP2, color = Species)) + geom_point()
-
 
 AllData = new_embedding %>% mutate(distance1 = abs(UMAP1))
 AllData = AllData %>% mutate(distance2 = (UMAP1^2+UMAP2^2)^0.5)
@@ -362,19 +357,6 @@ FE =  AllData %>% filter(enhancer == 1) %>% ggplot(aes(UMAP1, UMAP2, color = enh
 FI =  AllData %>% filter(inSitu == 1) %>% ggplot(aes(UMAP1, UMAP2, color = inSituLocation )) + geom_point()+ geom_density_2d(AllData,mapping = aes(UMAP1, UMAP2), color= "grey")
 
 FE + FI+ plot_layout(ncol = 1)
-
-```
-
-```{r plot this steps }
-
-PE+PI+ plot_layout(ncol = 1)
-AE+AI+ plot_layout(ncol = 1)
-CE+CI+ plot_layout(ncol = 1)
-KE+KI+ plot_layout(ncol = 1)
-FE + FI+ plot_layout(ncol = 1)
-
-PE+PI+AE+AI+CE+CI+KE+KI+FE+FI +plot_layout(ncol = 2)
-
 
 ```
 
@@ -405,7 +387,7 @@ ggplot(ROCplotInfo, mapping =  aes(x = FPR, y = TPR, color = score))+
 # Enhancer selection
 
 
-Based on ROC statistics  it is best if we include both UMAP1 and UMAP2 and that we look at the enhancer data 
+#Based on ROC statisticsit is best if we include both UMAP1 and UMAP2 and that we look at the enhancer data 
 
 ```{r plot classification }
 scores = ROCplotSummary %>% dplyr::filter(classifier == "enhancer" & score == "distance2")
@@ -414,14 +396,12 @@ AllData.enhancers = AllData %>% filter(distance2 > scores$YoudenCutoff)
 
 AllData.enhancers = AllData.enhancers %>% replace_na(list(enhancerID = "None", enhancerGenotype = "None",insituID = "None",inSituLocation = "None", inSituScore = -1 ))
 
-
 peakInfo = data.frame(ATAC_peakData)
 peakInfo$geneID = names(ATAC_peakData)
 
 AllData.enhancers = AllData.enhancers %>% dplyr::select(-geneID_unique)
 AllData.enhancers = inner_join(peakInfo, AllData.enhancers, by = "geneID")
 AllData.enhancers_cleaned = AllData.enhancers %>% dplyr::select(geneID, -seqnames, Chr, start, end, -width, -strand, -ATAC_Start, -ATAC_End, -Strand, Length, ATAC_factor, ATAC_direction, ATAC_Gd7,  ATAC_Toll10b, ATAC_Toll9, ATAC_Time, PRO_Gd7, PRO_Toll10b, PRO_Toll9, PRO_Time, CBP_Gd7,  CBP_Toll10b, CBP_Toll9, K27ac_geneID, -K27ac_Chr, -K27ac_Start, -K27ac_End, -K27ac_Strand, -K27ac_Length,  -K27ac_factor, -K27ac_direction, K27ac_Gd7, K27ac_Toll10b, K27ac_Toll9, enhancerID, enhancerGenotype, insituID, inSituLocation, inSituScore, enhancer, inSitu, UMAP1, UMAP2, distance1, distance2)
-
 
 ```
 
@@ -482,11 +462,11 @@ enhancers.filtering.unique = unique(enhancers.filtering)
 
 AllData.saved = AllData_test
 
-
 ```
 
 
 ```{r save the data}
+# Save the results in a tsv file
 write.table(
   x = enhancers.filtering.unique,
   file = paste(params$workingDir, params$results_file , sep = "/"),

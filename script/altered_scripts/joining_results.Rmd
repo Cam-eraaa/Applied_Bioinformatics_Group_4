@@ -50,6 +50,8 @@ UMAP_data = read.table(
 ```
 
 
+## We want to see if the PCA and UMAP has found the same pairs
+
 ```{r joining}
 
 joined = inner_join(PCA_filtering_data, UMAP_data)
