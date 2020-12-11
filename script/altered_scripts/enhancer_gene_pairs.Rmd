@@ -16,12 +16,12 @@ params:
   
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  resultsAnnotated15kb: annotated_results15kb_PCA_filtering.tsv
-  #resultsAnnotated15kb: annotated_results15kb_no_filtering.tsv
-  #resultsAnnotated15kb: annotated_results15kb_UMAP.tsv
-  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.tsv
-  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_no_filtering.tsv
-  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_UMAP.tsv
+  resultsAnnotated15kb: annotated_results2kb_PCA_filtering.tsv
+  #resultsAnnotated15kb: annotated_results2kb_no_filtering.tsv
+  #resultsAnnotated15kb: annotated_results2kb_UMAP.tsv
+  resultsAnnotatedCleaned15kb: annotated_cleaned_results2kb_PCA_filtering.tsv
+  #resultsAnnotatedCleaned15kb: annotated_cleaned_results2kb_no_filtering.tsv
+  #resultsAnnotatedCleaned15kb: annotated_cleaned_results2kb_UMAP.tsv
 
   
 ---
@@ -35,7 +35,7 @@ library(org.Dm.eg.db)
 ```
 
 
-```{r from ATAC-CBP_seq_analysis}
+```{r Load enhancer and gene data}
 
 #Load the output from joint_peak 
 our_enhancer_file = paste(params$workingDir, params$enhancer.data, sep = "")
@@ -50,20 +50,18 @@ our_enhancer_data = read.table(
 
 our_enhancer_data = tibble::rowid_to_column(our_enhancer_data, "Enhancer_row")
 
-our_enhancer_data= our_enhancer_data %>% dplyr::rename(
+our_enhancer_data = our_enhancer_data %>% dplyr::rename(
   "Enhancer_ID" = geneID,
   "Enhancer_Chr" = Chr,
   "Enhancer_Start" = ATAC_Start, 
   "Enhancer_End" = ATAC_End, 
   "Enhancer_Factor" = ATAC_factor, 
   "Enhancer_Direction" = ATAC_direction)
+our_enhancer_data_no_background = our_enhancer_data %>% dplyr::filter(Background == "No")
 
-ourEnhancerData = makeGRangesFromDataFrame(our_enhancer_data,
-                                      seqnames.field = "Enhancer_Chr", 
-                                      start.field = "Enhancer_Start", 
-                                      end.field = "Enhancer_End")
 
-#This is the output from PROseq_analysis
+
+#This is the output from PROseq_analysis with the genes as regions instead of CBP peaks
 PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
 
 PROseq.gene.data = read.table(
@@ -89,32 +87,38 @@ PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, St
 )
 
 PROseqGeneInfo = PROseqGeneInfo %>% distinct()
-
 PROseqGeneInfo$Gene_Chr = paste("chr",PROseqGeneInfo$Gene_Chr, sep = "")
 PROseqGeneInfo = tibble::rowid_to_column(PROseqGeneInfo, "Gene_row")
+```
 
+```{r creating Genomic ranges from the data frames}
+ourEnhancerData = makeGRangesFromDataFrame(our_enhancer_data_no_background,
+                                      seqnames.field = "Enhancer_Chr", 
+                                      start.field = "Enhancer_Start", 
+                                      end.field = "Enhancer_End")
 PROData = makeGRangesFromDataFrame(PROseqGeneInfo,
                                       seqnames.field = "Gene_Chr", 
                                       start.field = "Gene_Start", 
                                       end.field = "Gene_End")
 
-test_pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand=TRUE))
-colnames(test_pairs) = c("Enhancer_row","Gene_row","EnhancerDistance")
+pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand=TRUE))
+colnames(pairs) = c("Enhancer_row","Gene_row","EnhancerDistance")
 
-joined = inner_join(PROseqGeneInfo, test_pairs, by="Gene_row")
-joined = inner_join(our_enhancer_data, joined, by="Enhancer_row")
+AllData = inner_join(PROseqGeneInfo, pairs, by="Gene_row")
+AllData = inner_join(our_enhancer_data_no_background, AllData, by="Enhancer_row")
 
-joined$PROseq_Classification = paste(joined$Gene_Factor,joined$Gene_Direction, sep = " " )
-joined$ATACseq_Classification = paste(joined$Enhancer_Factor,joined$Enhancer_Direction, sep = " " )
+# Here we create a total score for the pair by adding enhancer score and gene score
+AllData = AllData %>% mutate(pair_score_Gd7 = Enhancer_Gd7+Gene_Gd7)
+AllData = AllData %>% mutate(pair_score_Toll10b = Enhancer_Toll10b+Gene_Toll10b)
+AllData = AllData %>% mutate(pair_score_Toll9 = Enhancer_Toll9+Gene_Toll9)
+AllData = AllData %>% mutate(pair_score_Time = Enhancer_Time+Gene_Time)
 
-joined = joined %>% mutate(pair_score_Gd7 = Enhancer_Gd7+Gene_Gd7)
-joined = joined %>% mutate(pair_score_Toll10b = Enhancer_Toll10b+Gene_Toll10b)
-joined = joined %>% mutate(pair_score_Toll9 = Enhancer_Toll9+Gene_Toll9)
-joined = joined %>% mutate(pair_score_Time = Enhancer_Time+Gene_Time)
+# Filter out the pairs where the gene and enhancer are regulated differently
+AllData$PROseq_Classification = paste(AllData$Gene_Factor,AllData$Gene_Direction, sep = " " )
+AllData$ATACseq_Classification = paste(AllData$Enhancer_Factor,AllData$Enhancer_Direction, sep = " " )
+pairs_filtered = AllData %>% filter(PROseq_Classification == ATACseq_Classification)
 
-pairs_filtered = joined %>% filter(PROseq_Classification == ATACseq_Classification)
-
-#enhancer_gene_pairs = pairs_filtered %>% dplyr::select(Enhancer_ID, Enhancer_Chr, Enhancer_Start, Enhancer_End, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, PROseq_Classification, pair_score_Gd7, pair_score_Toll10b, pair_score_Toll9, pair_score_Time, EnhancerDistance)
+# We want to only include the largest score for the relevant factor
 enhancer_gene_pairs = pairs_filtered
 enhancer_gene_pairs$pair_score = NA
 for (pair_row in 1:dim(enhancer_gene_pairs)[1]) {
