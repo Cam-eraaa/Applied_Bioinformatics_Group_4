@@ -1,0 +1,27 @@
+---
+title: "Pairing"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+pairs = data_frame()
+
+for (i in 1:length(ourEnhancerData)){
+  trytry = data.frame(distance(ourEnhancerData[i], PROData, ignore.strand=TRUE))
+
+  colnames(trytry) = c("Distance")
+  trytry$gene_row = rownames(trytry)
+  new_trytry = trytry %>% filter(Distance>15000)
+  new_trytry$enhancer_row = i
+  
+  pairs <- rbind(pairs, new_trytry)
+}
+
+
+```
+
