@@ -91,25 +91,29 @@ PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, St
 PROseqGeneInfo = PROseqGeneInfo %>% distinct()
 
 PROseqGeneInfo$Gene_Chr = paste("chr",PROseqGeneInfo$Gene_Chr, sep = "")
-PROseqGeneInfo = tibble::rowid_to_column(PROseqGeneInfo, "gene_row")
+PROseqGeneInfo = tibble::rowid_to_column(PROseqGeneInfo, "Gene_Row")
 
 PROData = makeGRangesFromDataFrame(PROseqGeneInfo,
                                       seqnames.field = "Gene_Chr", 
                                       start.field = "Gene_Start", 
                                       end.field = "Gene_End")
 
+pairs = data_frame()
 
+for (i in 1:length(ourEnhancerData)){
+  trytry = data.frame(distance(ourEnhancerData[i], PROData, ignore.strand=TRUE))
 
-# for (i in ourEnhancerData){
-#   trytry = data.frame(distance(ourEnhancerData[i], PROData, ignore.strand=TRUE))
-# 
-#   colnames(trytry) = c("Distance")
-#   trytry$gene_row = rownames(trytry)
-#   new_trytry = trytry %>% filter(Distance>1500 & Distance<150000)
-#   
-#   
-# 
-#   }
+  colnames(trytry) = c("Distance")
+  trytry$gene_row = rownames(trytry)
+  new_trytry = trytry %>% filter(Distance>15000)
+  new_trytry$enhancer_row = i
+  
+  pairs <- rbind(new_trytry)
+  }
+
+joined = inner_join(PROseqGeneInfo, test_pairs)
+joined = inner_join(our_enhancer_data, joined)
+
 
 
 test_pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand=TRUE))
