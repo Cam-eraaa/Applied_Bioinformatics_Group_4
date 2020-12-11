@@ -6,21 +6,21 @@ output: html_document
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  #enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
-  enhancer.data: results/altered_method/from_joint_peak/enhancers_no_filtering.tsv
+  enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/enhancers_no_filtering.tsv
   #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
   resultsDir: results/altered_method/pairs/
-  #resultsFile: EGP_PCA_filtering.tsv
-  resultsFile: EGP_no_filtering.tsv
+  resultsFile: EGP_PCA_filtering.tsv
+  #resultsFile: EGP_no_filtering.tsv
   #resultsFile: EGP_UMAP.tsv
   
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  #resultsAnnotated15kb: annotated_results15kb_PCA_filtering.tsv
-  resultsAnnotated15kb: annotated_results15kb_no_filtering.tsv
+  resultsAnnotated15kb: annotated_results15kb_PCA_filtering.tsv
+  #resultsAnnotated15kb: annotated_results15kb_no_filtering.tsv
   #resultsAnnotated15kb: annotated_results15kb_UMAP.tsv
-  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.tsv
-  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_no_filtering.tsv
+  resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_PCA_filtering.tsv
+  #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_no_filtering.tsv
   #resultsAnnotatedCleaned15kb: annotated_cleaned_results15kb_UMAP.tsv
 
   
@@ -37,7 +37,7 @@ library(org.Dm.eg.db)
 
 ```{r from ATAC-CBP_seq_analysis}
 
-#Load the output from PROseq_analysis
+#Load the output from joint_peak 
 our_enhancer_file = paste(params$workingDir, params$enhancer.data, sep = "")
 
 our_enhancer_data = read.table(
@@ -51,16 +51,19 @@ our_enhancer_data = read.table(
 our_enhancer_data = tibble::rowid_to_column(our_enhancer_data, "enhancer_row")
 
 our_enhancer_data= our_enhancer_data %>% dplyr::rename(
-  "Enhancer_ID" = geneID, 
+  "Enhancer_ID" = geneID,
+  "Enhancer_Chr" = Chr,
   "Enhancer_Start" = ATAC_Start, 
-  "Enhancer_End" = ATAC_End)
+  "Enhancer_End" = ATAC_End, 
+  "Enhancer_Factor" = ATAC_factor, 
+  "Enhancer_Direction" = ATAC_direction)
 
-#This is the output from joint_peak
 ourEnhancerData = makeGRangesFromDataFrame(our_enhancer_data,
-                                      seqnames.field = "Chr", 
-                                      start.field = "start", 
-                                      end.field = "end")
+                                      seqnames.field = "Enhancer_Chr", 
+                                      start.field = "Enhancer_Start", 
+                                      end.field = "Enhancer_End")
 
+#This is the output from PROseq_analysis
 PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
 
 PROseq.gene.data = read.table(
@@ -71,14 +74,18 @@ PROseq.gene.data = read.table(
   stringsAsFactors = F
 )
 
-PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, Strand, direction, factor) %>% dplyr::rename(
+PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID, Chr, Start, End, Strand, direction, factor, Gd7, Toll10b, Toll9, Time) %>% dplyr::rename(
   "Gene_geneID" = geneID,
   "Gene_Chr" = Chr,
   "Gene_Start" = Start,
   "Gene_End" = End,
   "Gene_Strand" = Strand,
   "Gene_Direction" = direction,
-  "Gene_Factor" = factor
+  "Gene_Factor" = factor,
+  "Gene_Gd7" = Gd7, 
+  "Gene_Toll10b" = Toll10b, 
+  "Gene_Toll9" = Toll9, 
+  "Gene_Time" = Time
 )
 
 PROseqGeneInfo = PROseqGeneInfo %>% distinct()
@@ -91,25 +98,45 @@ PROData = makeGRangesFromDataFrame(PROseqGeneInfo,
                                       start.field = "Gene_Start", 
                                       end.field = "Gene_End")
 
+
+
+# for (i in ourEnhancerData){
+#   trytry = data.frame(distance(ourEnhancerData[i], PROData, ignore.strand=TRUE))
+# 
+#   colnames(trytry) = c("Distance")
+#   trytry$gene_row = rownames(trytry)
+#   new_trytry = trytry %>% filter(Distance>1500 & Distance<150000)
+#   
+#   
+# 
+#   }
+
+
 test_pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand=TRUE))
 colnames(test_pairs) = c("enhancer_row","gene_row","EnhancerDistance")
 
 joined = inner_join(PROseqGeneInfo, test_pairs)
 joined = inner_join(our_enhancer_data, joined)
 
-joined$PRO_direction = gsub(pattern = "None", replacement = "Up", joined$Gene_Direction)
-joined$PROseq_Classification = paste(joined$Gene_Factor,joined$PRO_direction, sep = " " )
-joined$ATACseq_Classification = paste(joined$ATAC_factor,joined$ATAC_direction, sep = " " )
+joined$PROseq_Classification = paste(joined$Gene_Factor,joined$Gene_Direction, sep = " " )
+joined$ATACseq_Classification = paste(joined$Enhancer_Factor,joined$Enhancer_Direction, sep = " " )
 
-enhancer_gene_pairs = joined %>% dplyr::select(Enhancer_ID, Chr, Enhancer_Start, Enhancer_End, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, EnhancerDistance, PROseq_Classification, ATACseq_Classification)
+joined = joined %>% mutate(pair_score_Gd7 = Enhancer_Gd7+Gene_Gd7)
+joined = joined %>% mutate(pair_score_Toll10b = Enhancer_Toll10b+Gene_Toll10b)
+joined = joined %>% mutate(pair_score_Toll9 = Enhancer_Toll9+Gene_Toll9)
+joined = joined %>% mutate(pair_score_Time = Enhancer_Time+Gene_Time)
+
+pairs_filtered = joined %>% filter(PROseq_Classification == ATACseq_Classification)
+
+enhancer_gene_pairs = pairs_filtered %>% dplyr::select(Enhancer_ID, Enhancer_Chr, Enhancer_Start, Enhancer_End, Enhancer_Factor, Gene_geneID, Gene_Chr, Gene_Start, Gene_End, Gene_Factor, pair_score_Gd7, pair_score_Toll10b, pair_score_Toll9, pair_score_Time, EnhancerDistance)
 
 enhancer_gene_pairs_unique = unique(enhancer_gene_pairs)
 
 ```
 
 ```{r Filtering}
-enhancer_gene_pairs_unique_ambiguous = enhancer_gene_pairs_unique %>% filter(EnhancerDistance >= 0 & EnhancerDistance < 1500 )  
-enhancer_gene_pairs_unique_over_15kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance > 1500)  
+enhancer_gene_pairs_unique_ambiguous = enhancer_gene_pairs_unique %>% filter(EnhancerDistance >= 0 & EnhancerDistance < 2000 )  
+enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance > 2000)  
 ```
 
 

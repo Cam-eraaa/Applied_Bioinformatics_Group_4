@@ -359,13 +359,13 @@ FI =  AllData %>% filter(inSitu == 1) %>% ggplot(aes(PC1, PC2, color = inSituLoc
 
 ```{r plot this steps }
 
-PE+PI+ plot_layout(ncol = 1)
-AE+AI+ plot_layout(ncol = 1)
-CE+CI+ plot_layout(ncol = 1)
-KE+KI+ plot_layout(ncol = 1)
-FE + FI+ plot_layout(ncol = 1)
-
-PE+PI+AE+AI+CE+CI+KE+KI+FE+FI +plot_layout(ncol = 2)
+# PE+PI+ plot_layout(ncol = 1)
+# AE+AI+ plot_layout(ncol = 1)
+# CE+CI+ plot_layout(ncol = 1)
+# KE+KI+ plot_layout(ncol = 1)
+# FE + FI+ plot_layout(ncol = 1)
+# 
+# PE+PI+AE+AI+CE+CI+KE+KI+FE+FI +plot_layout(ncol = 2)
 
 ```
 
@@ -424,7 +424,6 @@ peakInfo$geneID = names(ATAC_peakData)
 
 AllData.enhancers = AllData.enhancers %>% dplyr::select(-geneID_unique)
 AllData.enhancers = inner_join(peakInfo, AllData.enhancers, by = "geneID")
-AllData.enhancers_cleaned = AllData.enhancers %>% dplyr::select(geneID, -seqnames, Chr, start, end, -width, -strand, -ATAC_Start, -ATAC_End, -Strand, Length, ATAC_factor, ATAC_direction, ATAC_Gd7,  ATAC_Toll10b, ATAC_Toll9, ATAC_Time, PRO_Gd7, PRO_Toll10b, PRO_Toll9, PRO_Time, CBP_Gd7,  CBP_Toll10b, CBP_Toll9, K27ac_geneID, -K27ac_Chr, -K27ac_Start, -K27ac_End, -K27ac_Strand, -K27ac_Length,  -K27ac_factor, -K27ac_direction, K27ac_Gd7, K27ac_Toll10b, K27ac_Toll9, enhancerID, enhancerGenotype, insituID, inSituLocation, inSituScore, enhancer, inSitu, PC1, PC2, PC3, PC4, PC5, distance1, distance2, distance3, distance4, distance5)
 
 ```
 
@@ -432,85 +431,51 @@ AllData.enhancers_cleaned = AllData.enhancers %>% dplyr::select(geneID, -seqname
 ## Taken from combining_all_data
 
 ```{r merge all the data }
-AllData_test = AllData.enhancers_cleaned %>% mutate(Enhancer_Gd7 =  ATAC_Gd7 + CBP_Gd7 + K27ac_Gd7)
+AllData_test = AllData.enhancers %>% mutate(Enhancer_Gd7 =  ATAC_Gd7 + CBP_Gd7 + K27ac_Gd7)
 AllData_test = AllData_test %>% mutate(Enhancer_Toll10b =  ATAC_Toll10b + CBP_Toll10b + K27ac_Toll10b)
 AllData_test = AllData_test %>% mutate(Enhancer_Toll9 =  ATAC_Toll9 + CBP_Toll9 + K27ac_Toll9)
+AllData_test = AllData_test %>% mutate(Enhancer_Time =  ATAC_Time + PRO_Time)
 
-PRO_ATAC_CHiP_data = AllData_test %>%
-  group_by(ATAC_factor, ATAC_direction) %>%
-  summarise(
-    PRO_Time = mean(PRO_Time),
-    PRO_Gd7 = mean(PRO_Gd7),
-    PRO_Toll10b = mean(PRO_Toll10b),
-    PRO_Toll9 = mean(PRO_Toll9),
-    ATAC_Time = mean(ATAC_Time),
-    ATAC_Gd7 = mean(ATAC_Gd7),
-    ATAC_Toll10b = mean(ATAC_Toll10b),
-    ATAC_Toll9 = mean(ATAC_Toll9),
-    K27ac_Gd7 = mean(K27ac_Gd7),
-    K27ac_Toll10b = mean(K27ac_Toll10b),
-    K27ac_Toll9 = mean(K27ac_Toll9),
-    CBP_Gd7 = mean(CBP_Gd7),
-    CBP_Toll10b = mean(CBP_Toll10b),
-    CBP_Toll9 = mean(CBP_Toll9)
-  )
 
-enhancers.filtering = AllData.enhancers %>% dplyr::select(
+enhancers.filtering = AllData_test %>% dplyr::select(
   geneID,
   Chr,
   ATAC_Start, 
   ATAC_End,
   ATAC_factor,
   ATAC_direction,
-  ATAC_Time,
-  ATAC_Gd7,
-  ATAC_Toll10b,
-  ATAC_Toll9,
-  PRO_Time,
-  PRO_Gd7,
-  PRO_Toll10b,
-  PRO_Toll9,
-  CBP_Gd7,
-  CBP_Toll10b,
-  CBP_Toll9,
-  K27ac_geneID,
-  K27ac_Gd7,
-  K27ac_Toll10b,
-  K27ac_Toll9,
   enhancerID,
-  insituID
+  insituID, 
+  Enhancer_Gd7,
+  Enhancer_Toll10b,
+  Enhancer_Toll9, 
+  Enhancer_Time
 )
 
-enhancers.no.filtering = AllData %>% dplyr::select(
+
+AllData_test_no_filtering = AllData %>% mutate(Enhancer_Gd7 =  ATAC_Gd7 + CBP_Gd7 + K27ac_Gd7)
+AllData_test_no_filtering = AllData_test_no_filtering %>% mutate(Enhancer_Toll10b =  ATAC_Toll10b + CBP_Toll10b + K27ac_Toll10b)
+AllData_test_no_filtering = AllData_test_no_filtering %>% mutate(Enhancer_Toll9 =  ATAC_Toll9 + CBP_Toll9 + K27ac_Toll9)
+AllData_test_no_filtering = AllData_test_no_filtering %>% mutate(Enhancer_Time =  ATAC_Time + PRO_Time)
+
+
+enhancers.no.filtering = AllData_test_no_filtering %>% dplyr::select(
   geneID,
   Chr,
   ATAC_Start, 
   ATAC_End,
   ATAC_factor,
   ATAC_direction,
-  ATAC_Time,
-  ATAC_Gd7,
-  ATAC_Toll10b,
-  ATAC_Toll9,
-  PRO_Time,
-  PRO_Gd7,
-  PRO_Toll10b,
-  PRO_Toll9,
-  CBP_Gd7,
-  CBP_Toll10b,
-  CBP_Toll9,
-  K27ac_geneID,
-  K27ac_Gd7,
-  K27ac_Toll10b,
-  K27ac_Toll9,
   enhancerID,
-  insituID
+  insituID, 
+  Enhancer_Gd7,
+  Enhancer_Toll10b,
+  Enhancer_Toll9, 
+  Enhancer_Time
 )
 
 enhancers.filtering.unique = unique(enhancers.filtering)
 enhancers.no.filtering.unique = unique(enhancers.no.filtering)
-
-AllData.saved = AllData_test
 
 ```
 
