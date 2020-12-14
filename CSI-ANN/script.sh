@@ -12,3 +12,4 @@ python3 2_2_CBP.py
 Rscript 3_bed_to_wig.R
 rm output/*.bedGraph
 #Step 4
+python3 4_histones.py
