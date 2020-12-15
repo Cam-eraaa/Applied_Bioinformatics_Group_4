@@ -178,7 +178,7 @@ e.var$PC = as.factor(1:nrow(e.var))
 e.var$Variance = e.var$e.var * 100
 #Add column with CumulativeVariance
 e.var$CumulativeVariance = cumsum(e.var$Variance)
-#Plot each PC component and its varience.
+#Plot each PC component and its variance.
 qplot(
   PC,
   Variance,
@@ -203,9 +203,7 @@ pca  = plotPCAplot(
   PCAinfo = pctable,
   n.comp = 4,
   varianceInfo = e.var,
-  colorComponent = "Genotype",
-  pchComponent = "Replicate"
-  
+  colorComponent = "Genotype"
 )
 # Need to actually run the command to output plot
 pca
