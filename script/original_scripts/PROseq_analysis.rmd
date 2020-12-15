@@ -432,8 +432,7 @@ ggplot(line, mapping = aes(x = PC2, y = PC3, color = factor)) + geom_line() + ge
                                                                                            y = PC3,
                                                                                            color = factor,
                                                                                            shape = time
-                                                                                         )) +
-  scale_color_viridis(discrete = TRUE, option = "D")
+                                                                                         )) + scale_color_viridis(discrete = TRUE, option = "D")
 
 ```
 
