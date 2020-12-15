@@ -483,6 +483,9 @@ peakInfo = data.frame(ATAC_peakData)
 peakInfo$geneID = names(ATAC_peakData)
 AllData.enhancers = AllData.enhancers %>% dplyr::select(-geneID_unique)
 AllData.enhancers = inner_join(peakInfo, AllData.enhancers, by = "geneID")
+
+# Plot to find how many background enhancers and where in the 2D space of PC1 and PC2 they are
+ggplot(AllData.enhancers, mapping =  aes(x = PC1, y = PC2, color = Background, shape=ATAC_factor)) + geom_point() + ggtitle("Enhancer data with background enhancers")
 ```
 
 
