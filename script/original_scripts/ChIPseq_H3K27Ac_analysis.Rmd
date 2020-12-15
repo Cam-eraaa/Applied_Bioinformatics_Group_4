@@ -126,9 +126,6 @@ normExpression$geneID = rownames(normExpression)
 normExpressionDF  = normExpression %>% gather( key = sampleID, value = rlog, -geneID)
 normExpressionDF = inner_join(normExpressionDF, metaInfo)
 
-#Plot normExpressionDF
-ggplot(normExpressionDF, aes(x = rlog)) + geom_density()
-
 peakInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleID) %>% 
   dplyr::group_by (geneID) %>%
   dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
@@ -177,7 +174,7 @@ e.var$PC = as.factor(1:nrow(e.var))
 e.var$Variance = e.var$e.var*100
 #Add column with CumulativeVariance
 e.var$CumulativeVariance = cumsum(e.var$Variance)
-#Plot each PC component and its varience
+#Plot each PC component and its variance
 qplot(PC, Variance, data=e.var, geom = c("point")
       , ylim = c(0,max(e.var$Variance)+5) 
       ,ylab = "Variance (%)")
@@ -189,10 +186,11 @@ pctable$sampleID = rownames(pctable)
 #Add the metainfo
 pctable = inner_join(pctable, metaInfo)
 #Plot using a function in ExpressionAnalysisFucntions
-pca  = plotPCAplot(PCAinfo = pctable, n.comp = 4,
-            varianceInfo = e.var, 
-            colorComponent = "Genotype",pchComponent = "Replicate"
-              
+pca  = plotPCAplot(
+  PCAinfo = pctable,
+  n.comp = 4,
+  varianceInfo = e.var,
+  colorComponent = "Genotype"
 )
 # Needs to actually run the command to output plot
 pca
@@ -221,10 +219,6 @@ line = rbind(line.gd7,line.toll10b,line.toll9)
 ggplot(line, mapping = aes(x = PC1,y = PC2, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC2, color = Genotype))
 
 ggplot(line, mapping = aes(x = PC2,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC2,y = PC3, color = Genotype))
-
-ggplot(line, mapping = aes(x = PC1,y = PC3, color = factor))+ geom_line() + geom_point(data = pctable,  mapping = aes(x = PC1,y = PC3, color = Genotype))
-
-
 ```
 
 ## Gene scores
