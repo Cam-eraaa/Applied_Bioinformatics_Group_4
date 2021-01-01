@@ -9,16 +9,16 @@ params:
   enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
   #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
   resultsDir: results/altered_method/pairs/
-  resultsFile: EGP_PCA_filtering.tsv
-  #resultsFile: EGP_UMAP.tsv
+  #resultsFile: EGP_PCA_filtering.tsv
+  resultsFile: EGP_UMAP.tsv
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  resultsAnnotated2kb: annotated_results2kb_PCA_filtering.tsv
+  #resultsAnnotated2kb: annotated_results2kb_PCA_filtering.tsv
   #resultsAnnotated2kb: annotated_results2kb_no_filtering.tsv
-  #resultsAnnotated2kb: annotated_results2kb_UMAP.tsv
-  resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_PCA_filtering.tsv
+  resultsAnnotated2kb: annotated_results2kb_UMAP.tsv
+  #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_PCA_filtering.tsv
   #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_no_filtering.tsv
-  #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_UMAP.tsv
+  resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_UMAP.tsv
 ---
 
 ```{r setup, include=FALSE}
