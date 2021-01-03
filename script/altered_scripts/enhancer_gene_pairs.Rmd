@@ -9,16 +9,16 @@ params:
   enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
   #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
   resultsDir: results/altered_method/pairs/
-  #resultsFile: EGP_PCA_filtering.tsv
-  resultsFile: EGP_UMAP.tsv
+  resultsFile: EGP_PCA_filtering.tsv
+  #resultsFile: EGP_UMAP.tsv
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  #resultsAnnotated2kb: annotated_results2kb_PCA_filtering.tsv
+  resultsAnnotated2kb: annotated_results2kb_PCA_filtering.tsv
   #resultsAnnotated2kb: annotated_results2kb_no_filtering.tsv
-  resultsAnnotated2kb: annotated_results2kb_UMAP.tsv
-  #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_PCA_filtering.tsv
+  #resultsAnnotated2kb: annotated_results2kb_UMAP.tsv
+  resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_PCA_filtering.tsv
   #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_no_filtering.tsv
-  resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_UMAP.tsv
+  #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_UMAP.tsv
 ---
 
 ```{r setup, include=FALSE}
@@ -110,13 +110,36 @@ PROData = makeGRangesFromDataFrame(
 ## Find the nearest gene for each enhancer
 
 ```{r find pairs}
-# Now we pair the enhancers to the nearest gene
-pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand =
-                                       TRUE))
-colnames(pairs) = c("Enhancer_row", "Gene_row", "EnhancerDistance")
-AllData = inner_join(PROseqGeneInfo, pairs, by = "Gene_row")
-AllData = inner_join(our_enhancer_data_no_background, AllData, by = "Enhancer_row")
+# # Now we pair the enhancers to the nearest gene
+# pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand =
+#                                        TRUE))
+# colnames(pairs) = c("Enhancer_row", "Gene_row", "EnhancerDistance")
+# AllData = inner_join(PROseqGeneInfo, pairs, by = "Gene_row")
+# AllData = inner_join(our_enhancer_data_no_background, AllData, by = "Enhancer_row")
 ```
+
+
+```{r find all pairs, not just closest}
+
+pairs = data_frame()
+
+for (i in 1:length(ourEnhancerData)){
+  trytry = data.frame(distance(ourEnhancerData[i], PROData, ignore.strand=TRUE))
+
+  colnames(trytry) = c("Distance")
+  trytry$Gene_row = as.integer(rownames(trytry))
+  new_trytry = trytry %>% filter(Distance>2000)
+  new_trytry$Enhancer_row = i
+  
+  pairs <- rbind(pairs, new_trytry)
+}
+
+AllData = inner_join(PROseqGeneInfo, pairs, by = "Gene_row")
+# The reason why this reduces the amount of pairs is because you only choose the no background. 
+AllData = inner_join(our_enhancer_data_no_background, AllData, by = "Enhancer_row")
+
+```
+
 
 ```{r create a single score for each mutant}
 # Here we create a total score for the pair by adding enhancer score and gene score
@@ -165,9 +188,9 @@ enhancer_gene_pairs_unique = enhancer_gene_pairs %>% dplyr::select(-pair_score_G
 We know enhancers are working at a distance so enhancer that are close to the gene we do not know if it is true or not. We set the cut pff as 2 kb between the gene and the enhancer
 
 ```{r Filtering by distance}
-enhancer_gene_pairs_unique_ambiguous = enhancer_gene_pairs_unique %>% filter(EnhancerDistance >= 0 &
-                                                                               EnhancerDistance < 2000)
-enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique %>% filter(EnhancerDistance > 2000)  
+enhancer_gene_pairs_unique_ambiguous = enhancer_gene_pairs_unique %>% filter(Distance >= 0 &
+                                                                               Distance < 2000)
+enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique %>% filter(Distance > 2000)  
 ```
 
 
