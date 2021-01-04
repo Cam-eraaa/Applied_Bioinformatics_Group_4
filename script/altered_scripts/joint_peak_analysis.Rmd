@@ -322,7 +322,7 @@ EnhancerInfo$inSitu[EnhancerInfo$inSituLocation %in% c("dorsal_ectoderm_AISN_bro
 ```
 
 ```{r plot the annotations}
-# Here we plot the true positves dependent on which annotation and which data set it is.
+# Here we plot the true positives dependent on which annotation and which data set it is.
 PE =  EnhancerInfo %>% filter(enhancer == 1) %>% ggplot(aes(PRO_Toll9, PRO_Toll10b, color = enhancerGenotype)) +
   ggtitle("PRO-seq data for enhancer data") + geom_point() + geom_density_2d(EnhancerInfo,
                                                                              mapping = aes(PRO_Toll9, PRO_Toll10b),
@@ -531,7 +531,12 @@ write.table(
   col.names = T
 )
 
+
+enhancers.filtering_no_background = enhancers.filtering %>% filter(Background=="No")
+
+
 ```
+
 
 
 

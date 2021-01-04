@@ -9,7 +9,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r cars}
-#This is now added to enhancer_gene_pairs.Rmd
+# Not relevant anymore
+# This is now added to enhancer_gene_pairs.Rmd 
 
 
 pairs = data_frame()

@@ -51,7 +51,7 @@ our_enhancer_data = our_enhancer_data %>% dplyr::rename(
   "Enhancer_Direction" = ATAC_direction
 )
 # Filter out the background enhancers
-our_enhancer_data_no_background = our_enhancer_data %>% dplyr::filter(Background == "No")
+#our_enhancer_data_no_background = our_enhancer_data %>% dplyr::filter(Background == "No")
 
 #This is the output from PROseq_analysis with the genes as regions instead of CBP peaks
 PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
@@ -94,7 +94,7 @@ PROseqGeneInfo = tibble::rowid_to_column(PROseqGeneInfo, "Gene_row")
 
 ```{r creating Genomic ranges from the data frames}
 ourEnhancerData = makeGRangesFromDataFrame(
-  our_enhancer_data_no_background,
+  our_enhancer_data,
   seqnames.field = "Enhancer_Chr",
   start.field = "Enhancer_Start",
   end.field = "Enhancer_End"
@@ -124,19 +124,19 @@ PROData = makeGRangesFromDataFrame(
 pairs = data_frame()
 
 for (i in 1:length(ourEnhancerData)){
-  trytry = data.frame(distance(ourEnhancerData[i], PROData, ignore.strand=TRUE))
+  paired_rows = data.frame(distance(ourEnhancerData[i], PROData, ignore.strand=TRUE))
 
-  colnames(trytry) = c("Distance")
-  trytry$Gene_row = as.integer(rownames(trytry))
-  new_trytry = trytry %>% filter(Distance>2000)
-  new_trytry$Enhancer_row = i
+  colnames(paired_rows) = c("Distance")
+  paired_rows$Gene_row = as.integer(rownames(paired_rows))
+  filtered_paired_rows = paired_rows %>% filter(Distance>2000)
+  filtered_paired_rows$Enhancer_row = i
   
-  pairs <- rbind(pairs, new_trytry)
+  pairs <- rbind(pairs, filtered_paired_rows)
 }
 
 AllData = inner_join(PROseqGeneInfo, pairs, by = "Gene_row")
 # The reason why this reduces the amount of pairs is because you only choose the no background. 
-AllData = inner_join(our_enhancer_data_no_background, AllData, by = "Enhancer_row")
+AllData = inner_join(our_enhancer_data, AllData, by = "Enhancer_row")
 
 ```
 
@@ -187,15 +187,33 @@ enhancer_gene_pairs_unique = enhancer_gene_pairs %>% dplyr::select(-pair_score_G
 ## Filter by distance
 We know enhancers are working at a distance so enhancer that are close to the gene we do not know if it is true or not. We set the cut pff as 2 kb between the gene and the enhancer
 
-```{r Filtering by distance}
-enhancer_gene_pairs_unique_ambiguous = enhancer_gene_pairs_unique %>% filter(Distance >= 0 &
-                                                                               Distance < 2000)
+```{r Filtering by distance and background}
 enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique %>% filter(Distance > 2000)  
+
+enhancer_gene_pairs_unique_over_2kb_no_background = enhancer_gene_pairs_unique_over_2kb %>% filter(Background == "No")
+```
+
+
+```{r Filtering on the scores and density plot}
+# Changing the scores to absolute values
+enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique_over_2kb %>% mutate(pair_score = abs(pair_score))
+
+# Plotting a density plot to find where to make the cutoff
+density_plot = ggplot(data.frame(enhancer_gene_pairs_unique_over_2kb$pair_score), aes(x=enhancer_gene_pairs_unique_over_2kb$pair_score)) + 
+  geom_density(color="darkblue") +
+  geom_vline(aes(xintercept=mean(enhancer_gene_pairs_unique_over_2kb$pair_score)),
+             linetype="dashed") +
+  geom_vline(aes(xintercept=1.4), linetype="dashed", color="green") +
+  labs(title="Pair score density curve",x="Pair Score", y = "Density")
+
+
+# According to this we filter on scores larger than 1.4
+enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique_over_2kb %>% filter(pair_score > 1.4)
 ```
 
 
 ```{r save the data}
-# We are only interested in the pairs with distances over 15kb
+# We are only interested in the pairs with distances over 2kb
 write.table(
   x = enhancer_gene_pairs_unique_over_2kb,
   file = paste(
@@ -247,7 +265,7 @@ AllData_renamed = AllData %>% dplyr::rename(UNIPROTname = name)
 AllData_cleaned = AllData_renamed %>% dplyr::select(
   Enhancer_ID,
   Gene_geneID,
-  EnhancerDistance,
+  Distance,
   PROseq_Classification,
   pair_score,
   UNIPROTname,
