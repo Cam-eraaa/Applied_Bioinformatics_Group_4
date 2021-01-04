@@ -13,5 +13,4 @@ python3 3_find_TP.py
 #Step 4
 Rscript 4_ROC.R
 
-rm output/filtered_Predictions_*
-rm output/overlap_*
+rm -r output/
