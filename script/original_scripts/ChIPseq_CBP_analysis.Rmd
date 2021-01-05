@@ -234,9 +234,6 @@ ggplot(line, mapping = aes(x = PC2, y = PC3, color = factor)) + geom_line() + ge
 
 ggplot(line, mapping = aes(x = PC1, y = PC2, color = factor)) + geom_line() + geom_point(data = pctable,
                                                                                          mapping = aes(x = PC1, y = PC2, color = Genotype))
-
-ggplot(line, mapping = aes(x = PC1, y = PC3, color = factor)) + geom_line() + geom_point(data = pctable,
-                                                                                         mapping = aes(x = PC1, y = PC3, color = Genotype))
 ```
 
 ## Gene scores
