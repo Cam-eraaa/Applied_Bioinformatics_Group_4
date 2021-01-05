@@ -286,7 +286,7 @@ ggplot(normExpressionDF,
          x = rlog,
          color = sampleName,
          linetype = time
-       )) + geom_density()
+       )) + geom_density() + ggtitle("The distribution of log fold change in PRO-seq data")
 ```
 
 ### Density filtering
@@ -316,7 +316,7 @@ ggplot(normExpressionDF.QC, aes(
   x = rlog,
   color = mutant,
   linetype = time
-)) + geom_density()
+)) + geom_density() + ggtitle("Distribution of log fold change after filtering")
 
 # We are only interested in the log values since we want to normalize them
 normExpression.QC = normExpressionDF.QC %>%
@@ -411,7 +411,8 @@ qplot(
   data = e.var,
   geom = c("point"),
   ylim = c(0, max(e.var$Variance) + 5),
-  ylab = "Variance (%)"
+  ylab = "Variance (%)",
+  main = "Variance for PRO-seq data with CBP regions"
 )
 #'  __Figure 2 Plotting PCA variance__.
 #'  Displays how much each of the PC contributes to the overall expression.
