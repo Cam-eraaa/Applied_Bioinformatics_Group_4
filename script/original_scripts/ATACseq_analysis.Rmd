@@ -289,7 +289,8 @@ qplot(
   data = e.var,
   geom = c("point"),
   ylim = c(0, max(e.var$Variance) + 5),
-  ylab = "Variance (%)"
+  ylab = "Variance (%)",
+  main = " Variance in ATAC-seq data"
 )
 
 #'  __Figure 2 Plotting PCA variance__.
