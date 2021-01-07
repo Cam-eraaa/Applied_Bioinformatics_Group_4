@@ -110,10 +110,10 @@ Remove all genes that is not expressed in any sample and start adding known info
 geneExpression = log(rowSums(countData))
 geneInfo$logExpression = log(rowSums(countData))
 
-# Filter out all genes with no expression(counts = 0 --> log(count)=1)
+# Filter out all regions with no expression(counts = 0 --> log(count)=1)
 geneInfo.QC = geneInfo %>% filter(logExpression > 1)
 
-# Save only the count data with genes with expression
+# Save only the count data with regions with expression
 countData.QC =  countData[geneInfo.QC$geneID, ]
 ```
 
