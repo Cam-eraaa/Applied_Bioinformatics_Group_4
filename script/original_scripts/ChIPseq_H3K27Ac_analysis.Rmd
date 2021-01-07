@@ -44,7 +44,7 @@ library(edgeR)
 
 ### Using feature count to get the counts
 
-```{r Adding the first analysis of the data, include=FALSE}
+```{r Adding the first analysis of the data}
 #Load in the path to the H3K27ac feature count file
 featureCountFile = paste(params$workingDir, params$dataDir, params$chipSeqData, sep = "/")
 
@@ -128,14 +128,15 @@ normExpressionDF = inner_join(normExpressionDF, metaInfo)
 
 peakInfo = normExpressionDF %>% dplyr::select(geneID, rlog, sampleID) %>% 
   dplyr::group_by (geneID) %>%
-  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 5)) ) 
+  dplyr::summarize ( min = min(rlog), max = max(rlog), mean = mean(rlog), sd = sd(rlog), overQC = length(which(rlog > 7)) ) 
 
 #Filter out so that peakInfo.QC only has overQC values above 2. 
 peakInfo.QC = peakInfo %>% filter(overQC > 2)
 #Filter so that normExpressionDF.QC only contains elements with a geneID that also is in peakInfo.QC
 normExpressionDF.QC = normExpressionDF %>% filter(geneID %in% peakInfo.QC$geneID)
 
-#Plot the filtered normExpressionDF, but coloring sampleID now
+#Plot the non-filtered and filtered normExpressionDF, but coloring sampleID now
+ggplot(normExpressionDF, aes(x = rlog, color = sampleID)) + geom_density()
 ggplot(normExpressionDF.QC, aes(x = rlog, color = sampleID)) + geom_density()
 
 #Create a table with the samples as columns and rlog as values
