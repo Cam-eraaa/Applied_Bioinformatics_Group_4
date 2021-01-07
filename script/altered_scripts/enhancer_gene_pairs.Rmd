@@ -6,19 +6,19 @@ output: html_document
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
-  #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
+  enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
   resultsDir: results/altered_method/pairs/
-  resultsFile: EGP_PCA_filtering.tsv
-  #resultsFile: EGP_UMAP.tsv
+  #resultsFile: EGP_PCA_filtering.tsv
+  resultsFile: EGP_UMAP.tsv
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  resultsAnnotated2kb: annotated_results2kb_PCA_filtering.tsv
+  #resultsAnnotated2kb: annotated_results2kb_PCA_filtering.tsv
   #resultsAnnotated2kb: annotated_results2kb_no_filtering.tsv
-  #resultsAnnotated2kb: annotated_results2kb_UMAP.tsv
-  resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_PCA_filtering.tsv
+  resultsAnnotated2kb: annotated_results2kb_UMAP.tsv
+  #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_PCA_filtering.tsv
   #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_no_filtering.tsv
-  #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_UMAP.tsv
+  resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_UMAP.tsv
 ---
 
 ```{r setup, include=FALSE}
@@ -166,21 +166,27 @@ Only the score connected to the largest factor(mutant or time) is kept and saved
 # We want to only include the score for the relevant factor
 enhancer_gene_pairs = pairs_filtered
 enhancer_gene_pairs$pair_score = NA
+
 for (pair_row in 1:dim(enhancer_gene_pairs)[1]) {
-  factor = enhancer_gene_pairs[pair_row, ]$Gene_Factor
-  if (factor == "Gd7") {
-    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Gd7
-  }
-  else if (factor == "Toll9") {
-    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll9
-  }
-  else if (factor == "Toll10b") {
-    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll10b
-  }
-  else if (factor == "Time") {
-    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Time
-  }
+  fac = paste("pair_score_",enhancer_gene_pairs[pair_row, ]$Gene_Factor, sep = "")
+  enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$fac
 }
+
+# for (pair_row in 1:dim(enhancer_gene_pairs)[1]) {
+#   factor = enhancer_gene_pairs[pair_row, ]$Gene_Factor
+#   if (factor == "Gd7") {
+#     enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Gd7
+#   }
+#   else if (factor == "Toll9") {
+#     enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll9
+#   }
+#   else if (factor == "Toll10b") {
+#     enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll10b
+#   }
+#   else if (factor == "Time") {
+#     enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Time
+#   }
+# }
 enhancer_gene_pairs_unique = enhancer_gene_pairs %>% dplyr::select(-pair_score_Gd7,-pair_score_Time,-pair_score_Toll10b,-pair_score_Toll9) %>% unique()
 ```
 

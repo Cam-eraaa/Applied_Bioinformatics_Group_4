@@ -315,23 +315,12 @@ allEnhancerInfo2 = EnhancerInfo %>% dplyr::select(-geneID,-enhancerID,-enhancerG
 
 all_enhancer.data = allEnhancerInfo2[, grep("ATAC|PRO|CBP|K27ac", colnames(allEnhancerInfo2))]
 embedding <- umap(all_enhancer.data)
-#new_embedding = left_join(EnhancerInfo,embedding)
-
-
-
-
-
 
 multidata.umap  = data.frame(embedding$layout)
 colnames(multidata.umap) = c("UMAP1","UMAP2")
 multidata.umap$geneID = paste("Region", rownames(multidata.umap), sep = "")
 
-
 new_embedding = left_join(EnhancerInfo,multidata.umap)
-
-
-
-
 
 new_embedding %>% 
   mutate(Species = new_embedding$enhancerGenotype) %>%
@@ -433,8 +422,11 @@ enhancers.filtering = AllData_test %>% dplyr::select(
   Background
 ) %>% unique()
 
+# Filter out the background since we are interested in the filtering UMAP did
+enhancers.filtering_no_background = enhancers.filtering %>% filter(Background=="No")
+
 write.table(
-  x = enhancers.filtering,
+  x = enhancers.filtering_no_background,
   file = paste(params$workingDir, params$results_file , sep = "/"),
   quote = F,
   sep = "\t",
@@ -442,8 +434,6 @@ write.table(
   col.names = T
 )
 
-# Just to be able to count the non-background files
-enhancers.filtering_no_background = enhancers.filtering %>% filter(Background=="No")
 
 
 ```
