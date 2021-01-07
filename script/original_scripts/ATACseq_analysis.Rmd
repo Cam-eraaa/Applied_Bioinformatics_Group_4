@@ -157,7 +157,7 @@ geneInfo = normExpressionDF %>%
     max = max(rlog),
     mean = mean(rlog),
     sd = sd(rlog),
-    overQC = length(which(rlog > 5))
+    overQC = length(which(rlog > 8))
   )
 
 
