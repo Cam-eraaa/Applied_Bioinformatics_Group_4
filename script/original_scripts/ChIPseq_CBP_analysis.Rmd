@@ -130,7 +130,7 @@ normExpressionDF  = normExpression %>% gather( key = sampleID, value = rlog, -ge
 normExpressionDF = inner_join(normExpressionDF, metaInfo)
 
 #Plot the CBP and input samples as one line each
-ggplot(normExpressionDF, aes(x = rlog, color = Input)) + geom_density()
+ggplot(normExpressionDF, aes(x = rlog, color = sampleName)) + geom_density()
 
 peakInfo1 = normExpressionDF %>% dplyr::select(geneID, rlog, sampleName) %>% 
   dplyr::group_by (geneID) %>%
@@ -340,7 +340,7 @@ sampleInfoFile = paste(
 )
 sampleInfo.QC = sampleInfo %>%
   filter (Input == params$Antibody) %>%
-  select(sampleInfo, sampleID, Genotype, Replicate, Input)
+  dplyr::select(sampleInfo, sampleID, Genotype, Replicate, Input)
 write.table(
   x = sampleInfo.QC,
   file = sampleInfoFile,
