@@ -167,26 +167,26 @@ Only the score connected to the largest factor(mutant or time) is kept and saved
 enhancer_gene_pairs = pairs_filtered
 enhancer_gene_pairs$pair_score = NA
 
-for (pair_row in 1:dim(enhancer_gene_pairs)[1]) {
-  fac = paste("pair_score_",enhancer_gene_pairs[pair_row, ]$Gene_Factor, sep = "")
-  enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$fac
-}
-
 # for (pair_row in 1:dim(enhancer_gene_pairs)[1]) {
-#   factor = enhancer_gene_pairs[pair_row, ]$Gene_Factor
-#   if (factor == "Gd7") {
-#     enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Gd7
-#   }
-#   else if (factor == "Toll9") {
-#     enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll9
-#   }
-#   else if (factor == "Toll10b") {
-#     enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll10b
-#   }
-#   else if (factor == "Time") {
-#     enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Time
-#   }
+#   fac = paste("pair_score_",enhancer_gene_pairs[pair_row, ]$Gene_Factor, sep = "")
+#   enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,][fac]
 # }
+
+for (pair_row in 1:dim(enhancer_gene_pairs)[1]) {
+  factor = enhancer_gene_pairs[pair_row, ]$Gene_Factor
+  if (factor == "Gd7") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Gd7
+  }
+  else if (factor == "Toll9") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll9
+  }
+  else if (factor == "Toll10b") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll10b
+  }
+  else if (factor == "Time") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Time
+  }
+}
 enhancer_gene_pairs_unique = enhancer_gene_pairs %>% dplyr::select(-pair_score_Gd7,-pair_score_Time,-pair_score_Toll10b,-pair_score_Toll9) %>% unique()
 ```
 
