@@ -1,0 +1,292 @@
+---
+title: "Nearest distance method"
+author: "Jenny Jakobsson"
+date: "1/7/2021"
+output: html_document
+
+params:
+  workingDir: ~/Applied_Bioinformatics_Group_4/
+  PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
+  enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
+  resultsDir: results/altered_method/pairs/
+  #resultsFile: EGP_PCA_filtering_nearest_distance.tsv
+  resultsFile: EGP_PCA_no_filter_nearest_distance.tsv
+  #resultsFile: EGP_UMAP.tsv
+  resultsDirAnno: results/altered_method/pairs/nearest_distance
+  functionAnnotation: hgTables.txt
+  #resultsAnnotated2kb: annotated_nearest_distance_PCA_filtering.tsv
+  resultsAnnotated2kb: annotated_nearest_distance_no_filtering.tsv
+  #resultsAnnotated2kb: annotated_nearest_distance_UMAP.tsv
+  #resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_PCA_filtering.tsv
+  resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_no_filtering.tsv
+  #resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_UMAP.tsv
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(gplots)
+library(GenomicRanges)
+library(clusterProfiler)
+library(org.Dm.eg.db)
+```
+
+
+# Connecting enhancers to pair
+## Load the data
+We use the enhancers previously identified and the differentially expressed genes
+```{r Load enhancer and gene data}
+# Load the output from joint_peak
+our_enhancer_file = paste(params$workingDir, params$enhancer.data, sep = "")
+our_enhancer_data = read.table(
+  file = our_enhancer_file ,
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+our_enhancer_data = tibble::rowid_to_column(our_enhancer_data, "Enhancer_row")
+our_enhancer_data = our_enhancer_data %>% dplyr::rename(
+  "Enhancer_ID" = geneID,
+  "Enhancer_Chr" = Chr,
+  "Enhancer_Start" = ATAC_Start,
+  "Enhancer_End" = ATAC_End,
+  "Enhancer_Factor" = ATAC_factor,
+  "Enhancer_Direction" = ATAC_direction
+)
+# Filter out the background enhancers
+our_enhancer_data = our_enhancer_data %>% dplyr::filter(Background == "No")
+#This is the output from PROseq_analysis with the genes as regions instead of CBP peaks
+PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
+PROseq.gene.data = read.table(
+  file = PROseq_gene_file ,
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+PROseqGeneInfo = PROseq.gene.data %>%  dplyr::select(geneID,
+                                                     Chr,
+                                                     Start,
+                                                     End,
+                                                     Strand,
+                                                     direction,
+                                                     factor,
+                                                     Gd7,
+                                                     Toll10b,
+                                                     Toll9,
+                                                     Time) %>% dplyr::rename(
+                                                       "Gene_geneID" = geneID,
+                                                       "Gene_Chr" = Chr,
+                                                       "Gene_Start" = Start,
+                                                       "Gene_End" = End,
+                                                       "Gene_Strand" = Strand,
+                                                       "Gene_Direction" = direction,
+                                                       "Gene_Factor" = factor,
+                                                       "Gene_Gd7" = Gd7,
+                                                       "Gene_Toll10b" = Toll10b,
+                                                       "Gene_Toll9" = Toll9,
+                                                       "Gene_Time" = Time
+                                                     )
+PROseqGeneInfo = PROseqGeneInfo %>% distinct()
+PROseqGeneInfo$Gene_Chr = paste("chr", PROseqGeneInfo$Gene_Chr, sep = "")
+PROseqGeneInfo = tibble::rowid_to_column(PROseqGeneInfo, "Gene_row")
+```
+
+## Create the genomic ranges to be able to find pairs
+
+```{r creating Genomic ranges from the data frames}
+ourEnhancerData = makeGRangesFromDataFrame(
+  our_enhancer_data,
+  seqnames.field = "Enhancer_Chr",
+  start.field = "Enhancer_Start",
+  end.field = "Enhancer_End"
+)
+PROData = makeGRangesFromDataFrame(
+  PROseqGeneInfo,
+  seqnames.field = "Gene_Chr",
+  start.field = "Gene_Start",
+  end.field = "Gene_End"
+)
+```
+
+## Find the nearest gene for each enhancer
+
+```{r find pairs}
+# # Now we pair the enhancers to the nearest gene
+pairs = data.frame(distanceToNearest(ourEnhancerData, PROData, ignore.strand =
+                                       TRUE))
+colnames(pairs) = c("Enhancer_row", "Gene_row", "Distance")
+AllData = inner_join(PROseqGeneInfo, pairs, by = "Gene_row")
+AllData = inner_join(our_enhancer_data, AllData, by = "Enhancer_row")
+```
+
+
+```{r create a single score for each mutant}
+# Here we create a total score for the pair by adding enhancer score and gene score
+AllData = AllData %>% mutate(pair_score_Gd7 = Enhancer_Gd7 + Gene_Gd7)
+AllData = AllData %>% mutate(pair_score_Toll10b = Enhancer_Toll10b + Gene_Toll10b)
+AllData = AllData %>% mutate(pair_score_Toll9 = Enhancer_Toll9 + Gene_Toll9)
+AllData = AllData %>% mutate(pair_score_Time = Enhancer_Time + Gene_Time)
+```
+
+## Filter put pairs in different tissues
+Filter out pairs where the genes are classified as most important in a different tissue(or up/down) than the enhancer
+
+```{r Filtering}
+# Filter out the pairs where the gene and enhancer are regulated differently
+AllData$PROseq_Classification = paste(AllData$Gene_Factor, AllData$Gene_Direction, sep = " ")
+AllData$ATACseq_Classification = paste(AllData$Enhancer_Factor, AllData$Enhancer_Direction, sep = " ")
+pairs_filtered = AllData %>% filter(PROseq_Classification == ATACseq_Classification)
+```
+
+## Keep only one score for each pair
+Only the score connected to the largest factor(mutant or time) is kept and saved as the score
+
+```{r keep only one score}
+# We want to only include the score for the relevant factor
+enhancer_gene_pairs = pairs_filtered
+enhancer_gene_pairs$pair_score = NA
+
+for (pair_row in 1:dim(enhancer_gene_pairs)[1]) {
+  factor = enhancer_gene_pairs[pair_row, ]$Gene_Factor
+  if (factor == "Gd7") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Gd7
+  }
+  else if (factor == "Toll9") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll9
+  }
+  else if (factor == "Toll10b") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Toll10b
+  }
+  else if (factor == "Time") {
+    enhancer_gene_pairs[pair_row,]$pair_score = enhancer_gene_pairs[pair_row,]$pair_score_Time
+  }
+}
+enhancer_gene_pairs_unique = enhancer_gene_pairs %>% dplyr::select(-pair_score_Gd7,-pair_score_Time,-pair_score_Toll10b,-pair_score_Toll9) %>% unique()
+```
+
+## Filter by distance
+We know enhancers are working at a distance so enhancer that are close to the gene we do not know if it is true or not. We set the cut pff as 2 kb between the gene and the enhancer
+
+```{r Filtering by distance and background}
+enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique %>% filter(Distance > 2000)  
+
+enhancer_gene_pairs_unique_over_2kb_no_background = enhancer_gene_pairs_unique_over_2kb %>% filter(Background == "No")
+```
+
+
+```{r Filtering on the scores and density plot}
+# Changing the scores to absolute values
+enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique_over_2kb %>% mutate(pair_score = abs(pair_score))
+
+# Plotting a density plot to find where to make the cutoff
+density_plot = ggplot(data.frame(enhancer_gene_pairs_unique_over_2kb$pair_score), aes(x=enhancer_gene_pairs_unique_over_2kb$pair_score)) + 
+  geom_density(color="darkblue") +
+  geom_vline(aes(xintercept=mean(enhancer_gene_pairs_unique_over_2kb$pair_score)),
+             linetype="dashed") +
+  geom_vline(aes(xintercept=1.4), linetype="dashed", color="green") +
+  labs(title="Pair score density curve",x="Pair Score", y = "Density")
+
+
+# According to this we filter on scores larger than 1.4
+enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique_over_2kb %>% filter(pair_score > 1.4)
+```
+
+
+```{r save the data}
+# We are only interested in the pairs with distances over 2kb
+write.table(
+  x = enhancer_gene_pairs_unique_over_2kb,
+  file = paste(
+    params$workingDir,
+    params$resultsDir,
+    params$resultsFile,
+    sep = ""
+  ),
+  quote = F,
+  sep = "\t",
+  row.names = F,
+  col.names = T
+)
+```
+
+## Add annotation for the genes
+```{r from annotation.Rmd}
+# Load the ATAC-seq scores
+annotation_data = read.table(
+  file = paste(params$workingDir, params$functionAnnotation, sep = ""),
+  quote = "",
+  sep = "\t",
+  header = TRUE,
+  stringsAsFactors = F
+)
+pairs = enhancer_gene_pairs_unique_over_2kb
+annotation_data_cleaned = annotation_data %>% dplyr::select(acc, protFullNames, score, geneName, functionText)
+annotation_data_cleaned = annotation_data_cleaned %>% dplyr::rename(name = acc,
+                                                                    geneFunc = protFullNames,
+                                                                    geneFuncFullText = functionText)
+
+# Needs a name to match the annotation files
+pairs_cleaned = pairs %>% dplyr::select(Enhancer_ID, Gene_geneID)
+universe <- bitr(
+  unique(pairs_cleaned$Gene_geneID),
+  fromType = "ENSEMBL",
+  toType = c("UNIPROT"),
+  OrgDb = org.Dm.eg.db
+)
+universe  =  universe %>% dplyr::rename(Gene_geneID = ENSEMBL, name = UNIPROT)
+
+# Join the uniprot names with the Ensembl IDs
+pairs_uniprotID = inner_join(pairs, universe, by = "Gene_geneID")
+# Now join the pairs with the annotation from SwissProtUniprot
+AllData = inner_join(pairs_uniprotID, annotation_data_cleaned, by = "name")
+
+# Make the results cleaner for output. One file with less information for easier overview
+AllData_renamed = AllData %>% dplyr::rename(UNIPROTname = name)
+AllData_cleaned = AllData_renamed %>% dplyr::select(
+  Enhancer_ID,
+  Gene_geneID,
+  Distance,
+  PROseq_Classification,
+  pair_score,
+  UNIPROTname,
+  geneFunc,
+  geneName,
+  geneFuncFullText
+) %>% unique()
+```
+
+```{r write to file}
+# The more complete result file
+results = paste(params$workingDir,
+                params$resultsDirAnno,
+                params$resultsAnnotated2kb ,
+                sep = "")
+write.table(
+  x = AllData,
+  file = results,
+  quote = F,
+  sep = "\t",
+  row.names = F,
+  col.names = T
+)
+# The result file with better overview
+results_cleaned = paste(
+  params$workingDir,
+  params$resultsDirAnno,
+  params$resultsAnnotatedCleaned2kb ,
+  sep = ""
+)
+# Save the results file
+write.table(
+  x = AllData_cleaned,
+  file = results_cleaned,
+  quote = F,
+  sep = "\t",
+  row.names = F,
+  col.names = T
+)
+```
+
