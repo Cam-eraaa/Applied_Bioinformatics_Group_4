@@ -6,19 +6,19 @@ output: html_document
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  #enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
-  enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
+  enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
   resultsDir: results/altered_method/pairs/
-  #resultsFile: EGP_PCA_filtering.tsv
-  resultsFile: EGP_UMAP.tsv
+  resultsFile: EGP_PCA_filtering.tsv
+  #resultsFile: EGP_UMAP.tsv
   resultsDirAnno: results/altered_method/pairs/
   functionAnnotation: hgTables.txt
-  #resultsAnnotated2kb: annotated_results2kb_PCA_filtering.tsv
+  resultsAnnotated2kb: annotated_results2kb_PCA_filtering.tsv
   #resultsAnnotated2kb: annotated_results2kb_no_filtering.tsv
-  resultsAnnotated2kb: annotated_results2kb_UMAP.tsv
-  #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_PCA_filtering.tsv
+  #resultsAnnotated2kb: annotated_results2kb_UMAP.tsv
+  resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_PCA_filtering.tsv
   #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_no_filtering.tsv
-  resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_UMAP.tsv
+  #resultsAnnotatedCleaned2kb: annotated_cleaned_results2kb_UMAP.tsv
 ---
 
 ```{r setup, include=FALSE}
@@ -27,6 +27,7 @@ library(dplyr)
 library(GenomicRanges)
 library(clusterProfiler)
 library(org.Dm.eg.db)
+library(patchwork)
 ```
 # Connecting enhancers to pair
 ## Load the data
@@ -51,7 +52,7 @@ our_enhancer_data = our_enhancer_data %>% dplyr::rename(
   "Enhancer_Direction" = ATAC_direction
 )
 # Filter out the background enhancers
-#our_enhancer_data_no_background = our_enhancer_data %>% dplyr::filter(Background == "No")
+our_enhancer_data = our_enhancer_data %>% dplyr::filter(Background == "No")
 
 #This is the output from PROseq_analysis with the genes as regions instead of CBP peaks
 PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
@@ -121,7 +122,7 @@ PROData = makeGRangesFromDataFrame(
 
 ```{r find all pairs, not just closest}
 
-pairs = data_frame()
+pairs = tibble::data_frame()
 
 for (i in 1:length(ourEnhancerData)){
   paired_rows = data.frame(distance(ourEnhancerData[i], PROData, ignore.strand=TRUE))
@@ -203,14 +204,18 @@ enhancer_gene_pairs_unique_over_2kb_no_background = enhancer_gene_pairs_unique_o
 ```{r Filtering on the scores and density plot}
 # Changing the scores to absolute values
 enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique_over_2kb %>% mutate(pair_score = abs(pair_score))
-
 # Plotting a density plot to find where to make the cutoff
-density_plot = ggplot(data.frame(enhancer_gene_pairs_unique_over_2kb$pair_score), aes(x=enhancer_gene_pairs_unique_over_2kb$pair_score)) + 
-  geom_density(color="darkblue") +
-  geom_vline(aes(xintercept=mean(enhancer_gene_pairs_unique_over_2kb$pair_score)),
-             linetype="dashed") +
-  geom_vline(aes(xintercept=1.4), linetype="dashed", color="green") +
-  labs(title="Pair score density curve",x="Pair Score", y = "Density")
+density_plot = ggplot(
+  data.frame(enhancer_gene_pairs_unique_over_2kb$pair_score),
+  aes(x = enhancer_gene_pairs_unique_over_2kb$pair_score)
+) +
+  geom_density(color = "darkblue") +
+  geom_vline(aes(
+    xintercept = mean(enhancer_gene_pairs_unique_over_2kb$pair_score)
+  ),
+  linetype = "dashed") +
+  geom_vline(aes(xintercept = 1.4), linetype = "dashed", color = "green") +
+  labs(title = "Pair score density curve", x = "Pair Score", y = "Density")
 
 
 # According to this we filter on scores larger than 1.4

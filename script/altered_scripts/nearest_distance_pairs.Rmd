@@ -7,17 +7,20 @@ output: html_document
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
-  #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
+  enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
   resultsDir: results/altered_method/pairs/nearest_distance/
-  resultsFile: EGP_PCA_filtering_nearest_distance.tsv
-  #resultsFile: EGP_UMAP_nearest_distance.tsv
+  #resultsFile: EGP_PCA_filtering_nearest_distance.tsv
+  #resultsFile: EGP_PCA_no_filtering_nearest_distance.tsv
+  resultsFile: EGP_UMAP_nearest_distance.tsv
   resultsDirAnno: results/altered_method/pairs/nearest_distance/
   functionAnnotation: hgTables.txt
-  resultsAnnotated2kb: annotated_nearest_distance_PCA_filtering.tsv
-  #resultsAnnotated2kb: annotated_nearest_distance_UMAP.tsv
-  resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_PCA_filtering.tsv
-  #resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_UMAP.tsv
+  #resultsAnnotated2kb: annotated_nearest_distance_PCA_filtering.tsv
+  #resultsAnnotated2kb: annotated_nearest_distance_PCA_no_filtering.tsv
+  resultsAnnotated2kb: annotated_nearest_distance_UMAP.tsv
+  #resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_PCA_filtering.tsv
+  #resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_PCA_no_filtering.tsv
+  resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_UMAP.tsv
 ---
 
 ```{r setup, include=FALSE}
@@ -52,8 +55,6 @@ our_enhancer_data = our_enhancer_data %>% dplyr::rename(
   "Enhancer_Factor" = ATAC_factor,
   "Enhancer_Direction" = ATAC_direction
 )
-# Filter out the background enhancers
-our_enhancer_data = our_enhancer_data %>% dplyr::filter(Background == "No")
 
 #This is the output from PROseq_analysis with the genes as regions instead of CBP peaks
 PROseq_gene_file = paste(params$workingDir, params$PROseq.gene.data, sep = "")
