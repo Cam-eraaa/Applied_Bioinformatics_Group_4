@@ -9,10 +9,10 @@ params:
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
   #enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
   enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
-  resultsDir: results/altered_method/pairs/nearest_distance
+  resultsDir: results/altered_method/pairs/nearest_distance/nearest_distance
   #resultsFile: EGP_PCA_filtering_nearest_distance.tsv
-  #resultsFile: EGP_PCA_no_filter_nearest_distance.tsv
-  resultsFile: EGP_UMAP.tsv
+  #resultsFile: EGP_PCA_no_filtering_nearest_distance.tsv
+  resultsFile: EGP_UMAP_nearest_distance.tsv
   resultsDirAnno: results/altered_method/pairs/nearest_distance
   functionAnnotation: hgTables.txt
   #resultsAnnotated2kb: annotated_nearest_distance_PCA_filtering.tsv
@@ -172,7 +172,7 @@ enhancer_gene_pairs_unique = enhancer_gene_pairs %>% dplyr::select(-pair_score_G
 We know enhancers are working at a distance so enhancer that are close to the gene we do not know if it is true or not. We set the cut pff as 2 kb between the gene and the enhancer
 
 ```{r Filtering by distance and background}
-enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique %>% filter(Distance > 2000)  
+enhancer_gene_pairs_unique_over_2kb = enhancer_gene_pairs_unique %>% filter(Distance > 2000)
 
 enhancer_gene_pairs_unique_over_2kb_no_background = enhancer_gene_pairs_unique_over_2kb %>% filter(Background == "No")
 ```
