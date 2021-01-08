@@ -530,11 +530,6 @@ write.table(
   row.names = F,
   col.names = T
 )
-
-# Just to be able to count the non-background files
-enhancers.filtering_no_background = enhancers.filtering %>% filter(Background=="No")
-
-
 ```
 
 
