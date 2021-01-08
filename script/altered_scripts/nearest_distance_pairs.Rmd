@@ -7,20 +7,17 @@ output: html_document
 params:
   workingDir: ~/Applied_Bioinformatics_Group_4/
   PROseq.gene.data: results/original_method/PROseq/PROseq.data.tsv
-  #enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
-  enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
-  resultsDir: results/altered_method/pairs/nearest_distance/nearest_distance
-  #resultsFile: EGP_PCA_filtering_nearest_distance.tsv
-  #resultsFile: EGP_PCA_no_filtering_nearest_distance.tsv
-  resultsFile: EGP_UMAP_nearest_distance.tsv
-  resultsDirAnno: results/altered_method/pairs/nearest_distance
+  enhancer.data: results/altered_method/from_joint_peak/enhancers.tsv
+  #enhancer.data: results/altered_method/from_joint_peak/UMAP_enhancers.tsv
+  resultsDir: results/altered_method/pairs/nearest_distance/
+  resultsFile: EGP_PCA_filtering_nearest_distance.tsv
+  #resultsFile: EGP_UMAP_nearest_distance.tsv
+  resultsDirAnno: results/altered_method/pairs/nearest_distance/
   functionAnnotation: hgTables.txt
-  #resultsAnnotated2kb: annotated_nearest_distance_PCA_filtering.tsv
-  #resultsAnnotated2kb: annotated_nearest_distance_no_filtering.tsv
-  resultsAnnotated2kb: annotated_nearest_distance_UMAP.tsv
-  #resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_PCA_filtering.tsv
-  #resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_no_filtering.tsv
-  resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_UMAP.tsv
+  resultsAnnotated2kb: annotated_nearest_distance_PCA_filtering.tsv
+  #resultsAnnotated2kb: annotated_nearest_distance_UMAP.tsv
+  resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_PCA_filtering.tsv
+  #resultsAnnotatedCleaned2kb: annotated_cleaned_nearest_distance_UMAP.tsv
 ---
 
 ```{r setup, include=FALSE}
